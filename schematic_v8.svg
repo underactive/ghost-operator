@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 750" width="900" height="750">
+  <defs>
+    <style>
+      .title { font: bold 16px 'Courier New', monospace; fill: #00ff00; }
+      .subtitle { font: 10px 'Courier New', monospace; fill: #00ff00; }
+      .component-label { font: bold 10px 'Courier New', monospace; fill: #ffffff; }
+      .pin-label { font: bold 9px 'Courier New', monospace; fill: #ffff00; }
+      .value-label { font: 9px 'Courier New', monospace; fill: #00ffff; }
+      .net-label { font: bold 9px 'Courier New', monospace; }
+      .note { font: italic 9px 'Courier New', monospace; fill: #888888; }
+      .component { fill: #1a1a2e; stroke: #00ff00; stroke-width: 2; }
+      .ic-body { fill: #2d2d44; stroke: #00ff00; stroke-width: 2; }
+      .pin { fill: #ffff00; stroke: #888800; stroke-width: 1; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="900" height="750" fill="#0a0a1a"/>
+  
+  <!-- Title -->
+  <rect x="15" y="10" width="280" height="40" class="component" rx="3"/>
+  <text x="25" y="30" class="title">GHOST OPERATOR v1.0</text>
+  <text x="25" y="42" class="subtitle">Encoder Menu + Flash</text>
+
+  <!-- ================================================================ -->
+  <!-- XIAO MCU - CENTER                                                -->
+  <!-- ================================================================ -->
+  <g transform="translate(350, 100)">
+    <rect x="0" y="0" width="200" height="260" class="ic-body" rx="6"/>
+    
+    <rect x="75" y="-10" width="50" height="14" fill="#555" stroke="#888" stroke-width="1" rx="2"/>
+    <text x="100" y="0" class="pin-label" text-anchor="middle" font-size="7">USB-C</text>
+    
+    <text x="100" y="25" class="component-label" text-anchor="middle">SEEED XIAO nRF52840</text>
+    
+    <!-- LEFT PINS -->
+    <rect x="-5" y="55" width="30" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="10" y="67" class="pin-label" text-anchor="middle">D0</text>
+    <circle cx="0" cy="64" r="4" class="pin"/>
+    
+    <rect x="-5" y="85" width="30" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="10" y="97" class="pin-label" text-anchor="middle">D1</text>
+    <circle cx="0" cy="94" r="4" class="pin"/>
+    
+    <rect x="-5" y="115" width="30" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="10" y="127" class="pin-label" text-anchor="middle">D2</text>
+    <circle cx="0" cy="124" r="4" class="pin"/>
+    
+    <rect x="-5" y="145" width="30" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="10" y="157" class="pin-label" text-anchor="middle">D3</text>
+    <circle cx="0" cy="154" r="4" class="pin"/>
+    
+    <rect x="-5" y="190" width="35" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="12" y="202" class="pin-label" text-anchor="middle">BAT+</text>
+    <circle cx="0" cy="199" r="4" class="pin"/>
+    
+    <rect x="-5" y="220" width="35" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="12" y="232" class="pin-label" text-anchor="middle">BAT-</text>
+    <circle cx="0" cy="229" r="4" class="pin"/>
+    
+    <!-- RIGHT PINS -->
+    <rect x="175" y="55" width="30" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="190" y="67" class="pin-label" text-anchor="middle">D5</text>
+    <circle cx="200" cy="64" r="4" class="pin"/>
+    
+    <rect x="175" y="85" width="30" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="190" y="97" class="pin-label" text-anchor="middle">D4</text>
+    <circle cx="200" cy="94" r="4" class="pin"/>
+    
+    <rect x="170" y="145" width="35" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="188" y="157" class="pin-label" text-anchor="middle">3V3</text>
+    <circle cx="200" cy="154" r="4" class="pin"/>
+    
+    <rect x="170" y="175" width="35" height="18" fill="#1a1a2e" stroke="#00ff00" stroke-width="1"/>
+    <text x="188" y="187" class="pin-label" text-anchor="middle">GND</text>
+    <circle cx="200" cy="184" r="4" class="pin"/>
+  </g>
+
+  <!-- ================================================================ -->
+  <!-- ENCODER - LEFT SIDE (ALL 5 PINS)                                 -->
+  <!-- ================================================================ -->
+  <g transform="translate(60, 100)">
+    <rect x="0" y="0" width="130" height="190" class="component" rx="5"/>
+    
+    <circle cx="65" cy="45" r="25" fill="none" stroke="#00ff00" stroke-width="2"/>
+    <circle cx="65" cy="45" r="8" fill="#333" stroke="#00ff00" stroke-width="1"/>
+    
+    <text x="65" y="90" class="component-label" text-anchor="middle">ENCODER</text>
+    <text x="65" y="103" class="value-label" text-anchor="middle">KY-040 (ENC1)</text>
+    
+    <!-- ALL 5 Pins on RIGHT edge -->
+    <rect x="100" y="115" width="30" height="14" fill="#1a1a2e" stroke="#ff6600" stroke-width="1"/>
+    <text x="115" y="125" class="pin-label" text-anchor="middle" fill="#ff6600">GND</text>
+    <circle cx="130" cy="122" r="4" fill="#ff6600"/>
+    
+    <rect x="100" y="131" width="30" height="14" fill="#1a1a2e" stroke="#ff3333" stroke-width="1"/>
+    <text x="115" y="141" class="pin-label" text-anchor="middle" fill="#ff3333">+</text>
+    <circle cx="130" cy="138" r="4" fill="#ff3333"/>
+    
+    <rect x="100" y="147" width="30" height="14" fill="#1a1a2e" stroke="#00ffff" stroke-width="1"/>
+    <text x="115" y="157" class="pin-label" text-anchor="middle" fill="#00ffff">SW</text>
+    <circle cx="130" cy="154" r="4" fill="#00ffff"/>
+    
+    <rect x="100" y="163" width="30" height="14" fill="#1a1a2e" stroke="#00ffff" stroke-width="1"/>
+    <text x="115" y="173" class="pin-label" text-anchor="middle" fill="#00ffff">DT</text>
+    <circle cx="130" cy="170" r="4" fill="#00ffff"/>
+    
+    <rect x="100" y="179" width="30" height="14" fill="#1a1a2e" stroke="#00ffff" stroke-width="1"/>
+    <text x="115" y="189" class="pin-label" text-anchor="middle" fill="#00ffff">CLK</text>
+    <circle cx="130" cy="186" r="4" fill="#00ffff"/>
+  </g>
+  
+  <!-- ENCODER SIGNALS → XIAO -->
+  <path d="M190,286 L270,286 L270,164 L350,164" stroke="#00ffff" stroke-width="2" fill="none"/>
+  <text x="280" y="220" class="net-label" fill="#00ffff">CLK→D0</text>
+  
+  <path d="M190,270 L250,270 L250,194 L350,194" stroke="#00ffff" stroke-width="2" fill="none"/>
+  <text x="260" y="240" class="net-label" fill="#00ffff">DT→D1</text>
+  
+  <path d="M190,254 L230,254 L230,224 L350,224" stroke="#00ffff" stroke-width="2" fill="none"/>
+  <text x="240" y="260" class="net-label" fill="#00ffff">SW→D2</text>
+
+  <!-- ================================================================ -->
+  <!-- FUNCTION BUTTON - BOTTOM LEFT                                    -->
+  <!-- ================================================================ -->
+  <g transform="translate(60, 340)">
+    <rect x="0" y="0" width="130" height="70" class="component" rx="5"/>
+    
+    <circle cx="35" cy="30" r="4" fill="none" stroke="#00ff00" stroke-width="2"/>
+    <line x1="39" y1="30" x2="65" y2="18" stroke="#00ff00" stroke-width="2"/>
+    <circle cx="85" cy="30" r="4" fill="none" stroke="#00ff00" stroke-width="2"/>
+    
+    <text x="65" y="55" class="component-label" text-anchor="middle">FUNC BTN (SW1)</text>
+    
+    <!-- Button pins -->
+    <rect x="100" y="18" width="30" height="14" fill="#1a1a2e" stroke="#00ffff" stroke-width="1"/>
+    <text x="115" y="28" class="pin-label" text-anchor="middle" fill="#00ffff">SIG</text>
+    <circle cx="130" cy="25" r="4" fill="#00ffff"/>
+    
+    <rect x="100" y="38" width="30" height="14" fill="#1a1a2e" stroke="#ff6600" stroke-width="1"/>
+    <text x="115" y="48" class="pin-label" text-anchor="middle" fill="#ff6600">GND</text>
+    <circle cx="130" cy="45" r="4" fill="#ff6600"/>
+  </g>
+  
+  <!-- BTN SIG → D3 -->
+  <path d="M190,365 L210,365 L210,254 L350,254" stroke="#00ffff" stroke-width="2" fill="none"/>
+  <text x="220" y="310" class="net-label" fill="#00ffff">BTN→D3</text>
+
+  <!-- ================================================================ -->
+  <!-- OLED DISPLAY - RIGHT SIDE (ALL 4 PINS)                           -->
+  <!-- ================================================================ -->
+  <g transform="translate(710, 100)">
+    <rect x="0" y="0" width="130" height="170" class="component" rx="5"/>
+    
+    <rect x="20" y="15" width="90" height="45" fill="#000044" stroke="#0066ff" stroke-width="2"/>
+    <text x="65" y="42" class="component-label" text-anchor="middle" fill="#0066ff">128x64</text>
+    
+    <text x="65" y="80" class="component-label" text-anchor="middle">OLED SSD1306</text>
+    <text x="65" y="95" class="value-label" text-anchor="middle">DISP1 (I2C)</text>
+    
+    <!-- ALL 4 Pins on LEFT edge -->
+    <rect x="0" y="105" width="35" height="14" fill="#1a1a2e" stroke="#ff3333" stroke-width="1"/>
+    <text x="17" y="115" class="pin-label" text-anchor="middle" fill="#ff3333">VCC</text>
+    <circle cx="0" cy="112" r="4" fill="#ff3333"/>
+    
+    <rect x="0" y="121" width="35" height="14" fill="#1a1a2e" stroke="#ff6600" stroke-width="1"/>
+    <text x="17" y="131" class="pin-label" text-anchor="middle" fill="#ff6600">GND</text>
+    <circle cx="0" cy="128" r="4" fill="#ff6600"/>
+    
+    <rect x="0" y="137" width="35" height="14" fill="#1a1a2e" stroke="#cc00ff" stroke-width="1"/>
+    <text x="17" y="147" class="pin-label" text-anchor="middle" fill="#cc00ff">SCL</text>
+    <circle cx="0" cy="144" r="4" fill="#cc00ff"/>
+    
+    <rect x="0" y="153" width="35" height="14" fill="#1a1a2e" stroke="#ff00ff" stroke-width="1"/>
+    <text x="17" y="163" class="pin-label" text-anchor="middle" fill="#ff00ff">SDA</text>
+    <circle cx="0" cy="160" r="4" fill="#ff00ff"/>
+  </g>
+  
+  <!-- OLED SCL → D5 -->
+  <path d="M710,244 L620,244 L620,164 L550,164" stroke="#cc00ff" stroke-width="2" fill="none"/>
+  <text x="630" y="200" class="net-label" fill="#cc00ff">SCL→D5</text>
+  
+  <!-- OLED SDA → D4 -->
+  <path d="M710,260 L640,260 L640,194 L550,194" stroke="#ff00ff" stroke-width="2" fill="none"/>
+  <text x="650" y="230" class="net-label" fill="#ff00ff">SDA→D4</text>
+
+  <!-- ================================================================ -->
+  <!-- BATTERY - TOP LEFT                                               -->
+  <!-- ================================================================ -->
+  <g transform="translate(60, 30)">
+    <rect x="0" y="0" width="130" height="55" class="component" rx="5"/>
+    
+    <line x1="30" y1="15" x2="30" y2="40" stroke="#ff8800" stroke-width="2"/>
+    <line x1="20" y1="15" x2="40" y2="15" stroke="#ff8800" stroke-width="4"/>
+    <line x1="25" y1="40" x2="35" y2="40" stroke="#ff8800" stroke-width="4"/>
+    
+    <text x="55" y="22" class="pin-label">+</text>
+    <text x="55" y="42" class="pin-label">-</text>
+    
+    <text x="95" y="28" class="component-label">BT1</text>
+    <text x="95" y="43" class="value-label">LiPo</text>
+    
+    <circle cx="130" cy="20" r="4" class="pin"/>
+    <circle cx="130" cy="40" r="4" class="pin"/>
+  </g>
+  
+  <!-- Battery → XIAO BAT pins -->
+  <path d="M190,50 L290,50 L290,299 L350,299" stroke="#ff8800" stroke-width="2" fill="none"/>
+  <text x="300" y="180" class="net-label" fill="#ff8800">BAT+</text>
+  
+  <path d="M190,70 L310,70 L310,329 L350,329" stroke="#ff6600" stroke-width="2" fill="none"/>
+  <text x="320" y="205" class="net-label" fill="#ff6600">BAT-</text>
+
+  <!-- ================================================================ -->
+  <!-- POWER RAILS - BOTTOM CENTER                                      -->
+  <!-- ================================================================ -->
+  <rect x="350" y="450" width="200" height="50" class="component" rx="5"/>
+  <text x="450" y="470" class="component-label" text-anchor="middle">POWER RAILS</text>
+  
+  <!-- 3V3 rail line -->
+  <line x1="370" y1="485" x2="530" y2="485" stroke="#ff3333" stroke-width="4"/>
+  <text x="380" y="480" class="value-label">3V3</text>
+  
+  <!-- GND rail line -->
+  <line x1="370" y1="495" x2="530" y2="495" stroke="#ff6600" stroke-width="4"/>
+  <text x="380" y="507" class="value-label">GND</text>
+  
+  <!-- XIAO 3V3 → Rail -->
+  <path d="M550,254 L570,254 L570,485 L530,485" stroke="#ff3333" stroke-width="2" fill="none"/>
+  <circle cx="530" cy="485" r="4" fill="#ff3333"/>
+  
+  <!-- XIAO GND → Rail -->
+  <path d="M550,284 L590,284 L590,495 L530,495" stroke="#ff6600" stroke-width="2" fill="none"/>
+  <circle cx="530" cy="495" r="4" fill="#ff6600"/>
+
+  <!-- ================================================================ -->
+  <!-- CAPACITORS - ACTUAL COMPONENTS                                   -->
+  <!-- ================================================================ -->
+  
+  <!-- C1 - 100nF Ceramic -->
+  <g transform="translate(600, 440)">
+    <rect x="0" y="0" width="80" height="60" class="component" rx="5"/>
+    <text x="40" y="18" class="component-label" text-anchor="middle">C1</text>
+    <text x="40" y="32" class="value-label" text-anchor="middle">100nF</text>
+    
+    <!-- Capacitor symbol -->
+    <line x1="25" y1="40" x2="25" y2="55" stroke="#00ff00" stroke-width="2"/>
+    <line x1="18" y1="40" x2="32" y2="40" stroke="#00ff00" stroke-width="3"/>
+    <line x1="18" y1="47" x2="32" y2="47" stroke="#00ff00" stroke-width="3"/>
+    <line x1="25" y1="47" x2="25" y2="55" stroke="#00ff00" stroke-width="2"/>
+    
+    <!-- Pins -->
+    <rect x="45" y="35" width="30" height="12" fill="#1a1a2e" stroke="#ff3333" stroke-width="1"/>
+    <text x="60" y="44" class="pin-label" text-anchor="middle" fill="#ff3333" font-size="7">3V3</text>
+    <circle cx="80" cy="41" r="4" fill="#ff3333"/>
+    
+    <rect x="45" y="49" width="30" height="12" fill="#1a1a2e" stroke="#ff6600" stroke-width="1"/>
+    <text x="60" y="58" class="pin-label" text-anchor="middle" fill="#ff6600" font-size="7">GND</text>
+    <circle cx="80" cy="55" r="4" fill="#ff6600"/>
+  </g>
+  
+  <!-- C1 connections to rails -->
+  <path d="M680,481 L700,481 L700,485" stroke="#ff3333" stroke-width="2" fill="none"/>
+  <circle cx="700" cy="485" r="4" fill="#ff3333"/>
+  
+  <path d="M680,495 L700,495" stroke="#ff6600" stroke-width="2" fill="none"/>
+  <circle cx="700" cy="495" r="4" fill="#ff6600"/>
+  
+  <!-- C2 - 10µF Electrolytic -->
+  <g transform="translate(720, 440)">
+    <rect x="0" y="0" width="80" height="60" class="component" rx="5"/>
+    <text x="40" y="18" class="component-label" text-anchor="middle">C2</text>
+    <text x="40" y="32" class="value-label" text-anchor="middle">10µF</text>
+    
+    <!-- Electrolytic capacitor symbol (with +) -->
+    <text x="15" y="42" class="pin-label" fill="#ff3333" font-size="8">+</text>
+    <line x1="25" y1="38" x2="25" y2="55" stroke="#00ff00" stroke-width="2"/>
+    <line x1="18" y1="38" x2="32" y2="38" stroke="#00ff00" stroke-width="3"/>
+    <path d="M18,47 Q25,52 32,47" fill="none" stroke="#00ff00" stroke-width="2"/>
+    <line x1="25" y1="47" x2="25" y2="55" stroke="#00ff00" stroke-width="2"/>
+    
+    <!-- Pins -->
+    <rect x="45" y="35" width="30" height="12" fill="#1a1a2e" stroke="#ff3333" stroke-width="1"/>
+    <text x="60" y="44" class="pin-label" text-anchor="middle" fill="#ff3333" font-size="7">3V3</text>
+    <circle cx="80" cy="41" r="4" fill="#ff3333"/>
+    
+    <rect x="45" y="49" width="30" height="12" fill="#1a1a2e" stroke="#ff6600" stroke-width="1"/>
+    <text x="60" y="58" class="pin-label" text-anchor="middle" fill="#ff6600" font-size="7">GND</text>
+    <circle cx="80" cy="55" r="4" fill="#ff6600"/>
+  </g>
+  
+  <!-- C2 connections to rails -->
+  <path d="M800,481 L820,481 L820,485" stroke="#ff3333" stroke-width="2" fill="none"/>
+  <circle cx="820" cy="485" r="4" fill="#ff3333"/>
+  
+  <path d="M800,495 L820,495" stroke="#ff6600" stroke-width="2" fill="none"/>
+  <circle cx="820" cy="495" r="4" fill="#ff6600"/>
+  
+  <!-- Extend rails to reach capacitors -->
+  <line x1="530" y1="485" x2="820" y2="485" stroke="#ff3333" stroke-width="4"/>
+  <line x1="530" y1="495" x2="820" y2="495" stroke="#ff6600" stroke-width="4"/>
+  
+  <!-- ================================================================ -->
+  <!-- OLED POWER - from rail                                           -->
+  <!-- ================================================================ -->
+  <!-- Rail → OLED VCC -->
+  <path d="M650,485 L650,212 L710,212" stroke="#ff3333" stroke-width="2" fill="none"/>
+  <circle cx="650" cy="485" r="4" fill="#ff3333"/>
+  <text x="660" y="350" class="net-label" fill="#ff3333">VCC</text>
+  
+  <!-- Rail → OLED GND -->
+  <path d="M670,495 L670,228 L710,228" stroke="#ff6600" stroke-width="2" fill="none"/>
+  <circle cx="670" cy="495" r="4" fill="#ff6600"/>
+  <text x="680" y="370" class="net-label" fill="#ff6600">GND</text>
+  
+  <!-- ================================================================ -->
+  <!-- ENCODER POWER - from rail                                        -->
+  <!-- ================================================================ -->
+  <!-- Rail → Encoder + (VCC) -->
+  <path d="M400,485 L400,238 L190,238" stroke="#ff3333" stroke-width="2" fill="none"/>
+  <circle cx="400" cy="485" r="4" fill="#ff3333"/>
+  <text x="280" y="350" class="net-label" fill="#ff3333">ENC +</text>
+  
+  <!-- Rail → Encoder GND -->
+  <path d="M420,495 L420,222 L190,222" stroke="#ff6600" stroke-width="2" fill="none"/>
+  <circle cx="420" cy="495" r="4" fill="#ff6600"/>
+  <text x="280" y="380" class="net-label" fill="#ff6600">ENC GND</text>
+  
+  <!-- ================================================================ -->
+  <!-- BUTTON GND - from rail                                           -->
+  <!-- ================================================================ -->
+  <path d="M440,495 L440,385 L190,385" stroke="#ff6600" stroke-width="2" fill="none"/>
+  <circle cx="440" cy="495" r="4" fill="#ff6600"/>
+  <text x="280" y="420" class="net-label" fill="#ff6600">BTN GND</text>
+
+  <!-- ================================================================ -->
+  <!-- SUMMARY BOX                                                      -->
+  <!-- ================================================================ -->
+  <rect x="60" y="530" width="820" height="110" class="component" rx="5"/>
+  <text x="80" y="555" class="component-label">ALL CONNECTIONS SUMMARY</text>
+  <line x1="70" y1="565" x2="870" y2="565" stroke="#00ff00" stroke-width="1" opacity="0.3"/>
+  
+  <text x="80" y="585" class="pin-label">ENCODER (5 pins): GND→Rail, +→Rail, SW→D2, DT→D1, CLK→D0</text>
+  <text x="80" y="602" class="pin-label">OLED (4 pins): VCC→Rail, GND→Rail, SCL→D5, SDA→D4</text>
+  <text x="80" y="619" class="pin-label">BUTTON (2 pins): SIG→D3, GND→Rail</text>
+  <text x="80" y="636" class="pin-label">CAPACITORS: C1 100nF (3V3↔GND), C2 10µF+ (3V3↔GND)</text>
+
+  <!-- Corner brackets -->
+  <path d="M5,5 L5,25 M5,5 L25,5" stroke="#00ff00" stroke-width="2" fill="none"/>
+  <path d="M895,5 L895,25 M895,5 L875,5" stroke="#00ff00" stroke-width="2" fill="none"/>
+  <path d="M5,745 L5,725 M5,745 L25,745" stroke="#00ff00" stroke-width="2" fill="none"/>
+  <path d="M895,745 L895,725 M895,745 L875,745" stroke="#00ff00" stroke-width="2" fill="none"/>
+  
+  <text x="880" y="735" class="note" text-anchor="end">Rev 4.4</text>
+</svg>

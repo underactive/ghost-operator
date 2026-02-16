@@ -1,0 +1,33 @@
+# Changelog
+
+All notable changes to Ghost Operator will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [1.0.0] - 2026-02-16
+
+First hardware release.
+
+### Added
+
+- BLE HID composite device (keyboard + mouse) via Adafruit Bluefruit
+- Rotary encoder menu system with 5 UI modes (Normal, Key Min, Key Max, Mouse Jig, Mouse Idle)
+- Persistent settings storage via LittleFS with magic number validation and checksum
+- SSD1306 OLED display with real-time countdown bars, uptime, and battery percentage
+- 10 selectable keystroke options (F13-F15, ScrLk, Pause, NumLk, LShift, LCtrl, LAlt, NONE)
+- Independent key/mouse enable toggles via encoder button
+- Configurable key interval range (0.5s-30s) with random timing between min and max
+- Mouse jiggle state machine with configurable jiggle and idle durations
+- Mouse return-to-origin after each jiggle phase
+- ±20% randomness on mouse timing durations
+- Deep sleep via `sd_power_system_off()` (~3µA) with GPIO wake on function button
+- Settings auto-save on mode timeout (10s) and before sleep
+- Battery voltage monitoring with 8-sample averaging on 3.0V internal reference
+- Activity LED with connection-state-dependent blink rate
+- Serial debug interface at 115200 baud (commands: h, s, d, z)
+- Interrupt-driven encoder with 4-transition-per-detent state machine
+- Splash screen on boot with version display
+- BLE auto-reconnect to last paired host

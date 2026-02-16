@@ -1,0 +1,25 @@
+# Arduino IDE
+build/
+*.ino.cpp
+*.ino.eep
+*.ino.elf
+*.ino.hex
+*.ino.with_bootloader.bin
+*.ino.with_bootloader.hex
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/.browse.cxx.db*
+.clangd/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+*.swp
+*.swo
+*~
+.idea/
