@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-02-16
+
+### Added
+
+- Bluetooth icon bitmap on status bar (solid when connected, 1Hz flash when scanning)
+
+### Changed
+
+- Status bar layout: "GHOST Operator" left-aligned, BT icon + battery right-aligned
+- Display labels: "KEY:" → "KB [key]", "MOUSE" → "MS" to prevent text overlap
+- Mouse state indicators: "[JIG]" → "[MOV]", "[---]" → "[IDL]"
+- Settings page value display: ">>> x.xs <<<" → "> x.xs <" to fit 128px width
+- Settings page instruction: "Turn encoder to adjust" → "Turn dial to adjust"
+
+### Fixed
+
+- HID keystrokes sending wrong characters (F15 sent "j") — `keyPress()` expects ASCII but was receiving HID keycodes; switched to `keyboardReport()` for raw HID output
+
 ## [1.0.0] - 2026-02-16
 
 First hardware release.

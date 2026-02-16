@@ -1,11 +1,11 @@
-# Ghost Operator v1.0 - User Manual
+# Ghost Operator v1.1 - User Manual
 
 ## Quick Start
 
 1. Connect battery or USB-C
-2. Device boots and shows "GHOST OPERATOR v1.0.0"
+2. Device boots and shows "GHOST OPERATOR v1.1.0"
 3. On your computer: Bluetooth settings → pair "GhostOperator"
-4. Display shows `[LINK]` when connected
+4. Display shows Bluetooth icon when connected
 5. Device starts sending keystrokes and mouse movements
 
 ---
@@ -28,12 +28,12 @@
 
 ```
 ┌────────────────────────────────┐
-│ GHOST [LINK]              85%  │  ← Status bar
+│ GHOST Operator          ᛒ 85%  │  ← Status bar
 ├────────────────────────────────┤
-│ KEY:F15  2.0s-6.5s         ON  │  ← Key settings
+│ KB [F15]  2.0s-6.5s          ON  │  ← Key settings
 │ ████████████░░░░░░░░░░░░  3.2s │  ← Countdown bar
 ├────────────────────────────────┤
-│ MOUSE [JIG]  15s/30s       ON  │  ← Mouse settings
+│ MS [MOV]  15s/30s          ON  │  ← Mouse settings
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │  ← Countdown bar
 ├────────────────────────────────┤
 │ Up: 02:34:15                 ● │  ← Uptime + spinner
@@ -42,20 +42,20 @@
 
 **Status Bar:**
 - `GHOST` - Device name
-- `[LINK]` - Bluetooth connected
-- `[SCAN]` - Searching for connection (blinks)
+- Bluetooth icon (solid) - Connected
+- Bluetooth icon (flashing) - Searching for connection
 - `85%` - Battery level
 
 **Key Section:**
-- `KEY:F15` - Currently selected keystroke
+- `KB [F15]` - Currently selected keystroke
 - `2.0s-6.5s` - Min/max interval range
 - `ON` / `--` - Keys enabled or disabled
 - Progress bar counts down to next keypress
 - `3.2s` - Time until next keypress
 
 **Mouse Section:**
-- `[JIG]` - Currently jiggling
-- `[---]` - Currently idle (paused)
+- `[MOV]` - Currently moving
+- `[IDL]` - Currently idle (paused)
 - `15s/30s` - Jiggle duration / idle duration
 - `ON` / `--` - Mouse enabled or disabled
 - Progress bar counts down current state
@@ -74,18 +74,18 @@
 │ MODE: KEY MIN            [K]   │  ← Current mode
 ├────────────────────────────────┤
 │                                │
-│       >>> 2.0s <<<             │  ← Current value
+│       > 2.0s <             │  ← Current value
 │                                │
 │ 0.5s ████████░░░░░░░░░░░░ 30s  │  ← Position in range
 ├────────────────────────────────┤
-│ Turn encoder to adjust         │
+│ Turn dial to adjust         │
 └────────────────────────────────┘
 ```
 
 - `MODE: KEY MIN` - Which setting you're editing
 - `[K]` or `[k]` - Keys ON or off (press encoder to toggle)
 - `[M]` or `[m]` - Mouse ON or off (in mouse modes)
-- `>>> 2.0s <<<` - Current value (turn encoder to change)
+- `> 2.0s <` - Current value (turn encoder to change)
 - Progress bar shows position between 0.5s and 30s
 
 ---
@@ -165,12 +165,12 @@ NORMAL → KEY MIN → KEY MAX → MOUSE JIG → MOUSE IDLE → NORMAL...
 
 ### First Time Pairing
 1. Power on the device
-2. Display shows `[SCAN]` (blinking)
+2. Bluetooth icon flashes (searching)
 3. On your computer:
    - **Mac:** System Preferences → Bluetooth → "GhostOperator" → Connect
    - **Windows:** Settings → Bluetooth → Add device → "GhostOperator"
    - **Linux:** Bluetooth manager → Scan → Pair "GhostOperator"
-4. Display changes to `[LINK]` when connected
+4. Display shows Bluetooth icon when connected
 
 ### Reconnecting
 - Device automatically reconnects to last paired computer
@@ -206,9 +206,9 @@ Connect via USB and open Serial Monitor at 115200 baud.
 | Problem | Solution |
 |---------|----------|
 | Display stays black | Check wiring, especially VCC/GND |
-| `[SCAN]` never changes to `[LINK]` | Unpair from computer, try again |
+| Bluetooth icon keeps flashing | Unpair from computer, try again |
 | Keys not working | Make sure `ON` shows (not `--`), press encoder to toggle |
-| Mouse not moving | Check mouse is `ON`, wait for `[JIG]` state |
+| Mouse not moving | Check mouse is `ON`, wait for `[MOV]` state |
 | Encoder does nothing | Check CLK/DT wiring to D0/D1 |
 | Settings not saving | Wait for auto-return to NORMAL, or press function button |
 | Battery reads wrong | Normal - reading is approximate |
@@ -245,5 +245,5 @@ Connect via USB and open Serial Monitor at 115200 baud.
 
 ---
 
-*Ghost Operator v1.0 | TARS Industries*
+*Ghost Operator v1.1 | TARS Industries*
 *"Fewer parts, more flash"*

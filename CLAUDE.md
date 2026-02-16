@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.0.0
+**Current Version:** 1.1.0
 **Status:** Production-ready
 
 ---
@@ -116,12 +116,12 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING };
 
 ### Normal Mode
 ```
-GHOST [LINK]              85%
+GHOST Operator          ᛒ              85%
 ─────────────────────────────
-KEY:F15  2.0s-6.5s        ON
+KB [F15]  2.0s-6.5s         ON
 ████████████░░░░░░░░░░░  3.2s
 ─────────────────────────────
-MOUSE [JIG]  15s/30s      ON
+MS [MOV]  15s/30s         ON
 ██████░░░░░░░░░░░░░░░░░  8.5s
 ─────────────────────────────
 Up: 02:34:15                ●
@@ -132,11 +132,11 @@ Up: 02:34:15                ●
 MODE: KEY MIN           [K]
 ─────────────────────────────
 
-      >>> 2.0s <<<
+      > 2.0s <
 
 0.5s ████████░░░░░░░░░░░ 30s
 ─────────────────────────────
-Turn encoder to adjust
+Turn dial to adjust
 ```
 
 ---
@@ -146,6 +146,7 @@ Turn encoder to adjust
 | Ver | Changes |
 |-----|---------|
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
+| 1.1.0 | Display overhaul, BT icon, HID keycode fix |
 
 ---
 
