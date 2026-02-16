@@ -1,6 +1,6 @@
 # Ghost Operator - BLE Keyboard/Mouse Device
 
-## Version 1.1.0 - Encoder Menu + Flash Storage
+## Version 1.1.1 - Encoder Menu + Flash Storage
 
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
@@ -79,7 +79,7 @@ NORMAL → KEY MIN → KEY MAX → MOUSE JIG → MOUSE IDLE → (repeat)
 | Control | NORMAL Mode | Settings Mode |
 |---------|-------------|---------------|
 | Encoder Turn | Select keystroke | Adjust value ±0.5s |
-| Encoder Button | Toggle keys ON/OFF | Toggle keys/mouse |
+| Encoder Button | Cycle KB/MS enable combos | Cycle KB/MS enable combos |
 | Func Short | Next mode | Next mode |
 | Func Long (3s) | Enter sleep | Enter sleep |
 | Func (sleeping) | Wake up | - |
@@ -110,18 +110,18 @@ All settings: **0.5s to 30s** in 0.5s increments
 ┌────────────────────────────────┐
 │ GHOST Operator          ᛒ 85%  │
 ├────────────────────────────────┤
-│ KB [F15]  2.0s-6.5s          ON  │
+│ KB [F15]  2.0s-6.5s           ↑  │
 │ ████████████░░░░░░░░░░░░  3.2s │
 ├────────────────────────────────┤
-│ MS [MOV]  15s/30s          ON  │
+│ MS [MOV]  15s/30s            ↑  │
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │
 ├────────────────────────────────┤
-│ Up: 02:34:15                 ● │
+│ Up: 02:34:15      ~^~_~^~      │
 └────────────────────────────────┘
 ```
 
 - **Bluetooth icon** (solid) = Connected, (flashing) = Scanning
-- Progress bars count down to next action
+- ↑ = enabled, ✕ = disabled; mouse idle bar counts up, move bar counts down
 - **[MOV]** = Mouse moving, **[IDL]** = Mouse idle
 
 ### Settings Mode
@@ -230,7 +230,8 @@ Connect via USB at 115200 baud:
 | Version | Changes |
 |---------|---------|
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
-| **1.1.0** | **Display overhaul, BT icon, HID keycode fix** |
+| 1.1.0 | Display overhaul, BT icon, HID keycode fix |
+| **1.1.1** | **Icon-based status, ECG pulse, KB/MS combo cycling** |
 
 ---
 

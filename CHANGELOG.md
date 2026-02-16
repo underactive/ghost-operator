@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-02-16
+
+### Changed
+
+- Encoder button now cycles through all KB/MS enable combinations (both ON → KB only → MS only → both OFF) regardless of UI mode
+- ON/OFF text labels replaced with bitmap icons (↑ arrow = enabled, ✕ cross = disabled)
+- Mouse idle progress bar counts up (charging) instead of down, counts down when moving (draining)
+- Activity spinner replaced with scrolling ECG heartbeat pulse trace
+
 ## [1.1.0] - 2026-02-16
 
 ### Added
