@@ -20,7 +20,7 @@
   
   <!-- Title -->
   <rect x="15" y="10" width="280" height="40" class="component" rx="3"/>
-  <text x="25" y="30" class="title">GHOST OPERATOR v1.1</text>
+  <text x="25" y="30" class="title">GHOST OPERATOR v1.1.1</text>
   <text x="25" y="42" class="subtitle">Encoder Menu + Flash</text>
 
   <!-- ================================================================ -->

@@ -40,7 +40,7 @@ using namespace Adafruit_LittleFS_Namespace;
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.1.0"
+#define VERSION "1.1.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x4A494747  // "JIGG"
@@ -192,6 +192,28 @@ const int NUM_DIRS = 8;
 // Display
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 bool displayInitialized = false;
+
+// Up arrow icon (5x7 pixels) - "enabled"
+static const uint8_t PROGMEM iconOn[] = {
+  0x20,  // ..#..
+  0x70,  // .###.
+  0xA8,  // #.#.#
+  0x20,  // ..#..
+  0x20,  // ..#..
+  0x20,  // ..#..
+  0x00   // .....
+};
+
+// Diagonal cross icon (5x5 pixels) - "disabled"
+static const uint8_t PROGMEM iconOff[] = {
+  0x88,  // #...#
+  0x50,  // .#.#.
+  0x20,  // ..#..
+  0x50,  // .#.#.
+  0x88,  // #...#
+  0x00,  // .....
+  0x00   // .....
+};
 
 // Bluetooth icon bitmap (5x8 pixels)
 static const uint8_t PROGMEM btIcon[] = {
@@ -515,7 +537,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   
   bledis.setManufacturer("TARS Industries");
-  bledis.setModel("Ghost Operator v1.1.0");
+  bledis.setModel("Ghost Operator v1.1.1");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
   
@@ -747,20 +769,21 @@ void handleButtons() {
   bool encBtn = digitalRead(PIN_ENCODER_BTN);
   bool funcBtn = digitalRead(PIN_FUNC_BTN);
   
-  // Encoder button - toggle keys or mouse depending on mode
+  // Encoder button - cycle KB/MS enable combos: 11 → 10 → 01 → 00
   if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
     lastEncPress = now;
     lastModeActivity = now;
-    
-    if (currentMode == MODE_NORMAL || currentMode == MODE_KEY_MIN || currentMode == MODE_KEY_MAX) {
-      keyEnabled = !keyEnabled;
-      Serial.print("Keys: ");
-      Serial.println(keyEnabled ? "ON" : "OFF");
-    } else {
-      mouseEnabled = !mouseEnabled;
-      Serial.print("Mouse: ");
-      Serial.println(mouseEnabled ? "ON" : "OFF");
-    }
+
+    uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
+    // Cycle: 3(11) → 2(10) → 1(01) → 0(00) → 3(11)
+    state = (state == 0) ? 3 : state - 1;
+    keyEnabled = (state & 2) != 0;
+    mouseEnabled = (state & 1) != 0;
+
+    Serial.print("KB:");
+    Serial.print(keyEnabled ? "ON" : "OFF");
+    Serial.print(" MS:");
+    Serial.println(mouseEnabled ? "ON" : "OFF");
   }
   lastEncBtn = encBtn;
   
@@ -936,9 +959,8 @@ void drawNormalMode() {
   display.print("-");
   display.print(formatDuration(settings.keyIntervalMax));
   
-  // ON/OFF right aligned
-  display.setCursor(110, 12);
-  display.print(keyEnabled ? "ON" : "--");
+  // ON/OFF icon right aligned
+  display.drawBitmap(123, 12, keyEnabled ? iconOn : iconOff, 5, 7, SSD1306_WHITE);
   
   // Key progress bar (countdown)
   unsigned long keyElapsed = now - lastKeyTime;
@@ -977,9 +999,8 @@ void drawNormalMode() {
   display.print("/");
   display.print(formatDuration(settings.mouseIdleDuration));
   
-  // ON/OFF
-  display.setCursor(110, 32);
-  display.print(mouseEnabled ? "ON" : "--");
+  // ON/OFF icon right aligned
+  display.drawBitmap(123, 32, mouseEnabled ? iconOn : iconOff, 5, 7, SSD1306_WHITE);
   
   // Mouse progress bar
   unsigned long mouseElapsed = now - lastMouseStateChange;
@@ -987,7 +1008,14 @@ void drawNormalMode() {
   int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
   int mouseProgress = 0;
   if (mouseDuration > 0) {
-    mouseProgress = map(mouseRemaining, 0, mouseDuration, 0, 100);
+    if (mouseState == MOUSE_IDLE) {
+      // Count up while idle (charging up to next move)
+      mouseProgress = map(mouseElapsed, 0, mouseDuration, 0, 100);
+      if (mouseProgress > 100) mouseProgress = 100;
+    } else {
+      // Count down while moving (draining)
+      mouseProgress = map(mouseRemaining, 0, mouseDuration, 0, 100);
+    }
   }
   
   display.drawRect(0, 41, 100, 7, SSD1306_WHITE);
@@ -1008,13 +1036,29 @@ void drawNormalMode() {
   display.print("Up: ");
   display.print(formatUptime(now - startTime));
   
-  // Activity spinner
-  static uint8_t frame = 0;
-  frame = (frame + 1) % 4;
-  const char* spinner = "|/-\\";
+  // Heartbeat pulse trace
   if (deviceConnected) {
-    display.setCursor(122, 54);
-    display.print(spinner[frame]);
+    static uint8_t beatPhase = 0;
+    beatPhase = (beatPhase + 1) % 20;
+
+    // ECG waveform: y-offsets from baseline (negative = up on screen)
+    static const int8_t ecg[] = {
+      0, 0, 0, 0, 0,     // baseline
+      -1, -2, -1, 0,     // P wave
+      1, -5, 4, -1,      // QRS complex
+      0, -1, -2, -1,     // T wave
+      0, 0, 0            // baseline
+    };
+    const int ECG_LEN = 20;
+    int baseY = 58;
+    int startX = 108;
+
+    for (int i = 0; i < ECG_LEN - 1; i++) {
+      int a = (beatPhase + i) % ECG_LEN;
+      int b = (beatPhase + i + 1) % ECG_LEN;
+      display.drawLine(startX + i, baseY + ecg[a],
+                       startX + i + 1, baseY + ecg[b], SSD1306_WHITE);
+    }
   }
 }
 

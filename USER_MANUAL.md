@@ -1,9 +1,9 @@
-# Ghost Operator v1.1 - User Manual
+# Ghost Operator v1.1.1 - User Manual
 
 ## Quick Start
 
 1. Connect battery or USB-C
-2. Device boots and shows "GHOST OPERATOR v1.1.0"
+2. Device boots and shows "GHOST OPERATOR v1.1.1"
 3. On your computer: Bluetooth settings → pair "GhostOperator"
 4. Display shows Bluetooth icon when connected
 5. Device starts sending keystrokes and mouse movements
@@ -15,7 +15,7 @@
 | Control | Action |
 |---------|--------|
 | **Encoder Turn** | Select key (normal) / Adjust value (settings) |
-| **Encoder Press** | Toggle Keys or Mouse ON/OFF |
+| **Encoder Press** | Cycle KB/MS enable (both → KB → MS → off) |
 | **Button Short Press** | Cycle to next mode |
 | **Button Long Press (3s)** | Enter sleep mode |
 | **Button Press (while sleeping)** | Wake up |
@@ -30,18 +30,18 @@
 ┌────────────────────────────────┐
 │ GHOST Operator          ᛒ 85%  │  ← Status bar
 ├────────────────────────────────┤
-│ KB [F15]  2.0s-6.5s          ON  │  ← Key settings
+│ KB [F15]  2.0s-6.5s           ↑  │  ← Key settings
 │ ████████████░░░░░░░░░░░░  3.2s │  ← Countdown bar
 ├────────────────────────────────┤
-│ MS [MOV]  15s/30s          ON  │  ← Mouse settings
+│ MS [MOV]  15s/30s            ↑  │  ← Mouse settings
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │  ← Countdown bar
 ├────────────────────────────────┤
-│ Up: 02:34:15                 ● │  ← Uptime + spinner
+│ Up: 02:34:15      ~^~_~^~      │  ← Uptime + pulse
 └────────────────────────────────┘
 ```
 
 **Status Bar:**
-- `GHOST` - Device name
+- `GHOST Operator` - Device name
 - Bluetooth icon (solid) - Connected
 - Bluetooth icon (flashing) - Searching for connection
 - `85%` - Battery level
@@ -49,7 +49,7 @@
 **Key Section:**
 - `KB [F15]` - Currently selected keystroke
 - `2.0s-6.5s` - Min/max interval range
-- `ON` / `--` - Keys enabled or disabled
+- ↑ / ✕ - Keys enabled or disabled
 - Progress bar counts down to next keypress
 - `3.2s` - Time until next keypress
 
@@ -57,13 +57,13 @@
 - `[MOV]` - Currently moving
 - `[IDL]` - Currently idle (paused)
 - `15s/30s` - Jiggle duration / idle duration
-- `ON` / `--` - Mouse enabled or disabled
-- Progress bar counts down current state
+- ↑ / ✕ - Mouse enabled or disabled
+- Progress bar counts up while idle (charging), counts down while moving (draining)
 - `8.5s` - Time remaining in current state
 
 **Footer:**
 - `Up: 02:34:15` - Uptime (hours:minutes:seconds)
-- `●` - Activity spinner (animates when connected)
+- Heartbeat pulse trace (scrolling ECG animation when connected)
 
 ---
 
@@ -127,8 +127,15 @@ NORMAL → KEY MIN → KEY MAX → MOUSE JIG → MOUSE IDLE → NORMAL...
 4. Values auto-save when you leave the mode
 
 ### Toggle Keys/Mouse ON/OFF
-- In NORMAL, KEY MIN, or KEY MAX mode: **Press encoder** toggles keys
-- In MOUSE JIG or MOUSE IDLE mode: **Press encoder** toggles mouse
+**Press encoder** in any mode to cycle through enable combinations:
+
+| Press | Keyboard | Mouse |
+|-------|----------|-------|
+| Start | ON | ON |
+| 1st | ON | OFF |
+| 2nd | OFF | ON |
+| 3rd | OFF | OFF |
+| 4th | ON | ON (wraps) |
 
 ---
 
@@ -207,8 +214,8 @@ Connect via USB and open Serial Monitor at 115200 baud.
 |---------|----------|
 | Display stays black | Check wiring, especially VCC/GND |
 | Bluetooth icon keeps flashing | Unpair from computer, try again |
-| Keys not working | Make sure `ON` shows (not `--`), press encoder to toggle |
-| Mouse not moving | Check mouse is `ON`, wait for `[MOV]` state |
+| Keys not working | Make sure ↑ icon shows (not ✕), press encoder to cycle |
+| Mouse not moving | Check mouse shows ↑ icon, wait for `[MOV]` state |
 | Encoder does nothing | Check CLK/DT wiring to D0/D1 |
 | Settings not saving | Wait for auto-return to NORMAL, or press function button |
 | Battery reads wrong | Normal - reading is approximate |
@@ -245,5 +252,5 @@ Connect via USB and open Serial Monitor at 115200 baud.
 
 ---
 
-*Ghost Operator v1.1 | TARS Industries*
+*Ghost Operator v1.1.1 | TARS Industries*
 *"Fewer parts, more flash"*
