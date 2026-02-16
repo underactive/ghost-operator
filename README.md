@@ -1,6 +1,6 @@
 # Ghost Operator - BLE Keyboard/Mouse Device
 
-## Version 1.0.0 - Encoder Menu + Flash Storage
+## Version 1.1.0 - Encoder Menu + Flash Storage
 
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
@@ -108,21 +108,21 @@ All settings: **0.5s to 30s** in 0.5s increments
 
 ```
 ┌────────────────────────────────┐
-│ GHOST [LINK]              85%  │
+│ GHOST Operator          ᛒ 85%  │
 ├────────────────────────────────┤
-│ KEY:F15  2.0s-6.5s         ON  │
+│ KB [F15]  2.0s-6.5s          ON  │
 │ ████████████░░░░░░░░░░░░  3.2s │
 ├────────────────────────────────┤
-│ MOUSE [JIG]  15s/30s       ON  │
+│ MS [MOV]  15s/30s          ON  │
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │
 ├────────────────────────────────┤
 │ Up: 02:34:15                 ● │
 └────────────────────────────────┘
 ```
 
-- **[LINK]** = Connected, **[SCAN]** = Advertising
+- **Bluetooth icon** (solid) = Connected, (flashing) = Scanning
 - Progress bars count down to next action
-- **[JIG]** = Mouse jiggling, **[---]** = Mouse idle
+- **[MOV]** = Mouse moving, **[IDL]** = Mouse idle
 
 ### Settings Mode
 
@@ -130,10 +130,10 @@ All settings: **0.5s to 30s** in 0.5s increments
 ┌────────────────────────────────┐
 │ MODE: KEY MIN            [K]   │
 ├────────────────────────────────┤
-│       >>> 2.0s <<<             │
+│       > 2.0s <             │
 │ 0.5s ████████░░░░░░░░░░░░ 30s  │
 ├────────────────────────────────┤
-│ Turn encoder to adjust         │
+│ Turn dial to adjust         │
 └────────────────────────────────┘
 ```
 
@@ -210,7 +210,7 @@ Connect via USB at 115200 baud:
 2. Open Bluetooth settings on your computer
 3. Search for "GhostOperator"
 4. Pair and connect
-5. Display shows "[LINK]" when connected
+5. Display shows Bluetooth icon when connected
 
 ---
 
@@ -219,7 +219,6 @@ Connect via USB at 115200 baud:
 | File | Description |
 |------|-------------|
 | `ghost_operator.ino` | Firmware (current) |
-| `platformio.ini` | PlatformIO configuration |
 | `schematic_v8.svg` | Schematic Rev 4.0 |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | This file |
@@ -230,7 +229,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.0.0** | **Initial hardware release - encoder menu, flash storage, BLE HID** |
+| 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
+| **1.1.0** | **Display overhaul, BT icon, HID keycode fix** |
 
 ---
 

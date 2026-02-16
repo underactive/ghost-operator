@@ -40,7 +40,7 @@ using namespace Adafruit_LittleFS_Namespace;
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.0.0"
+#define VERSION "1.1.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x4A494747  // "JIGG"
@@ -192,6 +192,18 @@ const int NUM_DIRS = 8;
 // Display
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 bool displayInitialized = false;
+
+// Bluetooth icon bitmap (5x8 pixels)
+static const uint8_t PROGMEM btIcon[] = {
+  0x20,  // ..#..
+  0x30,  // ..##.
+  0xA8,  // #.#.#
+  0x70,  // .###.
+  0x70,  // .###.
+  0xA8,  // #.#.#
+  0x30,  // ..##.
+  0x20   // ..#..
+};
 
 // File system
 File settingsFile(InternalFS);
@@ -503,7 +515,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   
   bledis.setManufacturer("TARS Industries");
-  bledis.setModel("Ghost Operator v1.0.0");
+  bledis.setModel("Ghost Operator v1.1.0");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
   
@@ -827,15 +839,21 @@ void printStatus() {
 void sendKeystroke() {
   const KeyDef& key = AVAILABLE_KEYS[settings.selectedKeyIndex];
   if (key.keycode == 0) return;
-  
+
+  uint8_t keycodes[6] = {0};
+
   if (key.isModifier) {
-    blehid.keyPress(key.keycode);
+    // Convert HID modifier keycode (0xE0-0xE7) to modifier bitmask
+    uint8_t mod = 1 << (key.keycode - HID_KEY_CONTROL_LEFT);
+    blehid.keyboardReport(mod, keycodes);
     delay(30);
-    blehid.keyRelease();
+    blehid.keyboardReport(0, keycodes);
   } else {
-    blehid.keyPress(key.keycode);
+    keycodes[0] = key.keycode;
+    blehid.keyboardReport(0, keycodes);
     delay(50);
-    blehid.keyRelease();
+    keycodes[0] = 0;
+    blehid.keyboardReport(0, keycodes);
   }
 }
 
@@ -888,18 +906,21 @@ void drawNormalMode() {
   // === Header ===
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.print("GHOST ");
-  if (deviceConnected) {
-    display.print("[LINK]");
-  } else {
-    static bool blink = false;
-    blink = !blink;
-    display.print(blink ? "[SCAN]" : "[    ]");
-  }
-  
-  // Battery percentage (right aligned)
+  display.print("GHOST Operator");
+
+  // Right side: BT icon + battery, right aligned
   String batStr = String(batteryPercent) + "%";
-  int batX = 128 - (batStr.length() * 6);
+  int batWidth = batStr.length() * 6;
+  int batX = 128 - batWidth;
+  int btX = batX - 5 - 3;  // icon width + gap
+  if (deviceConnected) {
+    display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  } else {
+    bool btVisible = (now / 500) % 2 == 0;  // 500ms on, 500ms off
+    if (btVisible) {
+      display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+    }
+  }
   display.setCursor(batX, 0);
   display.print(batStr);
   
@@ -907,8 +928,9 @@ void drawNormalMode() {
   
   // === Key section ===
   display.setCursor(0, 12);
-  display.print("KEY:");
+  display.print("KB [");
   display.print(AVAILABLE_KEYS[settings.selectedKeyIndex].name);
+  display.print("]");
   display.print(" ");
   display.print(formatDuration(settings.keyIntervalMin));
   display.print("-");
@@ -941,13 +963,13 @@ void drawNormalMode() {
   
   // === Mouse section ===
   display.setCursor(0, 32);
-  display.print("MOUSE ");
-  
+  display.print("MS ");
+
   // State indicator
   if (mouseState == MOUSE_JIGGLING) {
-    display.print("[JIG]");
+    display.print("[MOV]");
   } else {
-    display.print("[---]");
+    display.print("[IDL]");
   }
   
   display.print(" ");
@@ -1025,10 +1047,10 @@ void drawSettingsMode() {
   
   // Big centered value
   display.setTextSize(2);
-  String valStr = ">>> " + formatDuration(value) + " <<<";
+  String valStr = "> " + formatDuration(value) + " <";
   int valWidth = valStr.length() * 12;
   int valX = (128 - valWidth) / 2;
-  display.setCursor(max(0, valX), 20);
+  display.setCursor(valX, 20);
   display.print(valStr);
   
   // Progress bar showing position in range
@@ -1047,5 +1069,5 @@ void drawSettingsMode() {
   
   // Instructions
   display.setCursor(0, 57);
-  display.print("Turn encoder to adjust");
+  display.print("Turn dial to adjust");
 }
