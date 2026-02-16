@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost Operator v1.0 - Schematic & BOM</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@500;700&display=swap');
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        :root {
+            --bg-dark: #0a0a1a;
+            --bg-panel: #1a1a2e;
+            --text-primary: #00ff00;
+            --text-secondary: #00cc00;
+            --text-dim: #006600;
+            --accent-cyan: #00ffff;
+            --accent-orange: #ff6600;
+            --accent-red: #ff3333;
+            --border: #00ff0040;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            color: var(--text-primary);
+            text-shadow: 0 0 20px var(--text-primary);
+            letter-spacing: 4px;
+        }
+        
+        .subtitle { color: var(--text-dim); margin-top: 10px; font-size: 0.9rem; }
+        
+        .version-badge {
+            display: inline-block;
+            background: var(--accent-cyan);
+            color: var(--bg-dark);
+            padding: 3px 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .tars-badge {
+            display: inline-block;
+            background: var(--bg-panel);
+            border: 1px solid var(--accent-orange);
+            padding: 5px 15px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: var(--accent-orange);
+        }
+        
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+        
+        .tab {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 12px 24px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover { border-color: var(--text-primary); }
+        .tab.active { background: var(--text-primary); color: var(--bg-dark); border-color: var(--text-primary); }
+        
+        .panel { display: none; background: var(--bg-panel); border: 1px solid var(--border); padding: 25px; }
+        .panel.active { display: block; }
+        
+        h2 { color: var(--accent-cyan); margin-bottom: 20px; font-size: 1.3rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        h3 { color: var(--text-primary); margin: 25px 0 15px 0; font-size: 1.1rem; }
+        
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.85rem; }
+        th { background: var(--bg-dark); color: var(--accent-cyan); text-align: left; padding: 12px; border: 1px solid var(--border); }
+        td { padding: 10px 12px; border: 1px solid var(--border); color: var(--text-secondary); }
+        tr:hover td { background: rgba(0, 255, 0, 0.05); }
+        .total-row td { background: var(--bg-dark); color: var(--text-primary); font-weight: bold; }
+        
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .feature { background: var(--bg-dark); border: 1px solid var(--border); padding: 15px; }
+        .feature-title { color: var(--accent-cyan); font-weight: bold; margin-bottom: 8px; }
+        .feature-value { color: var(--text-secondary); font-size: 0.9rem; }
+        
+        .note { background: rgba(255, 102, 0, 0.1); border-left: 3px solid var(--accent-orange); padding: 12px 15px; margin: 15px 0; font-size: 0.85rem; color: var(--accent-orange); }
+        .success { background: rgba(0, 255, 0, 0.1); border-left: 3px solid var(--text-primary); padding: 12px 15px; margin: 15px 0; font-size: 0.85rem; }
+        .warning { background: rgba(255, 51, 51, 0.1); border-left: 3px solid var(--accent-red); padding: 12px 15px; margin: 15px 0; font-size: 0.85rem; color: var(--accent-red); }
+        
+        .pin-table { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .pin-group { background: var(--bg-dark); padding: 15px; border: 1px solid var(--border); }
+        .pin-group h4 { color: var(--accent-orange); margin-bottom: 10px; font-size: 0.95rem; }
+        .pin-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        .pin-name { color: var(--accent-cyan); }
+        .pin-function { color: var(--text-dim); }
+        
+        .wiring-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .wiring-card { background: var(--bg-dark); border: 1px solid var(--border); padding: 15px; }
+        .wiring-card h4 { color: var(--accent-orange); margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        .wire { display: flex; align-items: center; padding: 6px 0; font-size: 0.85rem; }
+        .wire-from { color: var(--text-secondary); min-width: 80px; }
+        .wire-arrow { color: var(--text-dim); margin: 0 10px; }
+        .wire-to { color: var(--accent-cyan); }
+        
+        .mode-flow { background: var(--bg-dark); padding: 20px; border: 1px solid var(--border); margin: 15px 0; text-align: center; }
+        .mode-flow .arrow { color: var(--accent-orange); margin: 0 5px; }
+        .mode-item { display: inline-block; padding: 8px 15px; background: var(--bg-panel); border: 1px solid var(--text-dim); margin: 5px; }
+        .mode-item.highlight { border-color: var(--text-primary); color: var(--text-primary); }
+        
+        pre { background: var(--bg-dark); padding: 15px; overflow-x: auto; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; }
+        code { background: var(--bg-dark); padding: 2px 6px; color: var(--accent-cyan); font-size: 0.9em; }
+        
+        footer { text-align: center; padding: 30px 0; margin-top: 40px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GHOST OPERATOR <span class="version-badge">v1.0</span></h1>
+            <p class="subtitle">BLE Keyboard/Mouse Jiggler • Encoder Menu + Flash • Seeed XIAO nRF52840</p>
+            <div class="tars-badge">TARS: Humor 80% | Honesty 100%</div>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('overview')">Overview</button>
+            <button class="tab" onclick="showTab('bom')">Bill of Materials</button>
+            <button class="tab" onclick="showTab('pinout')">Pinout</button>
+            <button class="tab" onclick="showTab('wiring')">Wiring Guide</button>
+            <button class="tab" onclick="showTab('controls')">Controls</button>
+        </div>
+        
+        <!-- OVERVIEW TAB -->
+        <div id="overview" class="panel active">
+            <h2>v1.0 - Encoder Menu + Flash Storage</h2>
+            
+            <div class="success">
+                <strong>What's new:</strong> No potentiometers! All settings adjusted via encoder menu. 
+                Settings saved to internal flash - survives sleep and power off.
+            </div>
+            
+            <div class="feature-grid">
+                <div class="feature">
+                    <div class="feature-title">Total Cost</div>
+                    <div class="feature-value">~$28 (fewer parts!)</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-title">Parts Removed</div>
+                    <div class="feature-value">4 potentiometers (-$2)</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-title">Sleep Current</div>
+                    <div class="feature-value">~3µA</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-title">Flash Storage</div>
+                    <div class="feature-value">1MB onboard</div>
+                </div>
+            </div>
+            
+            <h3>UI Mode Flow</h3>
+            <div class="mode-flow">
+                <span class="mode-item highlight">NORMAL</span>
+                <span class="arrow">→</span>
+                <span class="mode-item">KEY MIN</span>
+                <span class="arrow">→</span>
+                <span class="mode-item">KEY MAX</span>
+                <span class="arrow">→</span>
+                <span class="mode-item">MOUSE JIG</span>
+                <span class="arrow">→</span>
+                <span class="mode-item">MOUSE IDLE</span>
+                <span class="arrow">→</span>
+                <span class="mode-item highlight">NORMAL</span>
+            </div>
+            <p style="text-align: center; color: var(--text-dim); margin-top: 10px;">
+                Short press function button to cycle through modes
+            </p>
+            
+            <h3>Display Layout - Normal Mode</h3>
+            <pre>
+┌────────────────────────────────┐
+│ GHOST [LINK]              85%  │
+├────────────────────────────────┤
+│ KEY:F15  2.0s-6.5s         ON  │
+│ ████████████░░░░░░░░░░░░  3.2s │
+├────────────────────────────────┤
+│ MOUSE [JIG]  15s/30s       ON  │
+│ ██████░░░░░░░░░░░░░░░░░░  8.5s │
+├────────────────────────────────┤
+│ Up: 02:34:15                 ● │
+└────────────────────────────────┘
+            </pre>
+            
+            <h3>Display Layout - Settings Mode</h3>
+            <pre>
+┌────────────────────────────────┐
+│ MODE: KEY MIN            [K]   │
+├────────────────────────────────┤
+│                                │
+│       >>> 2.0s <<<             │
+│                                │
+│ 0.5s ████████░░░░░░░░░░░░ 30s  │
+├────────────────────────────────┤
+│ Turn encoder to adjust         │
+└────────────────────────────────┘
+            </pre>
+        </div>
+        
+        <!-- BOM TAB -->
+        <div id="bom" class="panel">
+            <h2>Bill of Materials</h2>
+            
+            <div class="feature-grid">
+                <div class="feature">
+                    <div class="feature-title">Total Cost</div>
+                    <div class="feature-value">~$28</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-title">Main Components</div>
+                    <div class="feature-value">5 parts</div>
+                </div>
+            </div>
+            
+            <h3>Semiconductors</h3>
+            <table>
+                <tr><th>Ref</th><th>Qty</th><th>Part</th><th>Description</th><th>Price</th></tr>
+                <tr><td>U1</td><td>1</td><td>Seeed XIAO nRF52840</td><td>BLE 5.0 MCU, USB-C, LiPo charger, 1MB flash</td><td>$9.90</td></tr>
+            </table>
+            
+            <h3>Display</h3>
+            <table>
+                <tr><th>Ref</th><th>Qty</th><th>Part</th><th>Description</th><th>Price</th></tr>
+                <tr><td>DISP1</td><td>1</td><td>SSD1306 OLED 0.96"</td><td>128x64 I2C Display</td><td>$3.50</td></tr>
+            </table>
+            
+            <h3>Electromechanical</h3>
+            <table>
+                <tr><th>Ref</th><th>Qty</th><th>Part</th><th>Description</th><th>Price</th></tr>
+                <tr><td>ENC1</td><td>1</td><td>Rotary Encoder</td><td>KY-040 with pushbutton</td><td>$1.50</td></tr>
+                <tr><td>SW1</td><td>1</td><td>Tactile Button</td><td>6x6mm momentary (Function/Mode/Sleep)</td><td>$0.10</td></tr>
+            </table>
+            
+            <h3>Power</h3>
+            <table>
+                <tr><th>Ref</th><th>Qty</th><th>Part</th><th>Description</th><th>Price</th></tr>
+                <tr><td>BT1</td><td>1</td><td>LiPo Battery</td><td>3.7V 1000mAh, JST-SH 1.25mm plug</td><td>$6.00</td></tr>
+            </table>
+            
+            <h3>Capacitors</h3>
+            <table>
+                <tr><th>Ref</th><th>Qty</th><th>Part</th><th>Description</th><th>Price</th></tr>
+                <tr><td>C1</td><td>1</td><td>Ceramic Capacitor</td><td>100nF (0.1µF)</td><td>$0.05</td></tr>
+                <tr><td>C2</td><td>1</td><td>Electrolytic Capacitor</td><td>10µF, 10V+</td><td>$0.10</td></tr>
+            </table>
+            
+            <h3>Hardware</h3>
+            <table>
+                <tr><th>Qty</th><th>Part</th><th>Description</th><th>Price</th></tr>
+                <tr><td>1</td><td>JST-SH 1.25mm Header</td><td>2-pin, through-hole</td><td>$0.30</td></tr>
+                <tr><td>1</td><td>Prototype PCB</td><td>5x7cm double-sided</td><td>$0.50</td></tr>
+                <tr><td>-</td><td>Wire, headers, enclosure</td><td>Misc hardware</td><td>$3.00</td></tr>
+            </table>
+            
+            <h3>Cost Summary</h3>
+            <table>
+                <tr><th>Category</th><th>Cost</th></tr>
+                <tr><td>Semiconductors</td><td>$9.90</td></tr>
+                <tr><td>Display</td><td>$3.50</td></tr>
+                <tr><td>Electromechanical</td><td>$1.60</td></tr>
+                <tr><td>Power</td><td>$6.00</td></tr>
+                <tr><td>Capacitors</td><td>$0.15</td></tr>
+                <tr><td>Hardware</td><td>$3.80</td></tr>
+                <tr class="total-row"><td>Subtotal</td><td>$24.95</td></tr>
+                <tr><td>Shipping (est.)</td><td>$3.00</td></tr>
+                <tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>~$28</strong></td></tr>
+            </table>
+            
+            <div class="success">
+                <strong>Cost savings vs v1.3:</strong> Removed 4 potentiometers (-$2), less wiring (-$2). 
+                Simpler build, fewer failure points!
+            </div>
+        </div>
+        
+        <!-- PINOUT TAB -->
+        <div id="pinout" class="panel">
+            <h2>XIAO nRF52840 Pinout</h2>
+            
+            <div class="pin-table">
+                <div class="pin-group">
+                    <h4>Digital Pins</h4>
+                    <div class="pin-row"><span class="pin-name">D0</span><span class="pin-function">Encoder CLK (A)</span></div>
+                    <div class="pin-row"><span class="pin-name">D1</span><span class="pin-function">Encoder DT (B)</span></div>
+                    <div class="pin-row"><span class="pin-name">D2</span><span class="pin-function">Encoder SW (button)</span></div>
+                    <div class="pin-row"><span class="pin-name">D3</span><span class="pin-function">Function Button</span></div>
+                    <div class="pin-row"><span class="pin-name">D6</span><span class="pin-function">Activity LED (optional)</span></div>
+                </div>
+                
+                <div class="pin-group">
+                    <h4>I2C Pins</h4>
+                    <div class="pin-row"><span class="pin-name">D4</span><span class="pin-function">I2C SDA (OLED)</span></div>
+                    <div class="pin-row"><span class="pin-name">D5</span><span class="pin-function">I2C SCL (OLED)</span></div>
+                </div>
+                
+                <div class="pin-group">
+                    <h4>Power Pins</h4>
+                    <div class="pin-row"><span class="pin-name">BAT+</span><span class="pin-function">Battery + (direct)</span></div>
+                    <div class="pin-row"><span class="pin-name">BAT-</span><span class="pin-function">Battery -</span></div>
+                    <div class="pin-row"><span class="pin-name">3V3</span><span class="pin-function">Regulated 3.3V out</span></div>
+                    <div class="pin-row"><span class="pin-name">GND</span><span class="pin-function">Ground rail</span></div>
+                </div>
+                
+                <div class="pin-group">
+                    <h4>Unused Pins</h4>
+                    <div class="pin-row"><span class="pin-name">D7-D10</span><span class="pin-function">Available for expansion</span></div>
+                    <div class="pin-row"><span class="pin-name">5V</span><span class="pin-function">USB 5V (not used)</span></div>
+                </div>
+            </div>
+            
+            <div class="note">
+                <strong>Only 6 pins used!</strong> D7-D10 are free for future features (RGB LED, buzzer, etc.)
+            </div>
+        </div>
+        
+        <!-- WIRING TAB -->
+        <div id="wiring" class="panel">
+            <h2>Wiring Guide</h2>
+            
+            <div class="wiring-section">
+                <div class="wiring-card">
+                    <h4>Power (Direct Connection)</h4>
+                    <div class="wire"><span class="wire-from">BT1 (+)</span><span class="wire-arrow">→</span><span class="wire-to">J1 Pin 1</span></div>
+                    <div class="wire"><span class="wire-from">BT1 (-)</span><span class="wire-arrow">→</span><span class="wire-to">J1 Pin 2</span></div>
+                    <div class="wire"><span class="wire-from">J1 Pin 1</span><span class="wire-arrow">→</span><span class="wire-to">XIAO BAT+</span></div>
+                    <div class="wire"><span class="wire-from">J1 Pin 2</span><span class="wire-arrow">→</span><span class="wire-to">XIAO BAT-</span></div>
+                </div>
+                
+                <div class="wiring-card">
+                    <h4>OLED Display (DISP1)</h4>
+                    <div class="wire"><span class="wire-from">VCC</span><span class="wire-arrow">→</span><span class="wire-to">3V3 Rail</span></div>
+                    <div class="wire"><span class="wire-from">GND</span><span class="wire-arrow">→</span><span class="wire-to">GND Rail</span></div>
+                    <div class="wire"><span class="wire-from">SCL</span><span class="wire-arrow">→</span><span class="wire-to">D5</span></div>
+                    <div class="wire"><span class="wire-from">SDA</span><span class="wire-arrow">→</span><span class="wire-to">D4</span></div>
+                </div>
+                
+                <div class="wiring-card">
+                    <h4>Rotary Encoder (ENC1)</h4>
+                    <div class="wire"><span class="wire-from">GND</span><span class="wire-arrow">→</span><span class="wire-to">GND Rail</span></div>
+                    <div class="wire"><span class="wire-from">+</span><span class="wire-arrow">→</span><span class="wire-to">3V3 Rail</span></div>
+                    <div class="wire"><span class="wire-from">SW</span><span class="wire-arrow">→</span><span class="wire-to">D2</span></div>
+                    <div class="wire"><span class="wire-from">DT (B)</span><span class="wire-arrow">→</span><span class="wire-to">D1</span></div>
+                    <div class="wire"><span class="wire-from">CLK (A)</span><span class="wire-arrow">→</span><span class="wire-to">D0</span></div>
+                </div>
+                
+                <div class="wiring-card">
+                    <h4>Function Button (SW1)</h4>
+                    <div class="wire"><span class="wire-from">Pin 1</span><span class="wire-arrow">→</span><span class="wire-to">D3</span></div>
+                    <div class="wire"><span class="wire-from">Pin 2</span><span class="wire-arrow">→</span><span class="wire-to">GND Rail</span></div>
+                </div>
+                
+                <div class="wiring-card">
+                    <h4>Decoupling Capacitors</h4>
+                    <div class="wire"><span class="wire-from">C1/C2 (+)</span><span class="wire-arrow">→</span><span class="wire-to">3V3 Rail</span></div>
+                    <div class="wire"><span class="wire-from">C1/C2 (-)</span><span class="wire-arrow">→</span><span class="wire-to">GND Rail</span></div>
+                </div>
+            </div>
+            
+            <div class="warning">
+                <strong>⚠ POLARITY WARNING:</strong> Verify battery polarity before connecting. 
+                JST connectors are not standardized!
+            </div>
+        </div>
+        
+        <!-- CONTROLS TAB -->
+        <div id="controls" class="panel">
+            <h2>Controls & Operation</h2>
+            
+            <h3>Control Summary</h3>
+            <table>
+                <tr><th>Control</th><th>Mode</th><th>Action</th></tr>
+                <tr><td>Encoder Turn</td><td>NORMAL</td><td>Select keystroke (F13-F15, etc.)</td></tr>
+                <tr><td>Encoder Turn</td><td>Settings</td><td>Adjust value ±0.5s per click</td></tr>
+                <tr><td>Encoder Button</td><td>KEY modes</td><td>Toggle keys ON/OFF</td></tr>
+                <tr><td>Encoder Button</td><td>MOUSE modes</td><td>Toggle mouse ON/OFF</td></tr>
+                <tr><td>Function Short</td><td>Any</td><td>Cycle to next mode</td></tr>
+                <tr><td>Function Long (3s)</td><td>Any</td><td>Enter deep sleep (~3µA)</td></tr>
+                <tr><td>Function Press</td><td>Sleeping</td><td>Wake up (device resets)</td></tr>
+            </table>
+            
+            <h3>Settings Range</h3>
+            <table>
+                <tr><th>Setting</th><th>Min</th><th>Max</th><th>Step</th></tr>
+                <tr><td>Key Interval MIN</td><td>0.5s</td><td>30s</td><td>0.5s</td></tr>
+                <tr><td>Key Interval MAX</td><td>0.5s</td><td>30s</td><td>0.5s</td></tr>
+                <tr><td>Mouse Jiggle Duration</td><td>0.5s</td><td>30s</td><td>0.5s</td></tr>
+                <tr><td>Mouse Idle Duration</td><td>0.5s</td><td>30s</td><td>0.5s</td></tr>
+            </table>
+            
+            <h3>Timing Behavior</h3>
+            <div class="feature-grid">
+                <div class="feature">
+                    <div class="feature-title">Keyboard</div>
+                    <div class="feature-value">Random interval between MIN and MAX each keypress. No additional randomness.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-title">Mouse</div>
+                    <div class="feature-value">Jiggle → Idle → repeat. ±20% randomness on both durations.</div>
+                </div>
+            </div>
+            
+            <h3>Flash Storage</h3>
+            <div class="success">
+                <strong>Settings auto-save:</strong> When you leave a settings mode (by pressing function button or after 10s timeout), 
+                settings are written to flash. They survive sleep and power off.
+            </div>
+            
+            <h3>Serial Commands (115200 baud)</h3>
+            <table>
+                <tr><th>Key</th><th>Command</th></tr>
+                <tr><td>h</td><td>Help</td></tr>
+                <tr><td>s</td><td>Status report</td></tr>
+                <tr><td>d</td><td>Dump settings</td></tr>
+                <tr><td>z</td><td>Enter sleep mode</td></tr>
+            </table>
+        </div>
+        
+        <footer>
+            <p>Ghost Operator v1.0 | Rev 4.0 Schematic | TARS Industries</p>
+            <p style="color: var(--accent-orange);">"Fewer parts, more flash"</p>
+        </footer>
+    </div>
+    
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
