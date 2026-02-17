@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-02-16
+
+### Added
+
+- **Multi-key slots**: 8 configurable key slots instead of a single keystroke selection
+  - Each cycle randomly picks from populated (non-NONE) slots, reducing pattern detectability
+  - Default: slot 1 = F15, slots 2-8 = NONE (backwards-compatible behavior)
+- **Pre-picked next key**: NORMAL mode display shows which key will fire next
+- **Dedicated SLOTS settings mode**: 2-row slot grid with active slot highlight, encoder rotates key, button advances slot
+- **Timing profiles**: LAZY / NORMAL / BUSY profiles scale all timing values by a configurable percentage
+  - BUSY: shorter key intervals, longer mouse jiggle, shorter mouse idle (more active)
+  - LAZY: longer key intervals, shorter mouse jiggle, longer mouse idle (less active)
+  - NORMAL: passes base values through unchanged (default)
+- **Profile switching**: Encoder rotation in NORMAL mode switches between LAZY ← NORMAL → BUSY (clamped)
+- **Profile display**: Selected profile name temporarily replaces uptime line for 3 seconds after switching
+- **LAZY % settings mode**: Adjust lazy profile scaling (0-50% in 5% steps, default 15%)
+- **BUSY % settings mode**: Adjust busy profile scaling (0-50% in 5% steps, default 15%)
+
+### Changed
+
+- NORMAL mode display restored to original single-line `KB [key]` layout with interval range
+- Encoder rotation in NORMAL mode switches timing profiles (LAZY/NORMAL/BUSY, clamped)
+- Encoder button in NORMAL mode restored to KB/MS enable combo cycling
+- Slot configuration moved to new MODE_SLOTS (accessed via function button cycle)
+- Mode cycle: NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY %
+- NORMAL mode display shows profile-adjusted effective values for KB intervals and mouse timing
+- `sendKeystroke()` uses pre-picked `nextKeyIndex` instead of random-on-the-fly
+- Settings struct: `selectedKeyIndex` replaced with `keySlots[8]` array + `lazyPercent` + `busyPercent`
+- Settings magic changed (0x4A494747 → 0x50524F46) — existing settings auto-reset to defaults
+- Scheduling functions use profile-adjusted effective values instead of raw settings
+- Serial debug output now shows all 8 slot names, profile, lazy%, busy%, and effective values
+- Key interval range display: `2.0-6.5s` (removed redundant "s" on min value)
+
+### Fixed
+
+- Display freeze when mouse returns to origin — `returnMouseToOrigin()` was a blocking loop; replaced with non-blocking `MOUSE_RETURNING` state
+
 ## [1.1.1] - 2026-02-16
 
 ### Changed
