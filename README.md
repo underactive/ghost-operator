@@ -17,6 +17,18 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 
 ---
 
+## Screenshots
+
+| ![Boot Splash](docs/images/splash.png) | ![Normal Mode](docs/images/normal_mode.png) | ![Mouse Muted](docs/images/normal_mode-muted.png) | ![Screensaver](docs/images/screensaver.png) |
+|:---:|:---:|:---:|:---:|
+| **Boot splash** | **Normal mode** | **Mouse muted** | **Screensaver** |
+
+| ![Settings Menu](docs/images/menu.png) | ![Settings More](docs/images/settings-more.png) | ![Key Slots](docs/images/menu-slots.png) | ![Sleep](docs/images/sleep.png) |
+|:---:|:---:|:---:|:---:|
+| **Settings menu** | **Settings (more)** | **Key slot editor** | **Sleep** |
+
+---
+
 ## Bill of Materials
 
 ### Components
@@ -83,7 +95,7 @@ Four modes, accessed via function button:
 | Encoder Turn | Switch profile (LAZY/NORMAL/BUSY) | Navigate items / adjust value | Cycle key for active slot | Cycle character / toggle Yes-No |
 | Encoder Button | Cycle KB/MS combos | Select item / confirm edit | Advance slot cursor (1-8) | Advance position / confirm |
 | Func Short | Open menu | Close menu (save) | Back to menu (save) | Save name (reboot prompt) |
-| Func Long (3s) | Enter sleep | Enter sleep | Enter sleep | Enter sleep |
+| Func Hold (5s) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) |
 | Func (sleeping) | Wake up | - | - | - |
 
 ### Menu Items
@@ -279,6 +291,7 @@ Connect via USB at 115200 baud:
 | s | Status report |
 | d | Dump settings |
 | z | Enter sleep mode |
+| p | PNG screenshot (base64-encoded) |
 
 ---
 
@@ -300,7 +313,7 @@ Connect via USB at 115200 baud:
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | Technical documentation (this file) |
-| `USER_MANUAL.md` | End-user guide |
+| `docs/USER_MANUAL.md` | End-user guide |
 | `CHANGELOG.md` | Version history (semver) |
 | `CLAUDE.md` | Project context for AI assistants |
 | `ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit) |

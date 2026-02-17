@@ -17,7 +17,7 @@
 | **Encoder Turn** | Switch profile | Navigate / adjust value | Cycle slot key | Cycle character / Yes-No |
 | **Encoder Press** | Cycle KB/MS enable | Select / confirm | Advance slot cursor | Advance position / confirm |
 | **Button Short** | Open menu | Close menu (save) | Back to menu (save) | Save name (reboot prompt) |
-| **Button Long (3s)** | Sleep | Sleep | Sleep | Sleep |
+| **Button Hold (5s)** | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) |
 | **Button (sleeping)** | Wake up | - | - | - |
 
 ---
@@ -332,10 +332,11 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 ## Sleep Mode
 
 ### Enter Sleep
-- **Long press function button (3+ seconds)**
-- Display shows "SLEEPING..."
-- Device enters ultra-low power mode (~3µA)
-- Bluetooth disconnects
+- **Hold function button** — after 0.5 seconds, a "Hold to sleep..." overlay appears with a 5-second countdown bar
+- **Keep holding** to complete the countdown — display briefly shows "SLEEPING..." then enters deep sleep (~3µA)
+- **Release during countdown** to cancel — shows "Cancelled" briefly and returns to the previous screen
+- Bluetooth disconnects when sleep begins
+- Works from any mode (NORMAL, MENU, SLOTS, NAME) and from the screensaver
 
 ### Wake Up
 - **Press function button**
@@ -381,6 +382,43 @@ Connect via USB and open Serial Monitor at 115200 baud.
 | `s` | Status report |
 | `d` | Dump current settings |
 | `z` | Enter sleep mode |
+| `p` | Capture PNG screenshot of the OLED display |
+
+### Taking a Screenshot
+
+The `p` command captures the current OLED display as a PNG image. The image is output as base64-encoded text between delimiter lines:
+
+```
+--- PNG START ---
+iVBORw0KGgoAAAANSUhEUgAAAIAAAABA...
+(more base64 lines)
+--- PNG END ---
+```
+
+**To save as a PNG file:**
+
+1. Send `p` in the serial monitor
+2. Copy all the base64 text between `--- PNG START ---` and `--- PNG END ---` (don't include the marker lines)
+3. Save the copied text to a temporary file (e.g. `screenshot.b64`)
+4. Decode it using one of these methods:
+
+**macOS / Linux:**
+```bash
+base64 -d screenshot.b64 > screenshot.png
+```
+
+**Windows (PowerShell):**
+```powershell
+[Convert]::FromBase64String((Get-Content screenshot.b64 -Raw)) | Set-Content screenshot.png -Encoding Byte
+```
+
+**One-liner (macOS / Linux)** — paste the base64 directly without a temp file:
+```bash
+pbpaste | base64 -d > screenshot.png
+```
+(Copy the base64 text to clipboard first, then run the command.)
+
+The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown on the OLED. Screenshots work in all display modes (NORMAL, MENU, SLOTS, NAME, and screensaver).
 
 ---
 

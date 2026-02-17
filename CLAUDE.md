@@ -99,8 +99,8 @@ struct Settings {
   uint8_t lazyPercent;         // 0-50, step 5, default 15
   uint8_t busyPercent;         // 0-50, step 5, default 15
   uint8_t saverTimeout;        // index into SAVER_MINUTES[] (0=Never..5=30min)
-  uint8_t saverBrightness;     // 10-100, step 10, default 30
-  uint8_t displayBrightness;   // 10-100, step 10, default 100
+  uint8_t saverBrightness;     // 10-100, step 10, default 20
+  uint8_t displayBrightness;   // 10-100, step 10, default 80
   uint8_t mouseAmplitude;      // 1-5, step 1, default 1 (pixels per movement step)
   char    deviceName[15];      // 14 chars + null terminator (BLE device name)
   uint8_t checksum;            // must remain last
@@ -136,7 +136,10 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 #### 7. Power Management
 - `sd_power_system_off()` for deep sleep
 - Wake via GPIO sense on function button (P0.29)
-- Sleep triggered by 3-second long press
+- Sleep uses hold-to-confirm flow: after 500ms hold, overlay shows "Hold to sleep..." with 5-second countdown bar
+- Release during countdown cancels sleep ("Cancelled" shown for 400ms)
+- Input suppressed during confirmation and cancellation overlays
+- Works from any mode and from screensaver
 
 #### 8. Screensaver
 - Overlay state (`screensaverActive` flag), not a UIMode — gates display rendering
@@ -310,9 +313,10 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | Technical documentation |
-| `USER_MANUAL.md` | End-user guide |
+| `docs/USER_MANUAL.md` | End-user guide |
 | `CHANGELOG.md` | Version history (semver) |
 | `CLAUDE.md` | This file |
+| `docs/images/` | OLED screenshot PNGs for README |
 | `ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit raw) |
 
 ---
@@ -362,7 +366,11 @@ pio run -t upload
 - [ ] SLOTS mode: bottom shows "Func=back" (not "Func=exit")
 - [ ] All menu values persist after close → reopen menu
 - [ ] Settings persist after sleep
-- [ ] Long press enters sleep from any mode (NORMAL, MENU, SLOTS)
+- [ ] Hold function button → "Hold to sleep..." overlay with 5s countdown bar appears after 500ms
+- [ ] Keep holding through countdown → device enters sleep
+- [ ] Release during countdown → "Cancelled" shown, returns to previous screen
+- [ ] Encoder and button input suppressed during confirmation and cancellation overlays
+- [ ] Sleep confirmation works from any mode (NORMAL, MENU, SLOTS, NAME) and screensaver
 - [ ] Button press wakes from sleep
 - [ ] Keystrokes detected on host (use key test website)
 - [ ] Mouse movement visible on host
@@ -377,7 +385,7 @@ pio run -t upload
 - [ ] Screensaver shows centered key label + 1px bar, mouse state + 1px bar
 - [ ] Screensaver battery warning appears only when <15%
 - [ ] Any input wakes screensaver without side effects (consumed)
-- [ ] Long-press sleep works from screensaver
+- [ ] Hold-to-sleep works from screensaver (not consumed by screensaver wake)
 - [ ] "Never" disables screensaver
 - [ ] Screensaver dims OLED to saver brightness, restores display brightness on wake
 - [ ] Serial `d` → prints screensaver timeout, brightness, and active state
@@ -457,6 +465,7 @@ At 115200 baud:
 | d | Dump settings |
 | z | Sleep |
 | p | PNG screenshot (base64-encoded between `--- PNG START ---` / `--- PNG END ---` markers) |
+| v | Screensaver (activate instantly, forces NORMAL mode first) |
 
 ---
 
