@@ -283,9 +283,11 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 2. Scroll to **"Key slots"** and **press encoder** to enter SLOTS mode
 3. The **active slot** is shown with inverted colors (white background)
 4. **Turn encoder** to cycle the active slot's key through:
-   - F15, F14, F13 (invisible keys - recommended)
+   - F13-F24 (invisible keys - recommended)
    - ScrLk, Pause, NumLk (toggle keys)
-   - LShift, LCtrl, LAlt (modifier keys)
+   - LShift, LCtrl, LAlt, RShift, RCtrl, RAlt (modifier keys)
+   - Esc, Space, Enter (common keys - use with caution)
+   - Up, Down, Left, Right (arrow keys)
    - NONE (disable this slot)
 5. **Press encoder** to advance to the next slot (1→2→...→8→1)
 6. Repeat to configure multiple slots with different keys
@@ -458,12 +460,20 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 | F15 | **Recommended** - no effect on most systems |
 | F14 | Invisible on most systems |
 | F13 | Invisible on most systems |
+| F16-F24 | Invisible on most systems |
 | ScrLk | May toggle scroll lock LED |
 | Pause | Usually ignored |
 | NumLk | May toggle numlock |
-| LShift | Modifier only, no visible effect |
-| LCtrl | Modifier only, no visible effect |
-| LAlt | Modifier only, no visible effect |
+| LShift | Left modifier only, no visible effect |
+| LCtrl | Left modifier only, no visible effect |
+| LAlt | Left modifier only, no visible effect |
+| RShift | Right modifier only, no visible effect |
+| RCtrl | Right modifier only, no visible effect |
+| RAlt | Right modifier only, no visible effect |
+| Esc | **Caution** - may close dialogs or exit fullscreen |
+| Space | **Caution** - may type spaces or trigger buttons |
+| Enter | **Caution** - may submit forms or confirm actions |
+| Up/Down/Left/Right | May scroll pages or move cursor |
 | NONE | Disables keystrokes entirely |
 
 ---
