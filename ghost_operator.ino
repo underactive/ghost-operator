@@ -544,16 +544,8 @@ void setup() {
   setupBLE();
   readBattery();
   
-  // Seed RNG from hardware true random number generator
-  NRF_RNG->CONFIG = 1;  // Enable bias correction
-  NRF_RNG->TASKS_START = 1;
-  uint32_t seed = 0;
-  for (int i = 0; i < 4; i++) {
-    NRF_RNG->EVENTS_VALRDY = 0;
-    while (!NRF_RNG->EVENTS_VALRDY);
-    seed = (seed << 8) | (NRF_RNG->VALUE & 0xFF);
-  }
-  NRF_RNG->TASKS_STOP = 1;
+  // Seed RNG
+  uint32_t seed = analogRead(A0) ^ (millis() << 16) ^ NRF_FICR->DEVICEADDR[0];
   randomSeed(seed);
   
   scheduleNextKey();

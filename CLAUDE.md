@@ -182,8 +182,8 @@ Turn dial to adjust
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
 | 1.1.0 | Display overhaul, BT icon, HID keycode fix |
 | 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
-| 1.2.1 | Fix encoder initial state sync bug |
 | 1.2.0 | Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode |
+| 1.2.1 | Fix encoder initial state sync bug |
 
 ---
 
