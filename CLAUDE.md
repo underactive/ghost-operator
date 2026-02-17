@@ -75,7 +75,7 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (19 entries: 5 headings + 14 items):
+Data-driven architecture using `MenuItem` struct array (20 entries: 5 headings + 15 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS };
@@ -417,6 +417,13 @@ pio run -t upload
 - [ ] Reset defaults: mode timeout (30s) during confirmation → cancels, returns to NORMAL
 - [ ] After restore: reopen menu → all values show defaults; serial `d` → default values
 - [ ] After restore: profile resets to NORMAL, next key updates to F15
+- [ ] Menu: "Reboot" appears after "Reset defaults" in Device section with `>` indicator
+- [ ] Menu: help bar shows "Restart device (applies pending changes)" when "Reboot" selected
+- [ ] Menu: press encoder on "Reboot" → confirmation overlay with "No" highlighted by default
+- [ ] Reboot: encoder toggles Yes/No, encoder press with Yes → device reboots immediately
+- [ ] Reboot: encoder press with No → returns to menu
+- [ ] Reboot: function button during confirmation → cancels (same as No)
+- [ ] Reboot: mode timeout (30s) during confirmation → cancels, returns to NORMAL
 
 ---
 

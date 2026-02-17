@@ -105,6 +105,7 @@ Settings organized under headings in the scrollable menu:
 | | Saver time | Never / 1 / 5 / 10 / 15 / 30 min |
 | | Device name | → opens NAME mode (14 char max) |
 | | Reset defaults | → confirmation prompt (restores factory settings) |
+| | Reboot | → confirmation prompt (restarts device) |
 | **About** | Version | Read-only firmware version |
 
 ### Timing Profiles
