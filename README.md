@@ -1,6 +1,6 @@
 # Ghost Operator - BLE HID Device
 
-## Version 1.4.1
+## Version 1.5.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -120,6 +120,7 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 
 - **Keyboard**: Random interval between MIN and MAX each keypress (profile-adjusted)
 - **Mouse**: Move for set duration → Idle for set duration → repeat (profile-adjusted)
+  - Inertial movement: sine ease-in-out ramps speed from zero → peak → zero each jiggle
   - ±20% randomness applied to movement and idle durations
   - Minimum clamp: 0.5s
 
@@ -286,7 +287,7 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.4.1** | **Adjustable mouse movement amplitude (1-5px)** |
+| **1.5.0** | **Adjustable mouse movement amplitude (1-5px), inertial ease-in-out movement** |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
