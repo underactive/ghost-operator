@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-02-16
+
+### Fixed
+
+- **Encoder unresponsive after boot** — `analogRead(A0)` for RNG seeding disconnected the digital input buffer on P0.02 (encoder CLK), making rotation produce net-zero position changes until `readBattery()` incidentally restored the pin ~60 seconds later
+- **Rapid encoder rotation missing detents** — switched from interrupt-only to hybrid ISR + polling architecture; added 2-step jump recovery to infer direction when intermediate quadrature states are missed during I2C display transfers or BLE radio events
+
+### Changed
+
+- Encoder reading: hybrid GPIOTE interrupt (primary, catches edges during blocking I2C) + main-loop polling (fallback, catches edges during SoftDevice radio blackouts)
+- Encoder ISR uses atomic `NRF_P0->IN` register read for both pins simultaneously (eliminates race window between two `digitalRead()` calls)
+- RNG seeding uses `NRF_FICR->DEVICEADDR` (factory-unique device ID) + `micros()` instead of `analogRead(A0)` to avoid GPIO side effects on encoder pin
+- Encoder interrupts attached after SoftDevice initialization to prevent GPIOTE channel invalidation
+- Main loop delay reduced from 5ms to 1ms for improved encoder polling rate
+- Custom bitmap splash screen replaces text-based splash (loaded from `ghost_operator_splash.bin`)
+- Splash screen displays version number in lower-right corner
+- Splash screen duration increased from 1.5s to 3s
+
 ## [1.3.0] - 2026-02-16
 
 ### Added
