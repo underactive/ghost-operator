@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-02-16
+
+### Added
+
+- **Scrollable settings menu**: Function button opens a scrollable menu with all settings organized under headings (Keyboard, Mouse, Profiles, Display)
+  - Encoder navigates menu items (headings auto-skipped), encoder press selects/confirms
+  - Two-press interaction: select item → enter edit mode → turn to adjust → press to confirm
+  - `< value >` arrows show available range, hidden at bounds
+  - Context-sensitive help bar at bottom; long text auto-scrolls with pauses at each end
+- **Display brightness setting**: Adjustable OLED brightness for normal mode (10-100% in 10% steps, default 100%)
+  - Live contrast update while editing in menu for instant visual feedback
+- **Menu data architecture**: Data-driven `MenuItem` struct array with type, label, help text, format, range, and step — adding a new setting requires only array entry + accessor cases
+
+### Changed
+
+- **UI model**: Replaced 10-mode flat cycle (function button) with 3 modes: NORMAL, MENU, SLOTS
+  - Function button short press: NORMAL ↔ MENU toggle (was: cycle through all modes)
+  - Function button from SLOTS: returns to MENU at "Key slots" item (was: cycle to next mode)
+  - Encoder button in MENU: select/confirm (was: cycle KB/MS combos in all modes)
+- **Slots mode**: Bottom instruction changed from "Func=exit" to "Func=back"
+- **Lazy adj display**: Shows `0%` instead of `-0%` at zero; encoder direction inverted so CW → toward 0% and CCW → toward -50% (matches displayed value direction)
+- Settings struct: added `displayBrightness` field — existing settings auto-reset to defaults on first boot
+- Serial `d` command now prints display brightness
+
+### Removed
+
+- `drawSettingsMode()` — replaced by data-driven `drawMenuMode()` + `drawHelpBar()`
+- `adjustValue()` helper — replaced by generic menu value adjustment via `getSettingValue()`/`setSettingValue()`
+- Individual mode cases in `handleEncoder()` (KEY_MIN, KEY_MAX, MOUSE_JIG, etc.) — replaced by single menu editing path
+- Linear mode cycling in `handleButtons()` — replaced by NORMAL ↔ MENU toggle
+
 ## [1.3.1] - 2026-02-16
 
 ### Fixed

@@ -1,6 +1,6 @@
 # Ghost Operator - BLE Keyboard/Mouse Device
 
-## Version 1.3.1
+## Version 1.4.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -67,32 +67,41 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 
 ### UI Modes
 
-Cycle through modes with function button short press:
+Three modes, accessed via function button:
 
-```
-NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY % → SCREENSAVER → SAVER BRIGHT → (repeat)
-```
+| Mode | Purpose |
+|------|---------|
+| **NORMAL** | Live status display; encoder switches profile, button cycles KB/MS combos |
+| **MENU** | Scrollable settings menu; encoder navigates/edits, button selects/confirms |
+| **SLOTS** | 8-key slot editor; encoder cycles key, button advances slot |
 
 ### Control Actions
 
-| Control | NORMAL Mode | SLOTS Mode | Other Settings |
-|---------|-------------|------------|----------------|
-| Encoder Turn | Switch profile (LAZY/NORMAL/BUSY) | Cycle key for active slot | Adjust value |
-| Encoder Button | Cycle KB/MS combos | Advance slot cursor (1-8) | Cycle KB/MS combos |
-| Func Short | Next mode | Next mode | Next mode |
+| Control | NORMAL Mode | MENU Mode | SLOTS Mode |
+|---------|-------------|-----------|------------|
+| Encoder Turn | Switch profile (LAZY/NORMAL/BUSY) | Navigate items / adjust value | Cycle key for active slot |
+| Encoder Button | Cycle KB/MS combos | Select item / confirm edit | Advance slot cursor (1-8) |
+| Func Short | Open menu | Close menu (save) | Back to menu (save) |
 | Func Long (3s) | Enter sleep | Enter sleep | Enter sleep |
 | Func (sleeping) | Wake up | - | - |
 
-### Settings Range
+### Menu Items
 
-All settings adjustable in **0.5s increments**:
+Settings organized under headings in the scrollable menu:
 
-- **Key Interval MIN** - Minimum time between keystrokes (0.5s - 30s)
-- **Key Interval MAX** - Maximum time between keystrokes (0.5s - 30s)
-- **Mouse Jiggle Duration** - How long mouse jiggles (0.5s - 90s)
-- **Mouse Idle Duration** - Pause between jiggles (0.5s - 90s)
-- **Lazy %** - How much LAZY profile scales values (0% - 50%, 5% steps)
-- **Busy %** - How much BUSY profile scales values (0% - 50%, 5% steps)
+| Heading | Setting | Range |
+|---------|---------|-------|
+| **Keyboard** | Key min | 0.5s - 30s (0.5s steps) |
+| | Key max | 0.5s - 30s (0.5s steps) |
+| | Key slots | → opens SLOTS mode |
+| **Mouse** | Move duration | 0.5s - 90s (0.5s steps) |
+| | Idle duration | 0.5s - 90s (0.5s steps) |
+| **Profiles** | Lazy adjust | -50% to 0% (5% steps) |
+| | Busy adjust | 0% to 50% (5% steps) |
+| **Display** | Brightness | 10% - 100% (10% steps) |
+| | Saver bright | 10% - 100% (10% steps) |
+| | Saver time | Never / 1 / 5 / 10 / 15 / 30 min |
+| **About** | Version | Read-only firmware version |
 
 ### Timing Profiles
 
@@ -123,13 +132,13 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 ┌────────────────────────────────┐
 │ GHOST Operator          ᛒ 85%  │
 ├────────────────────────────────┤
-│ KB [F15] 2.0-6.5s          ↑  │
+│ KB [F15] 2.0-6.5s            ↑ │
 │ ████████████░░░░░░░░░░░░  3.2s │
 ├────────────────────────────────┤
-│ MS [MOV]  15s/30s            ↑  │
+│ MS [MOV]  15s/30s            ↑ │
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │
 ├────────────────────────────────┤
-│ Up: 02:34:15      ~^~_~^~      │  ← or profile name for 3s
+│ Up: 02:34:15           ~^~_~^~ │  ← or profile name for 3s
 └────────────────────────────────┘
 ```
 
@@ -141,6 +150,27 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 - Each keystroke cycle randomly picks from populated (non-NONE) slots
 - **Uptime line**: Shows profile name (LAZY/NORMAL/BUSY) for 3 seconds after switching, then reverts to uptime
 
+### Menu Mode
+
+```
+┌────────────────────────────────┐
+│ MENU                    ᛒ 85%  │  ← "MENU" inverted when title selected
+├────────────────────────────────┤
+│       - Keyboard -             │  ← Heading (not selectable)
+│ ▌Key min          < 2.0s >  ▐  │  ← Selected item (inverted row)
+│  Key max          < 6.5s >     │  ← Unselected item
+│  Key slots                 >   │  ← Action item
+│       - Mouse -                │  ← Heading
+├────────────────────────────────┤
+│ Minimum delay between keys     │  ← Context help (scrolls if long)
+└────────────────────────────────┘
+```
+
+- 5-row scrollable viewport with headings, value items, and action items
+- `< value >` arrows show available range; arrows hidden at bounds
+- Selected item shown with inverted colors; editing inverts only the value portion
+- Help bar at bottom shows context text for the selected item
+
 ### Slots Mode
 
 ```
@@ -151,25 +181,13 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 │   --- --- --- ---              │
 ├────────────────────────────────┤
 │ Turn=key  Press=slot           │
-│ Func=exit                      │
+│ Func=back                      │
 └────────────────────────────────┘
 ```
 
 - 8 configurable slots (2 rows × 4), active slot shown with inverted colors
 - Turn encoder to cycle key for active slot, press encoder to advance slot cursor
-
-### Settings Mode
-
-```
-┌────────────────────────────────┐
-│ MODE: KEY MIN            [K]   │
-├────────────────────────────────┤
-│       > 2.0s <             │
-│ 0.5s ████████░░░░░░░░░░░░ 30s  │
-├────────────────────────────────┤
-│ Turn dial to adjust         │
-└────────────────────────────────┘
-```
+- Function button returns to menu at "Key slots" item
 
 ---
 
@@ -218,7 +236,7 @@ Place C1 (100nF) and C2 (10µF) between 3V3 and GND, close to XIAO.
 
 Settings are automatically saved to the XIAO's internal flash when:
 - Leaving a settings mode (function button press)
-- 10 second timeout in settings mode
+- 30 second timeout in menu/slots mode
 - Entering sleep mode
 
 Settings persist through sleep and power off.
@@ -267,13 +285,14 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
-| 1.1.0 | Display overhaul, BT icon, HID keycode fix |
-| 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
-| **1.3.1** | **Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash** |
+| **1.4.0** | **Scrollable settings menu, display brightness, data-driven menu architecture** |
+| 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
 | 1.2.1 | Fix encoder initial state sync bug |
 | 1.2.0 | Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode |
+| 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
+| 1.1.0 | Display overhaul, BT icon, HID keycode fix |
+| 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
 
 ---
 

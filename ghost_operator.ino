@@ -3,17 +3,11 @@
  * ENCODER MENU + FLASH STORAGE
  * For Seeed XIAO nRF52840
  * 
- * MODES (cycle with function button short press):
- *   NORMAL    - Encoder switches profile (LAZY/NORMAL/BUSY, clamped)
- *   KEY MIN   - Encoder adjusts key interval minimum
- *   KEY MAX   - Encoder adjusts key interval maximum
- *   SLOTS     - Encoder cycles key per slot, button advances slot
- *   MOUSE JIG - Encoder adjusts mouse jiggle duration
- *   MOUSE IDLE- Encoder adjusts mouse idle duration
- *   LAZY %    - Encoder adjusts lazy profile percentage (0-50%)
- *   BUSY %    - Encoder adjusts busy profile percentage (0-50%)
- *   SCREENSAVER - Encoder adjusts screensaver timeout (Never/5/10/15/30 min)
- * 
+ * MODES:
+ *   NORMAL - Live status; encoder switches profile, button cycles KB/MS combos
+ *   MENU   - Scrollable settings menu; encoder navigates/edits, button selects/confirms
+ *   SLOTS  - 8-key slot editor; encoder cycles key, button advances slot
+ *
  * PIN ASSIGNMENTS:
  * D0 (P0.02) - Encoder A (digital interrupt)
  * D1 (P0.03) - Encoder B (digital interrupt)
@@ -24,9 +18,9 @@
  * D6 (P0.30) - Activity LED (optional)
  * 
  * CONTROLS:
- * - Encoder rotation: Switch profile (NORMAL), cycle slot key (SLOTS), adjust value (settings)
- * - Encoder button: Cycle KB/MS combos (all modes except SLOTS = advance slot)
- * - Function button short: Cycle to next mode
+ * - Encoder rotation: Switch profile (NORMAL), navigate/adjust (MENU), cycle slot key (SLOTS)
+ * - Encoder button: Cycle KB/MS combos (NORMAL), select/confirm (MENU), advance slot (SLOTS)
+ * - Function button short: Open/close menu (NORMAL↔MENU), back to menu (SLOTS→MENU)
  * - Function button long (3s): Enter deep sleep
  */
 
@@ -44,7 +38,7 @@ using namespace Adafruit_LittleFS_Namespace;
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.3.1"
+#define VERSION "1.4.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F46  // "PROF"
@@ -102,7 +96,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #define BATTERY_READ_MS       60000UL
 #define LONG_PRESS_MS         3000
 #define SLEEP_DISPLAY_MS      2000
-#define MODE_TIMEOUT_MS       10000       // Return to NORMAL after 10s inactivity
+#define MODE_TIMEOUT_MS       30000       // Return to NORMAL after 30s inactivity
 
 // Screensaver timeout options
 #define SAVER_TIMEOUT_COUNT   6
@@ -119,31 +113,56 @@ const char*    SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min"
 // ============================================================================
 // UI MODES
 // ============================================================================
-enum UIMode {
-  MODE_NORMAL,
-  MODE_KEY_MIN,
-  MODE_KEY_MAX,
-  MODE_SLOTS,
-  MODE_MOUSE_JIG,
-  MODE_MOUSE_IDLE,
-  MODE_LAZY_PCT,
-  MODE_BUSY_PCT,
-  MODE_SAVER_TIMEOUT,
-  MODE_SAVER_BRIGHT,
-  MODE_COUNT
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_COUNT };
+const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS" };
+
+// ============================================================================
+// MENU DATA STRUCTURES
+// ============================================================================
+
+enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION };
+
+enum SettingId {
+  SET_KEY_MIN, SET_KEY_MAX, SET_KEY_SLOTS,
+  SET_MOUSE_JIG, SET_MOUSE_IDLE,
+  SET_LAZY_PCT, SET_BUSY_PCT,
+  SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
+  SET_VERSION
 };
 
-const char* MODE_NAMES[] = {
-  "NORMAL",
-  "KEY MIN",
-  "KEY MAX",
-  "SLOTS",
-  "MOUSE JIG",
-  "MOUSE IDLE",
-  "LAZY %",
-  "BUSY %",
-  "SCREENSAVER",
-  "SAVER BRIGHT"
+struct MenuItem {
+  MenuItemType type;
+  const char* label;
+  const char* helpText;
+  MenuValueFormat format;
+  uint32_t minVal, maxVal, step;
+  uint8_t settingId;
+};
+
+#define MENU_ITEM_COUNT 16
+const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
+  // Keyboard settings
+  { MENU_HEADING, "Keyboard",   NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_VALUE,   "Key min",    "Minimum delay between keystrokes", FMT_DURATION_MS, 500, 30000, 500, SET_KEY_MIN },
+  { MENU_VALUE,   "Key max",    "Maximum delay between keystrokes", FMT_DURATION_MS, 500, 30000, 500, SET_KEY_MAX },
+  { MENU_ACTION,  "Key slots",  "Configure 8 key slots", FMT_DURATION_MS, 0, 0, 0, SET_KEY_SLOTS },
+  // Mouse settings
+  { MENU_HEADING, "Mouse",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_VALUE,   "Move duration", "Duration of mouse jiggle movement", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_JIG },
+  { MENU_VALUE,   "Idle duration", "Pause between mouse jiggles", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_IDLE },
+  // Profile settings
+  { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },
+  { MENU_VALUE,   "Busy adjust",   "Speed up timing by this percent", FMT_PERCENT, 0, 50, 5, SET_BUSY_PCT },
+  // Display settings
+  { MENU_HEADING, "Display",       NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_VALUE,   "Brightness",    "OLED display brightness", FMT_PERCENT, 10, 100, 10, SET_DISPLAY_BRIGHT },
+  { MENU_VALUE,   "Saver bright",  "Screensaver dimmed brightness", FMT_PERCENT, 10, 100, 10, SET_SAVER_BRIGHT },
+  { MENU_VALUE,   "Saver time",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
+  // About
+  { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_VALUE,   "Version",       "(c) 2026 TARS Industries", FMT_VERSION, 0, 0, 0, SET_VERSION },
 };
 
 // ============================================================================
@@ -170,6 +189,7 @@ struct Settings {
   uint8_t busyPercent;    // 0-50, step 5, default 15
   uint8_t saverTimeout;   // index into SAVER_MINUTES[] (0=Never..5=30min)
   uint8_t saverBrightness; // 10-100 in steps of 10, default 30
+  uint8_t displayBrightness; // 10-100 in steps of 10, default 100
   uint8_t checksum;       // must remain last
 };
 
@@ -190,6 +210,7 @@ void loadDefaults() {
   settings.busyPercent = 15;
   settings.saverTimeout = DEFAULT_SAVER_IDX;  // 10 minutes
   settings.saverBrightness = 30;               // 30%
+  settings.displayBrightness = 100;            // 100% (full brightness)
 }
 
 uint8_t calcChecksum() {
@@ -367,6 +388,14 @@ UIMode currentMode = MODE_NORMAL;
 unsigned long lastModeActivity = 0;
 bool screensaverActive = false;
 
+// Menu state
+int8_t   menuCursor = -1;        // -1 = MENU title, 0+ = item index
+int8_t   menuScrollOffset = 0;   // first visible item in viewport
+bool     menuEditing = false;    // currently adjusting a value
+int16_t  helpScrollPos = 0;      // character offset for help text scrolling
+int8_t   helpScrollDir = 1;      // +1 = scroll left, -1 = scroll right
+unsigned long helpScrollTimer = 0;
+
 // Timing
 unsigned long startTime = 0;
 unsigned long lastKeyTime = 0;
@@ -477,6 +506,60 @@ String formatUptime(unsigned long ms) {
 }
 
 // ============================================================================
+// MENU VALUE ACCESSORS
+// ============================================================================
+
+uint32_t getSettingValue(uint8_t settingId) {
+  switch (settingId) {
+    case SET_KEY_MIN:        return settings.keyIntervalMin;
+    case SET_KEY_MAX:        return settings.keyIntervalMax;
+    case SET_MOUSE_JIG:      return settings.mouseJiggleDuration;
+    case SET_MOUSE_IDLE:     return settings.mouseIdleDuration;
+    case SET_LAZY_PCT:       return settings.lazyPercent;
+    case SET_BUSY_PCT:       return settings.busyPercent;
+    case SET_DISPLAY_BRIGHT: return settings.displayBrightness;
+    case SET_SAVER_BRIGHT:   return settings.saverBrightness;
+    case SET_SAVER_TIMEOUT:  return settings.saverTimeout;
+    case SET_VERSION:        return 0;  // read-only display
+    default:                 return 0;
+  }
+}
+
+void setSettingValue(uint8_t settingId, uint32_t value) {
+  switch (settingId) {
+    case SET_KEY_MIN:
+      settings.keyIntervalMin = value;
+      if (settings.keyIntervalMin > settings.keyIntervalMax)
+        settings.keyIntervalMax = settings.keyIntervalMin;
+      break;
+    case SET_KEY_MAX:
+      settings.keyIntervalMax = value;
+      if (settings.keyIntervalMax < settings.keyIntervalMin)
+        settings.keyIntervalMin = settings.keyIntervalMax;
+      break;
+    case SET_MOUSE_JIG:      settings.mouseJiggleDuration = value; break;
+    case SET_MOUSE_IDLE:     settings.mouseIdleDuration = value; break;
+    case SET_LAZY_PCT:       settings.lazyPercent = (uint8_t)value; break;
+    case SET_BUSY_PCT:       settings.busyPercent = (uint8_t)value; break;
+    case SET_DISPLAY_BRIGHT: settings.displayBrightness = (uint8_t)value; break;
+    case SET_SAVER_BRIGHT:   settings.saverBrightness = (uint8_t)value; break;
+    case SET_SAVER_TIMEOUT:  settings.saverTimeout = (uint8_t)value; break;
+  }
+}
+
+String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
+  uint32_t val = getSettingValue(settingId);
+  switch (format) {
+    case FMT_DURATION_MS:  return formatDuration(val);
+    case FMT_PERCENT:      return String(val) + "%";
+    case FMT_PERCENT_NEG:  return (val == 0) ? String("0%") : ("-" + String(val) + "%");
+    case FMT_SAVER_NAME:   return String(SAVER_NAMES[val]);
+    case FMT_VERSION:      return String("v") + String(VERSION);
+    default:               return String(val);
+  }
+}
+
+// ============================================================================
 // FLASH STORAGE
 // ============================================================================
 
@@ -524,6 +607,7 @@ void loadSettings() {
         if (settings.busyPercent > 50) settings.busyPercent = 15;
         if (settings.saverTimeout >= SAVER_TIMEOUT_COUNT) settings.saverTimeout = DEFAULT_SAVER_IDX;
         if (settings.saverBrightness < 10 || settings.saverBrightness > 100 || settings.saverBrightness % 10 != 0) settings.saverBrightness = 30;
+        if (settings.displayBrightness < 10 || settings.displayBrightness > 100 || settings.displayBrightness % 10 != 0) settings.displayBrightness = 100;
 
         return;
       } else {
@@ -698,7 +782,7 @@ void setup() {
   lastModeActivity = millis();
   
   Serial.println("Setup complete.");
-  Serial.println("Short press func btn = cycle modes");
+  Serial.println("Short press func btn = open/close menu");
   Serial.println("Long press func btn = sleep");
 }
 
@@ -737,7 +821,7 @@ void setupDisplay() {
 
   display.clearDisplay();
   display.drawBitmap(0, 0, splashBitmap, 128, 64, SSD1306_WHITE);
-  // Version in lower-right corner (e.g. "v1.3.1" = 6 chars × 6px = 36px)
+  // Version in lower-right corner (e.g. "v1.4.0" = 6 chars × 6px = 36px)
   String ver = "v" + String(VERSION);
   display.setCursor(128 - ver.length() * 6, 57);
   display.print(ver);
@@ -756,7 +840,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   
   bledis.setManufacturer("TARS Industries");
-  bledis.setModel("Ghost Operator v1.3.1");
+  bledis.setModel("Ghost Operator v1.4.0");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
   
@@ -796,6 +880,7 @@ void loop() {
   
   // Auto-return to NORMAL mode after timeout
   if (currentMode != MODE_NORMAL && (now - lastModeActivity > MODE_TIMEOUT_MS)) {
+    menuEditing = false;
     currentMode = MODE_NORMAL;
     saveSettings();  // Save when leaving settings
   }
@@ -941,9 +1026,42 @@ void pickNewDirection() {
 // INPUT HANDLING
 // ============================================================================
 
+// Move menu cursor by direction, skipping headings
+void moveCursor(int direction) {
+  int8_t next = menuCursor + direction;
+  // Skip headings
+  while (next >= 0 && next < MENU_ITEM_COUNT && MENU_ITEMS[next].type == MENU_HEADING) {
+    next += direction;
+  }
+  // Clamp at bounds
+  if (next < 0 || next >= MENU_ITEM_COUNT) return;
+  menuCursor = next;
+
+  // Adjust scroll to keep cursor visible (5-row viewport)
+  // Show the heading above the cursor when scrolling down
+  int8_t viewTop = menuScrollOffset;
+  int8_t viewBottom = menuScrollOffset + 4;  // 5 rows: 0..4
+
+  if (menuCursor <= viewTop) {
+    menuScrollOffset = menuCursor;
+    // Show heading above if it exists
+    if (menuScrollOffset > 0 && MENU_ITEMS[menuScrollOffset - 1].type == MENU_HEADING) {
+      menuScrollOffset--;
+    }
+  } else if (menuCursor > viewBottom) {
+    menuScrollOffset = menuCursor - 4;
+  }
+  if (menuScrollOffset < 0) menuScrollOffset = 0;
+
+  // Reset help scroll on cursor change
+  helpScrollPos = 0;
+  helpScrollDir = 1;
+  helpScrollTimer = millis();
+}
+
 void handleEncoder() {
   int change = encoderPos - lastEncoderPos;
-  
+
   if (abs(change) >= 4) {  // Full detent
     int direction = (change > 0) ? 1 : -1;
     lastEncoderPos = encoderPos;
@@ -960,71 +1078,38 @@ void handleEncoder() {
         if (p >= PROFILE_COUNT) p = PROFILE_COUNT - 1;
         currentProfile = (Profile)p;
         profileDisplayUntil = millis() + PROFILE_DISPLAY_MS;
-        // Re-schedule with new profile values
         scheduleNextKey();
         scheduleNextMouseState();
         break;
       }
 
+      case MODE_MENU:
+        if (menuEditing && menuCursor >= 0) {
+          // Adjust the selected item's value
+          const MenuItem& item = MENU_ITEMS[menuCursor];
+          int32_t val = (int32_t)getSettingValue(item.settingId);
+          // Negative-display values: encoder CW → toward 0%, CCW → toward -50%
+          int dir = (item.format == FMT_PERCENT_NEG) ? -direction : direction;
+          val += dir * (int32_t)item.step;
+          if (val < (int32_t)item.minVal) val = item.minVal;
+          if (val > (int32_t)item.maxVal) val = item.maxVal;
+          setSettingValue(item.settingId, (uint32_t)val);
+        } else {
+          // Navigate cursor
+          if (menuCursor == -1 && direction > 0) {
+            // Move from title to first selectable item
+            menuCursor = -1;
+            moveCursor(1);
+          } else if (menuCursor >= 0) {
+            moveCursor(direction);
+          }
+        }
+        break;
+
       case MODE_SLOTS:
         // Cycle key for active slot
         settings.keySlots[activeSlot] = (settings.keySlots[activeSlot] + direction + NUM_KEYS) % NUM_KEYS;
         break;
-
-      case MODE_KEY_MIN:
-        adjustValue(&settings.keyIntervalMin, direction, VALUE_MAX_KEY_MS);
-        // Keep min <= max
-        if (settings.keyIntervalMin > settings.keyIntervalMax) {
-          settings.keyIntervalMax = settings.keyIntervalMin;
-        }
-        break;
-
-      case MODE_KEY_MAX:
-        adjustValue(&settings.keyIntervalMax, direction, VALUE_MAX_KEY_MS);
-        // Keep max >= min
-        if (settings.keyIntervalMax < settings.keyIntervalMin) {
-          settings.keyIntervalMin = settings.keyIntervalMax;
-        }
-        break;
-
-      case MODE_MOUSE_JIG:
-        adjustValue(&settings.mouseJiggleDuration, direction, VALUE_MAX_MOUSE_MS);
-        break;
-
-      case MODE_MOUSE_IDLE:
-        adjustValue(&settings.mouseIdleDuration, direction, VALUE_MAX_MOUSE_MS);
-        break;
-
-      case MODE_LAZY_PCT: {
-        int newVal = (int)settings.lazyPercent + direction * 5;
-        if (newVal < 0) newVal = 0;
-        if (newVal > 50) newVal = 50;
-        settings.lazyPercent = (uint8_t)newVal;
-        break;
-      }
-      case MODE_BUSY_PCT: {
-        int newVal = (int)settings.busyPercent + direction * 5;
-        if (newVal < 0) newVal = 0;
-        if (newVal > 50) newVal = 50;
-        settings.busyPercent = (uint8_t)newVal;
-        break;
-      }
-
-      case MODE_SAVER_TIMEOUT: {
-        int newIdx = (int)settings.saverTimeout + direction;
-        if (newIdx < 0) newIdx = 0;
-        if (newIdx >= SAVER_TIMEOUT_COUNT) newIdx = SAVER_TIMEOUT_COUNT - 1;
-        settings.saverTimeout = (uint8_t)newIdx;
-        break;
-      }
-
-      case MODE_SAVER_BRIGHT: {
-        int newVal = (int)settings.saverBrightness + direction * 10;
-        if (newVal < 10) newVal = 10;
-        if (newVal > 100) newVal = 100;
-        settings.saverBrightness = (uint8_t)newVal;
-        break;
-      }
 
       default:
         break;
@@ -1032,22 +1117,15 @@ void handleEncoder() {
   }
 }
 
-void adjustValue(uint32_t* value, int direction, uint32_t maxVal) {
-  long newVal = (long)*value + (direction * (long)VALUE_STEP_MS);
-  if (newVal < (long)VALUE_MIN_MS) newVal = VALUE_MIN_MS;
-  if (newVal > (long)maxVal) newVal = maxVal;
-  *value = (uint32_t)newVal;
-}
-
 void handleButtons() {
   static bool lastEncBtn = HIGH;
   static unsigned long lastEncPress = 0;
   const unsigned long DEBOUNCE = 200;
-  
+
   unsigned long now = millis();
   bool encBtn = digitalRead(PIN_ENCODER_BTN);
   bool funcBtn = digitalRead(PIN_FUNC_BTN);
-  
+
   // Encoder button - mode-dependent behavior
   if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
     lastEncPress = now;
@@ -1056,28 +1134,51 @@ void handleButtons() {
     // Wake screensaver — consume input
     if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
 
-    if (currentMode == MODE_SLOTS) {
-      // Advance active slot cursor (0→1→...→7→0)
-      activeSlot = (activeSlot + 1) % NUM_SLOTS;
-      saveSettings();
-      Serial.print("Active slot: ");
-      Serial.println(activeSlot);
-    } else {
-      // All other modes (including NORMAL): cycle KB/MS enable combos
-      uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
-      state = (state == 0) ? 3 : state - 1;
-      keyEnabled = (state & 2) != 0;
-      mouseEnabled = (state & 1) != 0;
+    switch (currentMode) {
+      case MODE_NORMAL: {
+        // Cycle KB/MS enable combos
+        uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
+        state = (state == 0) ? 3 : state - 1;
+        keyEnabled = (state & 2) != 0;
+        mouseEnabled = (state & 1) != 0;
+        Serial.print("KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
+        Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
+        break;
+      }
 
-      Serial.print("KB:");
-      Serial.print(keyEnabled ? "ON" : "OFF");
-      Serial.print(" MS:");
-      Serial.println(mouseEnabled ? "ON" : "OFF");
+      case MODE_MENU:
+        if (menuEditing) {
+          // Exit edit mode
+          menuEditing = false;
+          Serial.println("Menu: edit done");
+        } else if (menuCursor >= 0) {
+          const MenuItem& item = MENU_ITEMS[menuCursor];
+          if (item.type == MENU_VALUE && item.minVal != item.maxVal) {
+            // Enter edit mode (skip read-only items where min == max)
+            menuEditing = true;
+            Serial.print("Menu: editing "); Serial.println(item.label);
+          } else if (item.type == MENU_ACTION) {
+            // Navigate to SLOTS mode
+            currentMode = MODE_SLOTS;
+            activeSlot = 0;
+            Serial.println("Mode: SLOTS");
+          }
+        }
+        break;
+
+      case MODE_SLOTS:
+        // Advance active slot cursor (0→1→...→7→0)
+        activeSlot = (activeSlot + 1) % NUM_SLOTS;
+        saveSettings();
+        Serial.print("Active slot: "); Serial.println(activeSlot);
+        break;
+
+      default: break;
     }
   }
   lastEncBtn = encBtn;
-  
-  // Function button - short = next mode, long = sleep
+
+  // Function button - short = open/close menu, long = sleep
   if (funcBtn == LOW) {
     if (!funcBtnWasPressed) {
       funcBtnPressStart = now;
@@ -1092,17 +1193,45 @@ void handleButtons() {
     if (funcBtnWasPressed) {
       unsigned long holdTime = now - funcBtnPressStart;
       if (holdTime < LONG_PRESS_MS && holdTime > 50) {
-        // Wake screensaver — consume input (long press sleep still works)
-        if (screensaverActive) { screensaverActive = false; lastModeActivity = now; funcBtnWasPressed = false; return; }
-
-        // Short press - cycle mode
-        if (currentMode != MODE_NORMAL) {
-          saveSettings();  // Save when leaving a settings mode
-        }
-        currentMode = (UIMode)((currentMode + 1) % MODE_COUNT);
         lastModeActivity = now;
-        Serial.print("Mode: ");
-        Serial.println(MODE_NAMES[currentMode]);
+
+        // Wake screensaver — consume input (long press sleep still works)
+        if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
+
+        switch (currentMode) {
+          case MODE_NORMAL:
+            // Open menu
+            currentMode = MODE_MENU;
+            menuCursor = -1;
+            menuScrollOffset = 0;
+            menuEditing = false;
+            helpScrollPos = 0;
+            helpScrollDir = 1;
+            helpScrollTimer = millis();
+            Serial.println("Mode: MENU");
+            break;
+
+          case MODE_MENU:
+            // Close menu → save and return to NORMAL
+            menuEditing = false;
+            currentMode = MODE_NORMAL;
+            saveSettings();
+            Serial.println("Mode: NORMAL (menu closed)");
+            break;
+
+          case MODE_SLOTS:
+            // Back to menu at "Key slots" item (index 3)
+            saveSettings();
+            currentMode = MODE_MENU;
+            menuCursor = 3;
+            menuEditing = false;
+            // Ensure cursor visible
+            menuScrollOffset = 0;
+            Serial.println("Mode: MENU (from SLOTS)");
+            break;
+
+          default: break;
+        }
       }
       funcBtnWasPressed = false;
     }
@@ -1143,6 +1272,7 @@ void handleSerialCommands() {
         Serial.print("Busy %: "); Serial.println(settings.busyPercent);
         Serial.print("Effective KB: "); Serial.print(effectiveKeyMin()); Serial.print("-"); Serial.println(effectiveKeyMax());
         Serial.print("Effective Mouse: "); Serial.print(effectiveMouseJiggle()); Serial.print("/"); Serial.println(effectiveMouseIdle());
+        Serial.print("Display brightness: "); Serial.print(settings.displayBrightness); Serial.println("%");
         Serial.print("Screensaver: "); Serial.print(SAVER_NAMES[settings.saverTimeout]);
         Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
@@ -1228,12 +1358,21 @@ void readBattery() {
 void updateDisplay() {
   if (!displayInitialized) return;
 
-  // Dim OLED in screensaver mode, restore on exit
+  // Contrast management: screensaver dims, normal uses displayBrightness
   static bool wasSaver = false;
+  static uint8_t lastBrightness = 0;
+  uint8_t normalContrast = (uint8_t)(0xCF * settings.displayBrightness / 100);
+
   if (screensaverActive != wasSaver) {
     display.ssd1306_command(SSD1306_SETCONTRAST);
-    display.ssd1306_command(screensaverActive ? (uint8_t)(0xCF * settings.saverBrightness / 100) : 0xCF);
+    display.ssd1306_command(screensaverActive ? (uint8_t)(0xCF * settings.saverBrightness / 100) : normalContrast);
     wasSaver = screensaverActive;
+    lastBrightness = settings.displayBrightness;
+  } else if (!screensaverActive && settings.displayBrightness != lastBrightness) {
+    // Live-update contrast when editing brightness in menu
+    display.ssd1306_command(SSD1306_SETCONTRAST);
+    display.ssd1306_command(normalContrast);
+    lastBrightness = settings.displayBrightness;
   }
 
   display.clearDisplay();
@@ -1242,12 +1381,12 @@ void updateDisplay() {
     drawScreensaver();
   } else if (currentMode == MODE_NORMAL) {
     drawNormalMode();
+  } else if (currentMode == MODE_MENU) {
+    drawMenuMode();
   } else if (currentMode == MODE_SLOTS) {
     drawSlotsMode();
-  } else {
-    drawSettingsMode();
   }
-  
+
   display.display();
 }
 
@@ -1500,138 +1639,182 @@ void drawSlotsMode() {
   display.print("Turn=key  Press=slot");
 
   display.setCursor(0, 57);
-  display.print("Func=exit");
+  display.print("Func=back");
 }
 
-void drawSettingsMode() {
-  // === Header ===
-  display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.print("MODE: ");
-  display.print(MODE_NAMES[currentMode]);
-  
-  // Show what encoder button toggles
-  display.setCursor(100, 0);
-  if (currentMode == MODE_KEY_MIN || currentMode == MODE_KEY_MAX) {
-    display.print(keyEnabled ? "[K]" : "[k]");
-  } else if (currentMode == MODE_LAZY_PCT || currentMode == MODE_BUSY_PCT) {
-    display.print("[%]");
-  } else if (currentMode == MODE_SAVER_TIMEOUT || currentMode == MODE_SAVER_BRIGHT) {
-    display.print("[S]");
+void drawHelpBar(int y) {
+  // Determine help text based on menu state
+  const char* text;
+  if (menuEditing) {
+    text = "Turn to adjust, Press to confirm";
+  } else if (menuCursor == -1) {
+    text = "Turn/Press dial to select/OK";
+  } else if (menuCursor >= 0 && MENU_ITEMS[menuCursor].helpText) {
+    text = MENU_ITEMS[menuCursor].helpText;
   } else {
-    display.print(mouseEnabled ? "[M]" : "[m]");
+    text = "Press to select";
   }
-  
-  display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
-  
-  // === Value display ===
-  if (currentMode == MODE_SAVER_TIMEOUT) {
-    // Screensaver timeout: name display with position dots
-    display.setTextSize(2);
-    String valStr = "> " + String(SAVER_NAMES[settings.saverTimeout]) + " <";
-    int valWidth = valStr.length() * 12;
-    int valX = (128 - valWidth) / 2;
-    display.setCursor(valX, 20);
-    display.print(valStr);
 
-    // Position dots (filled = selected, hollow = unselected)
-    display.setTextSize(1);
-    int dotSpacing = 12;
-    int dotsWidth = (SAVER_TIMEOUT_COUNT - 1) * dotSpacing;
-    int dotStartX = (128 - dotsWidth) / 2;
-    int dotY = 44;
-    for (int i = 0; i < SAVER_TIMEOUT_COUNT; i++) {
-      int dx = dotStartX + i * dotSpacing;
-      if (i == settings.saverTimeout) {
-        display.fillRect(dx, dotY, 5, 5, SSD1306_WHITE);
+  int textLen = strlen(text);
+  int maxChars = 21;  // 128px / 6px per char
+
+  if (textLen <= maxChars) {
+    // Static: fits on screen
+    display.setCursor(0, y);
+    display.print(text);
+  } else {
+    // Scroll by character with 1.5s pause at ends, ~300ms per step
+    unsigned long now = millis();
+    int maxScroll = textLen - maxChars;
+
+    if (now - helpScrollTimer >= (helpScrollPos == 0 || helpScrollPos == maxScroll ? 1500 : 300)) {
+      helpScrollPos += helpScrollDir;
+      if (helpScrollPos >= maxScroll) { helpScrollPos = maxScroll; helpScrollDir = -1; }
+      if (helpScrollPos <= 0) { helpScrollPos = 0; helpScrollDir = 1; }
+      helpScrollTimer = now;
+    }
+
+    display.setCursor(0, y);
+    // Print maxChars characters starting from helpScrollPos
+    for (int i = 0; i < maxChars && (helpScrollPos + i) < textLen; i++) {
+      display.print(text[helpScrollPos + i]);
+    }
+  }
+}
+
+void drawMenuMode() {
+  display.setTextSize(1);
+
+  // === Header (y=0): "MENU" title, optionally inverted ===
+  if (menuCursor == -1) {
+    // Highlight title row (inverted)
+    display.fillRect(0, 0, 36, 8, SSD1306_WHITE);
+    display.setTextColor(SSD1306_BLACK);
+    display.setCursor(0, 0);
+    display.print("MENU");
+    display.setTextColor(SSD1306_WHITE);
+  } else {
+    display.setCursor(0, 0);
+    display.print("MENU");
+  }
+
+  // BT icon + battery right-aligned in header
+  String batStr = String(batteryPercent) + "%";
+  int batWidth = batStr.length() * 6;
+  int batX = 128 - batWidth;
+  int btX = batX - 5 - 3;
+  if (deviceConnected) {
+    display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  } else {
+    if ((millis() / 500) % 2 == 0)
+      display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  }
+  display.setCursor(batX, 0);
+  display.print(batStr);
+
+  // === Separator ===
+  display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+
+  // === Menu viewport: 5 rows × 8px each (y=10 to y=49) ===
+  for (int row = 0; row < 5; row++) {
+    int idx = menuScrollOffset + row;
+    if (idx < 0 || idx >= MENU_ITEM_COUNT) continue;
+
+    int y = 10 + row * 8;
+    const MenuItem& item = MENU_ITEMS[idx];
+    bool isSelected = (idx == menuCursor);
+
+    if (item.type == MENU_HEADING) {
+      // Heading: centered "- Label -" style
+      String heading = "- " + String(item.label) + " -";
+      int hw = heading.length() * 6;
+      display.setCursor((128 - hw) / 2, y);
+      display.print(heading);
+
+    } else if (item.type == MENU_ACTION) {
+      // Action item: label left, ">" right
+      if (isSelected) {
+        display.fillRect(0, y, 128, 8, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+      }
+      display.setCursor(2, y);
+      display.print(item.label);
+      display.setCursor(122, y);
+      display.print(">");
+      if (isSelected) display.setTextColor(SSD1306_WHITE);
+
+    } else {
+      // Value item
+      String valStr = formatMenuValue(item.settingId, item.format);
+      uint32_t curVal = getSettingValue(item.settingId);
+      bool atMin = (curVal <= item.minVal);
+      bool atMax = (curVal >= item.maxVal);
+      // Negative-display: displayed range is inverted (raw max = displayed min)
+      if (item.format == FMT_PERCENT_NEG) { bool tmp = atMin; atMin = atMax; atMax = tmp; }
+
+      if (isSelected && menuEditing) {
+        // Editing: label normal, value portion inverted with < >
+        display.setCursor(2, y);
+        display.print(item.label);
+
+        // Build value display string with arrows
+        String editStr = "";
+        if (!atMin) editStr += "< ";
+        else editStr += "  ";
+        editStr += valStr;
+        if (!atMax) editStr += " >";
+        else editStr += "  ";
+
+        int editW = editStr.length() * 6;
+        int editX = 128 - editW - 1;
+        display.fillRect(editX, y, editW + 1, 8, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+        display.setCursor(editX, y);
+        display.print(editStr);
+        display.setTextColor(SSD1306_WHITE);
+
+      } else if (isSelected) {
+        // Selected but not editing: full row inverted
+        display.fillRect(0, y, 128, 8, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+        display.setCursor(2, y);
+        display.print(item.label);
+
+        // Value with arrows right-aligned
+        String dispStr = "";
+        if (!atMin) dispStr += "< ";
+        else dispStr += "  ";
+        dispStr += valStr;
+        if (!atMax) dispStr += " >";
+        else dispStr += "  ";
+
+        int dw = dispStr.length() * 6;
+        display.setCursor(128 - dw - 1, y);
+        display.print(dispStr);
+        display.setTextColor(SSD1306_WHITE);
+
       } else {
-        display.drawRect(dx, dotY, 5, 5, SSD1306_WHITE);
+        // Unselected: label left, value right
+        display.setCursor(2, y);
+        display.print(item.label);
+
+        String dispStr = "";
+        if (!atMin) dispStr += "< ";
+        else dispStr += "  ";
+        dispStr += valStr;
+        if (!atMax) dispStr += " >";
+        else dispStr += "  ";
+
+        int dw = dispStr.length() * 6;
+        display.setCursor(128 - dw - 1, y);
+        display.print(dispStr);
       }
     }
-  } else if (currentMode == MODE_SAVER_BRIGHT) {
-    // Brightness percentage display (10-100%)
-    display.setTextSize(2);
-    String valStr = "> " + String(settings.saverBrightness) + "% <";
-    int valWidth = valStr.length() * 12;
-    int valX = (128 - valWidth) / 2;
-    display.setCursor(valX, 20);
-    display.print(valStr);
-
-    // Progress bar: 10-100%
-    display.setTextSize(1);
-    display.setCursor(0, 40);
-    display.print("10%");
-    display.setCursor(104, 40);
-    display.print("100%");
-
-    int barProgress = map(settings.saverBrightness, 10, 100, 0, 100);
-    display.drawRect(0, 48, 128, 7, SSD1306_WHITE);
-    int barWidth = map(barProgress, 0, 100, 0, 126);
-    if (barWidth > 0) {
-      display.fillRect(1, 49, barWidth, 5, SSD1306_WHITE);
-    }
-  } else if (currentMode == MODE_LAZY_PCT || currentMode == MODE_BUSY_PCT) {
-    // Percentage value display
-    uint8_t pctValue = (currentMode == MODE_LAZY_PCT) ? settings.lazyPercent : settings.busyPercent;
-
-    display.setTextSize(2);
-    String valStr = "> " + String(pctValue) + "% <";
-    int valWidth = valStr.length() * 12;
-    int valX = (128 - valWidth) / 2;
-    display.setCursor(valX, 20);
-    display.print(valStr);
-
-    // Progress bar: 0-50%
-    display.setTextSize(1);
-    display.setCursor(0, 40);
-    display.print("0%");
-    display.setCursor(110, 40);
-    display.print("50%");
-
-    int barProgress = map(pctValue, 0, 50, 0, 100);
-    display.drawRect(0, 48, 128, 7, SSD1306_WHITE);
-    int barWidth = map(barProgress, 0, 100, 0, 126);
-    if (barWidth > 0) {
-      display.fillRect(1, 49, barWidth, 5, SSD1306_WHITE);
-    }
-  } else {
-    // Timing value display
-    uint32_t value = 0;
-    switch (currentMode) {
-      case MODE_KEY_MIN:   value = settings.keyIntervalMin; break;
-      case MODE_KEY_MAX:   value = settings.keyIntervalMax; break;
-      case MODE_MOUSE_JIG: value = settings.mouseJiggleDuration; break;
-      case MODE_MOUSE_IDLE: value = settings.mouseIdleDuration; break;
-      default: break;
-    }
-
-    // Big centered value
-    display.setTextSize(2);
-    String valStr = "> " + formatDuration(value) + " <";
-    int valWidth = valStr.length() * 12;
-    int valX = (128 - valWidth) / 2;
-    display.setCursor(valX, 20);
-    display.print(valStr);
-
-    // Progress bar showing position in range
-    bool isMouseMode = (currentMode == MODE_MOUSE_JIG || currentMode == MODE_MOUSE_IDLE);
-    uint32_t rangeMax = isMouseMode ? VALUE_MAX_MOUSE_MS : VALUE_MAX_KEY_MS;
-
-    display.setTextSize(1);
-    display.setCursor(0, 40);
-    display.print("0.5");
-    display.setCursor(104, 40);
-    display.print(isMouseMode ? "90s" : "30s");
-
-    int barProgress = map(value, VALUE_MIN_MS, rangeMax, 0, 100);
-    display.drawRect(0, 48, 128, 7, SSD1306_WHITE);
-    int barWidth = map(barProgress, 0, 100, 0, 126);
-    if (barWidth > 0) {
-      display.fillRect(1, 49, barWidth, 5, SSD1306_WHITE);
-    }
   }
-  
-  // Instructions
-  display.setCursor(0, 57);
-  display.print("Turn dial to adjust");
+
+  // === Separator ===
+  display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
+
+  // === Help bar (y=52) ===
+  drawHelpBar(52);
 }

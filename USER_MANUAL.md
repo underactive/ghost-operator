@@ -1,4 +1,4 @@
-# Ghost Operator v1.3.1 - User Manual
+# Ghost Operator v1.4.0 - User Manual
 
 ## Quick Start
 
@@ -12,13 +12,13 @@
 
 ## Controls Overview
 
-| Control | Action |
-|---------|--------|
-| **Encoder Turn** | Switch profile (normal) / Cycle slot key (slots) / Adjust value (settings) |
-| **Encoder Press** | Cycle KB/MS enable (normal & settings) / Advance slot cursor (slots) |
-| **Button Short Press** | Cycle to next mode |
-| **Button Long Press (3s)** | Enter sleep mode |
-| **Button Press (while sleeping)** | Wake up |
+| Control | NORMAL | MENU | SLOTS |
+|---------|--------|------|-------|
+| **Encoder Turn** | Switch profile | Navigate / adjust value | Cycle slot key |
+| **Encoder Press** | Cycle KB/MS enable | Select / confirm | Advance slot cursor |
+| **Button Short** | Open menu | Close menu (save) | Back to menu (save) |
+| **Button Long (3s)** | Sleep | Sleep | Sleep |
+| **Button (sleeping)** | Wake up | - | - |
 
 ---
 
@@ -70,6 +70,50 @@
 
 ---
 
+### Menu Mode
+
+```
+┌────────────────────────────────┐
+│ MENU                    ᛒ 85%  │  ← Title (inverted when selected)
+├────────────────────────────────┤
+│       - Keyboard -             │  ← Heading (not selectable)
+│ ▌Key min          < 2.0s >  ▐  │  ← Selected item (inverted row)
+│  Key max            < 6.5s >   │  ← Normal item with arrows
+│  Key slots                 >   │  ← Action item
+│       - Mouse -                │  ← Next heading
+├────────────────────────────────┤
+│ Minimum delay between keys     │  ← Context help text
+└────────────────────────────────┘
+```
+
+**How to use the menu:**
+1. **Short press the function button** from NORMAL mode to open the menu
+2. **Turn the encoder** to scroll through items (headings are skipped)
+3. **Press the encoder** on a value item to enter edit mode
+4. **Turn the encoder** to adjust the value — `< >` arrows show which direction you can go
+5. **Press the encoder** again to confirm and exit edit mode
+6. **Short press the function button** to close the menu and save settings
+
+**Menu items:**
+
+| Heading | Setting | What It Does |
+|---------|---------|-------------|
+| **Keyboard** | Key min | Minimum delay between keystrokes (0.5s-30s) |
+| | Key max | Maximum delay between keystrokes (0.5s-30s) |
+| | Key slots | Opens the slot editor (press encoder to enter) |
+| **Mouse** | Move duration | How long the mouse jiggles (0.5s-90s) |
+| | Idle duration | Pause between jiggles (0.5s-90s) |
+| **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
+| | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
+| **Display** | Brightness | OLED display brightness (10-100%, default 100%) |
+| | Saver bright | Screensaver dimmed brightness (10-100%, default 30%) |
+| | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
+| **About** | Version | Firmware version (read-only) |
+
+**Help bar:** The bottom line shows context-sensitive help for the selected item. Long text scrolls automatically.
+
+---
+
 ### Slots Mode
 
 ```
@@ -80,7 +124,7 @@
 │   --- --- --- ---              │  ← Slot row 2
 ├────────────────────────────────┤
 │ Turn=key  Press=slot           │  ← Controls
-│ Func=exit                      │
+│ Func=back                      │
 └────────────────────────────────┘
 ```
 
@@ -88,36 +132,7 @@
 - Active slot shown with inverted colors (white background, black text)
 - Turn encoder to cycle the active slot's key assignment
 - Press encoder to advance to the next slot (1→2→...→8→1)
-- Press function button to leave SLOTS mode
-
----
-
-### Settings Mode
-
-```
-┌────────────────────────────────┐
-│ MODE: KEY MIN            [K]   │  ← Current mode
-├────────────────────────────────┤
-│                                │
-│       > 2.0s <                 │  ← Current value
-│                                │
-│ 0.5s ████████░░░░░░░░░░░░ 30s  │  ← Position in range
-├────────────────────────────────┤
-│ Turn dial to adjust            │
-└────────────────────────────────┘
-```
-
-- `MODE: KEY MIN` - Which setting you're editing
-- `[K]` or `[k]` - Keys ON or off (press encoder to toggle)
-- `[M]` or `[m]` - Mouse ON or off (in mouse modes)
-- `[%]` - Shown in LAZY % and BUSY % modes
-- `[S]` - Shown in SCREENSAVER and SAVER BRIGHT modes
-- `> 2.0s <` - Current value (turn encoder to change)
-- `> 15% <` - Current percentage (in LAZY % / BUSY % modes)
-- `> 10 min <` - Current timeout (in SCREENSAVER mode)
-- `> 30% <` - Current brightness (in SAVER BRIGHT mode)
-- Progress bar shows position in range (0.5s-30s for key, 0.5s-90s for mouse, 0-50% for profiles, 10-100% for brightness)
-- Position dots show selection in SCREENSAVER mode (filled = selected, hollow = unselected)
+- Press function button to return to the menu
 
 ---
 
@@ -139,36 +154,32 @@
 - Activates after the configured timeout of no user interaction (default: 10 minutes)
 - Only activates in NORMAL mode — settings modes auto-return first
 - Minimal pixel display to prevent OLED burn-in and save power
-- OLED brightness dimmed to configured level (default 30%) — adjust in SAVER BRIGHT settings page
+- OLED brightness dimmed to configured level (default 30%) — adjust "Saver bright" in menu
 - **Any input** (encoder turn, encoder press, function button) wakes the display — the input is consumed so you don't accidentally change settings
 - **Long-press sleep** still works from screensaver
-- Configure timeout in SCREENSAVER settings page (Never / 1 / 5 / 10 / 15 / 30 min)
-- Configure brightness in SAVER BRIGHT settings page (10-100%)
+- Configure timeout via "Saver time" in menu (Never / 1 / 5 / 10 / 15 / 30 min)
+- Configure brightness via "Saver bright" in menu (10-100%)
 
 ---
 
-## Mode Cycle
+## Navigating Modes
 
-Press the **function button** (short press) to cycle through modes:
+The device has three modes:
 
 ```
-NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY % → SCREENSAVER → SAVER BRIGHT → NORMAL...
+NORMAL ←→ MENU → SLOTS → MENU
+         (func)  (func)  (func)
 ```
 
-| Mode | What It Adjusts |
-|------|-----------------|
-| NORMAL | Shows next key and countdown; turn encoder to switch profile |
-| KEY MIN | Minimum time between keystrokes |
-| KEY MAX | Maximum time between keystrokes |
-| SLOTS | Configure 8 key slots (turn=change key, press=next slot) |
-| MOUSE JIG | How long the mouse jiggles |
-| MOUSE IDLE | How long the mouse pauses between jiggles |
-| LAZY % | How much the LAZY profile scales values (0-50%) |
-| BUSY % | How much the BUSY profile scales values (0-50%) |
-| SCREENSAVER | How long before screensaver activates (Never/1/5/10/15/30 min) |
-| SAVER BRIGHT | OLED brightness during screensaver (10-100%, default 30%) |
+| Mode | Purpose |
+|------|---------|
+| **NORMAL** | Live status display — turn encoder to switch profile, press encoder to toggle KB/MS |
+| **MENU** | Scrollable settings menu — turn encoder to navigate, press to select/edit |
+| **SLOTS** | Key slot editor — turn encoder to change key, press to advance slot |
 
-**Auto-return:** If you don't touch anything for 10 seconds in a settings mode, it returns to NORMAL and saves.
+- **Function button** toggles between NORMAL and MENU
+- From SLOTS, **function button** returns to MENU (at the "Key slots" item)
+- **Auto-return:** If you don't touch anything for 30 seconds in MENU or SLOTS, it returns to NORMAL and saves
 
 ---
 
@@ -187,33 +198,36 @@ Ghost Operator has three timing profiles that scale all timing values:
 1. In **NORMAL mode**, **turn the encoder** to switch: LAZY ← NORMAL → BUSY (clamped at ends)
 2. The profile name appears on the bottom line for 3 seconds
 3. KB and MS timing values on the display update immediately to show effective values
-4. Adjust how much each profile scales values in **LAZY %** and **BUSY %** modes (default: 15%)
+4. Adjust how much each profile scales values in **"Lazy adjust"** and **"Busy adjust"** in the menu (default: 15%)
 
 Profiles do **not** change your saved base settings — they apply scaling at runtime only. Profile resets to NORMAL after sleep/wake.
 
-### Configure Key Slots (SLOTS mode)
+### Configure Key Slots
 
 Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from populated (non-NONE) slots, adding variety and reducing pattern detectability.
 
-1. Press **function button** until you reach **SLOTS** mode
-2. The **active slot** is shown with inverted colors (white background)
-3. **Turn encoder** to cycle the active slot's key through:
+1. Open the **menu** (short press function button)
+2. Scroll to **"Key slots"** and **press encoder** to enter SLOTS mode
+3. The **active slot** is shown with inverted colors (white background)
+4. **Turn encoder** to cycle the active slot's key through:
    - F15, F14, F13 (invisible keys - recommended)
    - ScrLk, Pause, NumLk (toggle keys)
    - LShift, LCtrl, LAlt (modifier keys)
    - NONE (disable this slot)
-4. **Press encoder** to advance to the next slot (1→2→...→8→1)
-5. Repeat to configure multiple slots with different keys
-6. Press **function button** to move on (settings auto-save)
+5. **Press encoder** to advance to the next slot (1→2→...→8→1)
+6. Repeat to configure multiple slots with different keys
+7. Press **function button** to return to the menu (settings auto-save)
 
-### Change Timing Values (Settings modes)
-1. Press **function button** to enter KEY MIN mode
-2. **Turn encoder** to adjust value (0.5s steps)
-3. Press **function button** again to move to next setting
-4. Values auto-save when you leave the mode
+### Change Settings (Menu)
+1. Press **function button** to open the menu
+2. **Turn encoder** to scroll to the setting you want
+3. **Press encoder** to enter edit mode (value highlights)
+4. **Turn encoder** to adjust — `< >` arrows show available range
+5. **Press encoder** to confirm
+6. Press **function button** to close the menu and save
 
 ### Toggle Keys/Mouse ON/OFF
-**Press encoder** in **NORMAL mode or any settings mode** (except SLOTS) to cycle through enable combinations:
+**Press encoder** in **NORMAL mode** to cycle through enable combinations:
 
 | Press | Keyboard | Mouse |
 |-------|----------|-------|
@@ -340,6 +354,6 @@ Connect via USB and open Serial Monitor at 115200 baud.
 
 ---
 
-*Ghost Operator v1.3.1 | TARS Industries*
+*Ghost Operator v1.4.0 | TARS Industries*
 
 *"Fewer parts, more flash"*
