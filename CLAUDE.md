@@ -75,7 +75,7 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (18 entries: 5 headings + 13 items):
+Data-driven architecture using `MenuItem` struct array (19 entries: 5 headings + 14 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS };
@@ -107,7 +107,7 @@ struct Settings {
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 10 min, saver brightness = 30%, display brightness = 100%, mouse amplitude = 1px, device name = "GhostOperator".
+Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, device name = "GhostOperator".
 
 #### 4. Timing Profiles
 ```cpp
@@ -142,7 +142,7 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - Overlay state (`screensaverActive` flag), not a UIMode — gates display rendering
 - Activates only on top of `MODE_NORMAL` after configurable timeout (Never/1/5/10/15/30 min)
 - Minimal display: centered key label + 1px progress bar, mouse state + 1px bar, battery only if <15%
-- OLED contrast dimmed to configurable brightness (10-100%, default 30%) via `SSD1306_SETCONTRAST`
+- OLED contrast dimmed to configurable brightness (10-100%, default 20%) via `SSD1306_SETCONTRAST`
 - Any input (encoder, buttons) wakes screensaver — input is consumed, not passed through
 - Long-press sleep still works from screensaver (not consumed)
 - Timeout and brightness configurable via MENU items ("Saver time" and "Saver bright")
@@ -246,7 +246,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
-| 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement |
+| 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
 
 ---
 
@@ -408,6 +408,15 @@ pio run -t upload
 - [ ] Empty name guard: if all positions END, defaults to "GhostOperator"
 - [ ] 30s timeout: returns to NORMAL from NAME mode (saves, skips reboot prompt)
 - [ ] Serial `d` → prints device name
+- [ ] Menu: "Reset defaults" appears after "Device name" in Device section with `>` indicator
+- [ ] Menu: help bar shows "Restore all settings to factory defaults" when "Reset defaults" selected
+- [ ] Menu: press encoder on "Reset defaults" → confirmation overlay with "No" highlighted by default
+- [ ] Reset defaults: encoder toggles Yes/No, encoder press with No → returns to menu, settings unchanged
+- [ ] Reset defaults: encoder press with Yes → all settings reset to defaults, returns to menu
+- [ ] Reset defaults: function button during confirmation → cancels (same as No)
+- [ ] Reset defaults: mode timeout (30s) during confirmation → cancels, returns to NORMAL
+- [ ] After restore: reopen menu → all values show defaults; serial `d` → default values
+- [ ] After restore: profile resets to NORMAL, next key updates to F15
 
 ---
 

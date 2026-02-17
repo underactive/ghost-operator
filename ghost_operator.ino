@@ -103,7 +103,7 @@ using namespace Adafruit_LittleFS_Namespace;
 
 // Screensaver timeout options
 #define SAVER_TIMEOUT_COUNT   6
-#define DEFAULT_SAVER_IDX     3                           // 10 min
+#define DEFAULT_SAVER_IDX     5                           // 30 min
 const uint8_t  SAVER_MINUTES[] = { 0, 1, 5, 10, 15, 30 };   // 0 = Never
 const char*    SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min", "30 min" };
 
@@ -139,6 +139,7 @@ enum SettingId {
   SET_LAZY_PCT, SET_BUSY_PCT,
   SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
   SET_DEVICE_NAME,
+  SET_RESTORE_DEFAULTS,
   SET_VERSION
 };
 
@@ -151,7 +152,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 18
+#define MENU_ITEM_COUNT 19
 const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   // Keyboard settings
   { MENU_HEADING, "Keyboard",   NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
@@ -173,6 +174,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Saver bright",  "Screensaver dimmed brightness", FMT_PERCENT, 10, 100, 10, SET_SAVER_BRIGHT },
   { MENU_VALUE,   "Saver T.O.",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
   { MENU_ACTION,  "Device name",   "BLE device name (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_DEVICE_NAME },
+  { MENU_ACTION,  "Reset defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
   // About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Version",       "(c) 2026 TARS Industries", FMT_VERSION, 0, 0, 0, SET_VERSION },
@@ -201,8 +203,8 @@ struct Settings {
   uint8_t lazyPercent;    // 0-50, step 5, default 15
   uint8_t busyPercent;    // 0-50, step 5, default 15
   uint8_t saverTimeout;   // index into SAVER_MINUTES[] (0=Never..5=30min)
-  uint8_t saverBrightness; // 10-100 in steps of 10, default 30
-  uint8_t displayBrightness; // 10-100 in steps of 10, default 100
+  uint8_t saverBrightness; // 10-100 in steps of 10, default 20
+  uint8_t displayBrightness; // 10-100 in steps of 10, default 80
   uint8_t mouseAmplitude;  // 1-5, step 1, default 1 (pixels per movement step)
   char    deviceName[15]; // 14 chars + null terminator (BLE device name)
   uint8_t checksum;       // must remain last
@@ -223,9 +225,9 @@ void loadDefaults() {
   }
   settings.lazyPercent = 15;
   settings.busyPercent = 15;
-  settings.saverTimeout = DEFAULT_SAVER_IDX;  // 10 minutes
-  settings.saverBrightness = 30;               // 30%
-  settings.displayBrightness = 100;            // 100% (full brightness)
+  settings.saverTimeout = DEFAULT_SAVER_IDX;  // 30 minutes
+  settings.saverBrightness = 20;               // 20%
+  settings.displayBrightness = 80;             // 80%
   settings.mouseAmplitude = 1;                 // 1px per step (default)
   strncpy(settings.deviceName, DEVICE_NAME, 14);
   settings.deviceName[14] = '\0';
@@ -407,6 +409,10 @@ uint8_t activeNamePos = 0;            // cursor position 0-13
 bool    nameConfirming = false;       // showing "reboot now?" prompt
 bool    nameRebootYes = true;         // default selection on prompt
 char    nameOriginal[NAME_MAX_LEN + 1]; // snapshot of name on entry, for change detection
+
+// Reset defaults confirmation state
+bool    defaultsConfirming = false;   // showing "restore defaults?" prompt
+bool    defaultsConfirmYes = false;   // default = No (safe for destructive action)
 
 // UI Mode
 UIMode currentMode = MODE_NORMAL;
@@ -692,8 +698,8 @@ void loadSettings() {
         if (settings.lazyPercent > 50) settings.lazyPercent = 15;
         if (settings.busyPercent > 50) settings.busyPercent = 15;
         if (settings.saverTimeout >= SAVER_TIMEOUT_COUNT) settings.saverTimeout = DEFAULT_SAVER_IDX;
-        if (settings.saverBrightness < 10 || settings.saverBrightness > 100 || settings.saverBrightness % 10 != 0) settings.saverBrightness = 30;
-        if (settings.displayBrightness < 10 || settings.displayBrightness > 100 || settings.displayBrightness % 10 != 0) settings.displayBrightness = 100;
+        if (settings.saverBrightness < 10 || settings.saverBrightness > 100 || settings.saverBrightness % 10 != 0) settings.saverBrightness = 20;
+        if (settings.displayBrightness < 10 || settings.displayBrightness > 100 || settings.displayBrightness % 10 != 0) settings.displayBrightness = 80;
         if (settings.mouseAmplitude < 1 || settings.mouseAmplitude > 5) settings.mouseAmplitude = 1;
         // Validate device name: null-terminate, check printable ASCII
         settings.deviceName[14] = '\0';
@@ -980,6 +986,7 @@ void loop() {
       saveNameEditor();
       nameConfirming = false;
     }
+    defaultsConfirming = false;
     menuEditing = false;
     currentMode = MODE_NORMAL;
     saveSettings();  // Save when leaving settings
@@ -1194,7 +1201,9 @@ void handleEncoder() {
       }
 
       case MODE_MENU:
-        if (menuEditing && menuCursor >= 0) {
+        if (defaultsConfirming) {
+          defaultsConfirmYes = !defaultsConfirmYes;
+        } else if (menuEditing && menuCursor >= 0) {
           // Adjust the selected item's value
           const MenuItem& item = MENU_ITEMS[menuCursor];
           int32_t val = (int32_t)getSettingValue(item.settingId);
@@ -1282,7 +1291,18 @@ void handleButtons() {
       }
 
       case MODE_MENU:
-        if (menuEditing) {
+        if (defaultsConfirming) {
+          if (defaultsConfirmYes) {
+            loadDefaults();
+            saveSettings();
+            currentProfile = PROFILE_NORMAL;
+            pickNextKey();
+            scheduleNextKey();
+            scheduleNextMouseState();
+            Serial.println("Settings restored to defaults");
+          }
+          defaultsConfirming = false;
+        } else if (menuEditing) {
           // Exit edit mode
           menuEditing = false;
           Serial.println("Menu: edit done");
@@ -1301,6 +1321,10 @@ void handleButtons() {
               currentMode = MODE_NAME;
               initNameEditor();
               Serial.println("Mode: NAME");
+            } else if (item.settingId == SET_RESTORE_DEFAULTS) {
+              defaultsConfirming = true;
+              defaultsConfirmYes = false;  // default to No
+              Serial.println("Menu: restore defaults?");
             }
           }
         }
@@ -1367,11 +1391,15 @@ void handleButtons() {
             break;
 
           case MODE_MENU:
-            // Close menu → save and return to NORMAL
-            menuEditing = false;
-            currentMode = MODE_NORMAL;
-            saveSettings();
-            Serial.println("Mode: NORMAL (menu closed)");
+            if (defaultsConfirming) {
+              defaultsConfirming = false;  // cancel confirmation
+            } else {
+              // Close menu → save and return to NORMAL
+              menuEditing = false;
+              currentMode = MODE_NORMAL;
+              saveSettings();
+              Serial.println("Mode: NORMAL (menu closed)");
+            }
             break;
 
           case MODE_SLOTS:
@@ -2018,6 +2046,53 @@ void drawHelpBar(int y) {
 
 void drawMenuMode() {
   display.setTextSize(1);
+
+  if (defaultsConfirming) {
+    // === Reset defaults confirmation prompt ===
+    display.setCursor(0, 0);
+    display.print("RESET DEFAULTS");
+    display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+
+    // Two centered text lines
+    const char* line1 = "Restore all settings";
+    const char* line2 = "to factory defaults?";
+    int w1 = strlen(line1) * 6;
+    int w2 = strlen(line2) * 6;
+    display.setCursor((128 - w1) / 2, 18);
+    display.print(line1);
+    display.setCursor((128 - w2) / 2, 28);
+    display.print(line2);
+
+    // Yes / No options (No highlighted by default)
+    int optY = 40;
+    int yesX = 30;
+    int noX = 80;
+
+    if (defaultsConfirmYes) {
+      // Highlight "Yes"
+      display.fillRect(yesX - 2, optY - 1, 30, 10, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(yesX, optY);
+      display.print("Yes");
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(noX, optY);
+      display.print("No");
+    } else {
+      // Highlight "No"
+      display.setCursor(yesX, optY);
+      display.print("Yes");
+      display.fillRect(noX - 2, optY - 1, 24, 10, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(noX, optY);
+      display.print("No");
+      display.setTextColor(SSD1306_WHITE);
+    }
+
+    display.drawFastHLine(0, 52, 128, SSD1306_WHITE);
+    display.setCursor(0, 56);
+    display.print("Turn=select Press=OK");
+    return;
+  }
 
   // === Header (y=0): "MENU" title, optionally inverted ===
   if (menuCursor == -1) {

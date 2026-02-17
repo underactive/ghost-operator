@@ -104,6 +104,7 @@ Settings organized under headings in the scrollable menu:
 | | Saver bright | 10% - 100% (10% steps) |
 | | Saver time | Never / 1 / 5 / 10 / 15 / 30 min |
 | | Device name | → opens NAME mode (14 char max) |
+| | Reset defaults | → confirmation prompt (restores factory settings) |
 | **About** | Version | Read-only firmware version |
 
 ### Timing Profiles
@@ -309,7 +310,7 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.5.0** | **Adjustable mouse movement amplitude (1-5px), inertial ease-in-out movement** |
+| **1.5.0** | **Adjustable mouse amplitude (1-5px), inertial movement, reset defaults** |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |

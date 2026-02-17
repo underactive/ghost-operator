@@ -106,10 +106,11 @@
 | | Move size | Mouse movement step size (1-5px, default 1px) |
 | **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
 | | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
-| **Device** | Brightness | OLED display brightness (10-100%, default 100%) |
-| | Saver bright | Screensaver dimmed brightness (10-100%, default 30%) |
+| **Device** | Brightness | OLED display brightness (10-100%, default 80%) |
+| | Saver bright | Screensaver dimmed brightness (10-100%, default 20%) |
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
 | | Device name | BLE device name editor (press encoder to enter) |
+| | Reset defaults | Restore all settings to factory defaults (confirmation required) |
 | **About** | Version | Firmware version (read-only) |
 
 **Help bar:** The bottom line shows context-sensitive help for the selected item. Long text scrolls automatically.
@@ -181,10 +182,10 @@
 └────────────────────────────────┘
 ```
 
-- Activates after the configured timeout of no user interaction (default: 10 minutes)
+- Activates after the configured timeout of no user interaction (default: 30 minutes)
 - Only activates in NORMAL mode — settings modes auto-return first
 - Minimal pixel display to prevent OLED burn-in and save power
-- OLED brightness dimmed to configured level (default 30%) — adjust "Saver bright" in menu
+- OLED brightness dimmed to configured level (default 20%) — adjust "Saver bright" in menu
 - **Any input** (encoder turn, encoder press, function button) wakes the display — the input is consumed so you don't accidentally change settings
 - **Long-press sleep** still works from screensaver
 - Configure timeout via "Saver time" in menu (Never / 1 / 5 / 10 / 15 / 30 min)
@@ -250,6 +251,17 @@ You can customize the Bluetooth name your Ghost Operator advertises (default: "G
    - If the name changed, choose **Yes** to reboot now (applies immediately) or **No** to apply later
    - If unchanged, returns to menu directly
 8. After reboot, your computer's Bluetooth settings will show the new name
+
+### Reset to Factory Defaults
+
+If you want to restore all settings to their original factory values:
+
+1. Open the **menu** (short press function button)
+2. Scroll to **"Reset defaults"** under the **Device** heading and **press encoder**
+3. A confirmation screen appears with **"No"** highlighted by default
+4. **Turn encoder** to select **Yes** or **No**, then **press encoder** to confirm
+   - **Yes** = all settings restored to defaults (key slots, timing, profiles, brightness, device name)
+   - **No** (or **function button**) = cancels, returns to menu with settings unchanged
 
 ### Configure Key Slots
 
