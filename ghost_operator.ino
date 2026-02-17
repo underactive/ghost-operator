@@ -44,9 +44,9 @@ using namespace Adafruit_LittleFS_Namespace;
 #define VERSION "1.5.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F46  // "PROF"
+#define SETTINGS_MAGIC 0x50524F47  // "PROG" (bumped for key array reorder)
 #define NUM_SLOTS 8
-#define NUM_KEYS 10  // must match AVAILABLE_KEYS[] array size
+#define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
 
 // ============================================================================
 // DISPLAY CONFIGURATION
@@ -223,7 +223,7 @@ void loadDefaults() {
   settings.keyIntervalMax = 6500;      // 6.5 seconds
   settings.mouseJiggleDuration = 15000; // 15 seconds
   settings.mouseIdleDuration = 30000;   // 30 seconds
-  settings.keySlots[0] = 0;            // F15
+  settings.keySlots[0] = 2;            // F15
   for (int i = 1; i < NUM_SLOTS; i++) {
     settings.keySlots[i] = NUM_KEYS - 1;  // NONE
   }
@@ -256,15 +256,40 @@ struct KeyDef {
 };
 
 const KeyDef AVAILABLE_KEYS[] = {
-  { HID_KEY_F15,          "F15",    false },
-  { HID_KEY_F14,          "F14",    false },
+  // Ghost keys (F13-F24) — invisible to OS, ideal for keep-alive
   { HID_KEY_F13,          "F13",    false },
+  { HID_KEY_F14,          "F14",    false },
+  { HID_KEY_F15,          "F15",    false },
+  { HID_KEY_F16,          "F16",    false },
+  { HID_KEY_F17,          "F17",    false },
+  { HID_KEY_F18,          "F18",    false },
+  { HID_KEY_F19,          "F19",    false },
+  { HID_KEY_F20,          "F20",    false },
+  { HID_KEY_F21,          "F21",    false },
+  { HID_KEY_F22,          "F22",    false },
+  { HID_KEY_F23,          "F23",    false },
+  { HID_KEY_F24,          "F24",    false },
+  // System keys
   { HID_KEY_SCROLL_LOCK,  "ScrLk",  false },
   { HID_KEY_PAUSE,        "Pause",  false },
   { HID_KEY_NUM_LOCK,     "NumLk",  false },
+  // Modifier keys
   { HID_KEY_SHIFT_LEFT,   "LShift", true  },
   { HID_KEY_CONTROL_LEFT, "LCtrl",  true  },
   { HID_KEY_ALT_LEFT,     "LAlt",   true  },
+  { HID_KEY_SHIFT_RIGHT,  "RShift", true  },
+  { HID_KEY_CONTROL_RIGHT,"RCtrl",  true  },
+  { HID_KEY_ALT_RIGHT,    "RAlt",   true  },
+  // Common keys (visible — use with caution)
+  { HID_KEY_ESCAPE,       "Esc",    false },
+  { HID_KEY_SPACE,        "Space",  false },
+  { HID_KEY_ENTER,        "Enter",  false },
+  // Arrow keys
+  { HID_KEY_ARROW_UP,     "Up",     false },
+  { HID_KEY_ARROW_DOWN,   "Down",   false },
+  { HID_KEY_ARROW_LEFT,   "Left",   false },
+  { HID_KEY_ARROW_RIGHT,  "Right",  false },
+  // Disabled
   { 0x00,                 "NONE",   false },
 };
 
@@ -861,9 +886,9 @@ void setup() {
   
   Serial.println();
   Serial.println("╔═══════════════════════════════════════════╗");
-  Serial.println("║   GHOST OPERATOR - BLE Jiggler            ║");
-  Serial.println("║   Version " VERSION " - Encoder Menu + Flash     ║");
-  Serial.println("║   TARS: Humor 80% | Honesty 100%          ║");
+  Serial.println("║   GHOST OPERATOR - BLE HID                ║");
+  Serial.println("║   Version " VERSION "                           ║");
+  Serial.println("║   TARS Industrial Technical Solutions     ║");
   Serial.println("╚═══════════════════════════════════════════╝");
   Serial.println();
   
@@ -1862,7 +1887,10 @@ void updateDisplay() {
 // Get short 3-char display name for a key slot
 const char* slotName(uint8_t slotIdx) {
   static const char* SHORT_NAMES[] = {
-    "F15", "F14", "F13", "SLk", "Pau", "NLk", "LSh", "LCt", "LAl", "---"
+    "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20",
+    "F21", "F22", "F23", "F24", "SLk", "Pau", "NLk", "LSh",
+    "LCt", "LAl", "RSh", "RCt", "RAl", "Esc", "Spc", "Ent",
+    " ^ ", " v ", " < ", " > ", "---"
   };
   if (slotIdx >= NUM_KEYS) return "---";
   return SHORT_NAMES[slotIdx];

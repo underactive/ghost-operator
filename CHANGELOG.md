@@ -213,7 +213,7 @@ First hardware release.
 - Rotary encoder menu system with 5 UI modes (Normal, Key Min, Key Max, Mouse Jig, Mouse Idle)
 - Persistent settings storage via LittleFS with magic number validation and checksum
 - SSD1306 OLED display with real-time countdown bars, uptime, and battery percentage
-- 10 selectable keystroke options (F13-F15, ScrLk, Pause, NumLk, LShift, LCtrl, LAlt, NONE)
+- 29 selectable keystroke options (F13-F24, ScrLk, Pause, NumLk, L/R Shift, L/R Ctrl, L/R Alt, Esc, Space, Enter, arrow keys, NONE)
 - Independent key/mouse enable toggles via encoder button
 - Configurable key interval range (0.5s-30s) with random timing between min and max
 - Mouse jiggle state machine with configurable jiggle and idle durations
