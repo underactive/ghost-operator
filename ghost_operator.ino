@@ -7,6 +7,7 @@
  *   NORMAL - Live status; encoder switches profile, button cycles KB/MS combos
  *   MENU   - Scrollable settings menu; encoder navigates/edits, button selects/confirms
  *   SLOTS  - 8-key slot editor; encoder cycles key, button advances slot
+ *   NAME   - BLE device name editor; encoder cycles char, button advances position
  *
  * PIN ASSIGNMENTS:
  * D0 (P0.02) - Encoder A (digital interrupt)
@@ -33,6 +34,7 @@
 #include <nrf_soc.h>
 #include <nrf_power.h>
 #include <math.h>
+#include <stddef.h>
 
 using namespace Adafruit_LittleFS_Namespace;
 
@@ -105,6 +107,13 @@ using namespace Adafruit_LittleFS_Namespace;
 const uint8_t  SAVER_MINUTES[] = { 0, 1, 5, 10, 15, 30 };   // 0 = Never
 const char*    SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min", "30 min" };
 
+// BLE device name character set
+const char NAME_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_";
+#define NAME_CHAR_COUNT  65   // printable characters
+#define NAME_CHAR_END    65   // sentinel index = "end of name"
+#define NAME_CHAR_TOTAL  66   // NAME_CHAR_COUNT + 1 (END)
+#define NAME_MAX_LEN     14
+
 // Battery calibration (3.0V internal reference)
 #define VBAT_MV_PER_LSB   (3000.0F / 4096.0F)
 #define VBAT_DIVIDER      (1510.0F / 510.0F)
@@ -114,8 +123,8 @@ const char*    SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min"
 // ============================================================================
 // UI MODES
 // ============================================================================
-enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_COUNT };
-const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS" };
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
+const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME" };
 
 // ============================================================================
 // MENU DATA STRUCTURES
@@ -129,6 +138,7 @@ enum SettingId {
   SET_MOUSE_JIG, SET_MOUSE_IDLE, SET_MOUSE_AMP,
   SET_LAZY_PCT, SET_BUSY_PCT,
   SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
+  SET_DEVICE_NAME,
   SET_VERSION
 };
 
@@ -141,7 +151,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 17
+#define MENU_ITEM_COUNT 18
 const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   // Keyboard settings
   { MENU_HEADING, "Keyboard",   NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
@@ -157,11 +167,12 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },
   { MENU_VALUE,   "Busy adjust",   "Speed up timing by this percent", FMT_PERCENT, 0, 50, 5, SET_BUSY_PCT },
-  // Display settings
-  { MENU_HEADING, "Display",       NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  // Device settings
+  { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Brightness",    "OLED display brightness", FMT_PERCENT, 10, 100, 10, SET_DISPLAY_BRIGHT },
   { MENU_VALUE,   "Saver bright",  "Screensaver dimmed brightness", FMT_PERCENT, 10, 100, 10, SET_SAVER_BRIGHT },
   { MENU_VALUE,   "Saver T.O.",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
+  { MENU_ACTION,  "Device name",   "BLE device name (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_DEVICE_NAME },
   // About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Version",       "(c) 2026 TARS Industries", FMT_VERSION, 0, 0, 0, SET_VERSION },
@@ -193,6 +204,7 @@ struct Settings {
   uint8_t saverBrightness; // 10-100 in steps of 10, default 30
   uint8_t displayBrightness; // 10-100 in steps of 10, default 100
   uint8_t mouseAmplitude;  // 1-5, step 1, default 1 (pixels per movement step)
+  char    deviceName[15]; // 14 chars + null terminator (BLE device name)
   uint8_t checksum;       // must remain last
 };
 
@@ -215,12 +227,14 @@ void loadDefaults() {
   settings.saverBrightness = 30;               // 30%
   settings.displayBrightness = 100;            // 100% (full brightness)
   settings.mouseAmplitude = 1;                 // 1px per step (default)
+  strncpy(settings.deviceName, DEVICE_NAME, 14);
+  settings.deviceName[14] = '\0';
 }
 
 uint8_t calcChecksum() {
   uint8_t sum = 0;
   uint8_t* p = (uint8_t*)&settings;
-  for (size_t i = 0; i < sizeof(Settings) - 1; i++) {
+  for (size_t i = 0; i < offsetof(Settings, checksum); i++) {
     sum ^= p[i];
   }
   return sum;
@@ -387,6 +401,13 @@ bool mouseEnabled = true;
 uint8_t activeSlot = 0;  // UI cursor for slot selection (not persisted)
 uint8_t nextKeyIndex = 0;  // Pre-picked key for next keypress cycle
 
+// Name editor state
+uint8_t nameCharIndex[NAME_MAX_LEN];  // index into NAME_CHARS (or NAME_CHAR_END) per position
+uint8_t activeNamePos = 0;            // cursor position 0-13
+bool    nameConfirming = false;       // showing "reboot now?" prompt
+bool    nameRebootYes = true;         // default selection on prompt
+char    nameOriginal[NAME_MAX_LEN + 1]; // snapshot of name on entry, for change detection
+
 // UI Mode
 UIMode currentMode = MODE_NORMAL;
 unsigned long lastModeActivity = 0;
@@ -511,6 +532,63 @@ String formatUptime(unsigned long ms) {
 }
 
 // ============================================================================
+// NAME EDITOR HELPERS
+// ============================================================================
+
+void initNameEditor() {
+  // Snapshot current name for change detection
+  strncpy(nameOriginal, settings.deviceName, NAME_MAX_LEN);
+  nameOriginal[NAME_MAX_LEN] = '\0';
+
+  // Convert each character to its index in NAME_CHARS
+  int nameLen = strlen(settings.deviceName);
+  for (int i = 0; i < NAME_MAX_LEN; i++) {
+    if (i < nameLen) {
+      // Find character in NAME_CHARS
+      const char* found = strchr(NAME_CHARS, settings.deviceName[i]);
+      nameCharIndex[i] = found ? (uint8_t)(found - NAME_CHARS) : 0;  // default 'A' if not found
+    } else {
+      nameCharIndex[i] = NAME_CHAR_END;
+    }
+  }
+  activeNamePos = 0;
+  nameConfirming = false;
+  nameRebootYes = true;
+}
+
+// Save name from editor indices. Returns true if name changed.
+bool saveNameEditor() {
+  char newName[NAME_MAX_LEN + 1];
+  int len = 0;
+  for (int i = 0; i < NAME_MAX_LEN; i++) {
+    if (nameCharIndex[i] >= NAME_CHAR_COUNT) break;  // END or invalid
+    newName[len++] = NAME_CHARS[nameCharIndex[i]];
+  }
+  // Guard against empty name
+  if (len == 0) {
+    strncpy(newName, DEVICE_NAME, NAME_MAX_LEN);
+    len = strlen(DEVICE_NAME);
+    if (len > NAME_MAX_LEN) len = NAME_MAX_LEN;
+  }
+  newName[len] = '\0';
+
+  bool changed = (strcmp(newName, nameOriginal) != 0);
+  strncpy(settings.deviceName, newName, NAME_MAX_LEN);
+  settings.deviceName[NAME_MAX_LEN] = '\0';
+  saveSettings();
+  return changed;
+}
+
+void returnToMenuFromName() {
+  currentMode = MODE_MENU;
+  menuCursor = 15;           // "Device name" item index
+  menuEditing = false;
+  nameConfirming = false;
+  menuScrollOffset = (15 > 4) ? 15 - 4 : 0;  // ensure cursor visible in viewport
+  Serial.println("Mode: MENU (from NAME)");
+}
+
+// ============================================================================
 // MENU VALUE ACCESSORS
 // ============================================================================
 
@@ -617,6 +695,13 @@ void loadSettings() {
         if (settings.saverBrightness < 10 || settings.saverBrightness > 100 || settings.saverBrightness % 10 != 0) settings.saverBrightness = 30;
         if (settings.displayBrightness < 10 || settings.displayBrightness > 100 || settings.displayBrightness % 10 != 0) settings.displayBrightness = 100;
         if (settings.mouseAmplitude < 1 || settings.mouseAmplitude > 5) settings.mouseAmplitude = 1;
+        // Validate device name: null-terminate, check printable ASCII
+        settings.deviceName[14] = '\0';
+        bool nameValid = (settings.deviceName[0] != '\0');
+        for (int i = 0; nameValid && i < 14 && settings.deviceName[i] != '\0'; i++) {
+          if (settings.deviceName[i] < 0x20 || settings.deviceName[i] > 0x7E) nameValid = false;
+        }
+        if (!nameValid) { strncpy(settings.deviceName, DEVICE_NAME, 14); settings.deviceName[14] = '\0'; }
 
         return;
       } else {
@@ -844,7 +929,7 @@ void setupBLE() {
   
   Bluefruit.begin();
   Bluefruit.setTxPower(4);
-  Bluefruit.setName(DEVICE_NAME);
+  Bluefruit.setName(settings.deviceName);
   
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
@@ -890,6 +975,11 @@ void loop() {
   
   // Auto-return to NORMAL mode after timeout
   if (currentMode != MODE_NORMAL && (now - lastModeActivity > MODE_TIMEOUT_MS)) {
+    if (currentMode == MODE_NAME) {
+      // Save name on timeout, skip reboot prompt
+      saveNameEditor();
+      nameConfirming = false;
+    }
     menuEditing = false;
     currentMode = MODE_NORMAL;
     saveSettings();  // Save when leaving settings
@@ -1131,6 +1221,16 @@ void handleEncoder() {
         settings.keySlots[activeSlot] = (settings.keySlots[activeSlot] + direction + NUM_KEYS) % NUM_KEYS;
         break;
 
+      case MODE_NAME:
+        if (nameConfirming) {
+          // Toggle Yes/No selection
+          nameRebootYes = !nameRebootYes;
+        } else {
+          // Cycle character at active position
+          nameCharIndex[activeNamePos] = (nameCharIndex[activeNamePos] + direction + NAME_CHAR_TOTAL) % NAME_CHAR_TOTAL;
+        }
+        break;
+
       default:
         break;
     }
@@ -1193,10 +1293,15 @@ void handleButtons() {
             menuEditing = true;
             Serial.print("Menu: editing "); Serial.println(item.label);
           } else if (item.type == MENU_ACTION) {
-            // Navigate to SLOTS mode
-            currentMode = MODE_SLOTS;
-            activeSlot = 0;
-            Serial.println("Mode: SLOTS");
+            if (item.settingId == SET_KEY_SLOTS) {
+              currentMode = MODE_SLOTS;
+              activeSlot = 0;
+              Serial.println("Mode: SLOTS");
+            } else if (item.settingId == SET_DEVICE_NAME) {
+              currentMode = MODE_NAME;
+              initNameEditor();
+              Serial.println("Mode: NAME");
+            }
           }
         }
         break;
@@ -1206,6 +1311,21 @@ void handleButtons() {
         activeSlot = (activeSlot + 1) % NUM_SLOTS;
         saveSettings();
         Serial.print("Active slot: "); Serial.println(activeSlot);
+        break;
+
+      case MODE_NAME:
+        if (nameConfirming) {
+          // Confirm reboot prompt selection
+          if (nameRebootYes) {
+            Serial.println("Rebooting for name change...");
+            NVIC_SystemReset();
+          } else {
+            returnToMenuFromName();
+          }
+        } else {
+          // Advance cursor to next position (wraps)
+          activeNamePos = (activeNamePos + 1) % NAME_MAX_LEN;
+        }
         break;
 
       default: break;
@@ -1265,6 +1385,21 @@ void handleButtons() {
             Serial.println("Mode: MENU (from SLOTS)");
             break;
 
+          case MODE_NAME:
+            if (!nameConfirming) {
+              bool changed = saveNameEditor();
+              if (changed) {
+                nameConfirming = true;
+                nameRebootYes = true;
+              } else {
+                returnToMenuFromName();
+              }
+            } else {
+              // From reboot prompt — func button = "No" (skip reboot)
+              returnToMenuFromName();
+            }
+            break;
+
           default: break;
         }
       }
@@ -1312,6 +1447,7 @@ void handleSerialCommands() {
         Serial.print("Screensaver: "); Serial.print(SAVER_NAMES[settings.saverTimeout]);
         Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
+        Serial.print("Device name: "); Serial.println(settings.deviceName);
         break;
     }
   }
@@ -1421,6 +1557,8 @@ void updateDisplay() {
     drawMenuMode();
   } else if (currentMode == MODE_SLOTS) {
     drawSlotsMode();
+  } else if (currentMode == MODE_NAME) {
+    drawNameMode();
   }
 
   display.display();
@@ -1721,13 +1859,130 @@ void drawSlotsMode() {
   display.print("Func=back");
 }
 
+void drawNameMode() {
+  display.setTextSize(1);
+
+  if (nameConfirming) {
+    // === Reboot confirmation prompt ===
+    display.setCursor(0, 0);
+    display.print("NAME SAVED");
+    display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+
+    // Show new name in quotes, centered
+    char nameBuf[NAME_MAX_LEN + 3];
+    sprintf(nameBuf, "\"%s\"", settings.deviceName);
+    int nameW = strlen(nameBuf) * 6;
+    display.setCursor((128 - nameW) / 2, 18);
+    display.print(nameBuf);
+
+    // "Reboot to apply?"
+    const char* prompt = "Reboot to apply?";
+    int promptW = strlen(prompt) * 6;
+    display.setCursor((128 - promptW) / 2, 30);
+    display.print(prompt);
+
+    // Yes / No options
+    int optY = 42;
+    int yesX = 30;
+    int noX = 80;
+
+    if (nameRebootYes) {
+      // Highlight "Yes"
+      display.fillRect(yesX - 2, optY - 1, 30, 10, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(yesX, optY);
+      display.print("Yes");
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(noX, optY);
+      display.print("No");
+    } else {
+      // Highlight "No"
+      display.setCursor(yesX, optY);
+      display.print("Yes");
+      display.fillRect(noX - 2, optY - 1, 24, 10, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(noX, optY);
+      display.print("No");
+      display.setTextColor(SSD1306_WHITE);
+    }
+
+    display.drawFastHLine(0, 54, 128, SSD1306_WHITE);
+    display.setCursor(0, 56);
+    display.print("Turn=select Press=OK");
+
+  } else {
+    // === Character editor ===
+    display.setCursor(0, 0);
+    display.print("DEVICE NAME");
+
+    // Position indicator right aligned: [3/14]
+    char posInd[8];
+    sprintf(posInd, "[%d/%d]", activeNamePos + 1, NAME_MAX_LEN);
+    int indWidth = strlen(posInd) * 6;
+    display.setCursor(128 - indWidth, 0);
+    display.print(posInd);
+
+    display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+
+    // === 2 rows × 7 characters (y=16, y=28) ===
+    // Each cell: 16px wide, centered in 128px (7 × 16 = 112, offset 8px)
+    const int cellW = 16;
+    const int cellH = 10;
+    const int cols = 7;
+    const int offsetX = 8;
+
+    for (int row = 0; row < 2; row++) {
+      int y = 16 + row * 12;
+
+      for (int col = 0; col < cols; col++) {
+        int pos = row * cols + col;
+        if (pos >= NAME_MAX_LEN) break;
+        int x = offsetX + col * cellW;
+
+        bool isActive = (pos == activeNamePos);
+        if (isActive) {
+          display.fillRect(x, y, cellW, cellH, SSD1306_WHITE);
+          display.setTextColor(SSD1306_BLACK);
+        } else {
+          display.setTextColor(SSD1306_WHITE);
+        }
+
+        // Center character in cell
+        char ch;
+        if (nameCharIndex[pos] >= NAME_CHAR_COUNT) {
+          ch = '\xB7';  // middle dot for END
+        } else {
+          ch = NAME_CHARS[nameCharIndex[pos]];
+        }
+        display.setCursor(x + 5, y + 1);
+        display.print(ch);
+      }
+    }
+    display.setTextColor(SSD1306_WHITE);
+
+    display.drawFastHLine(0, 42, 128, SSD1306_WHITE);
+
+    // === Instructions (y=48) ===
+    display.setCursor(0, 48);
+    display.print("Turn=char Press=next");
+
+    display.setCursor(0, 57);
+    display.print("Func=save");
+  }
+}
+
 void drawHelpBar(int y) {
   // Determine help text based on menu state
   const char* text;
+  static char nameHelpBuf[48];  // buffer for dynamic device name help text
   if (menuEditing) {
     text = "Turn to adjust, Press to confirm";
   } else if (menuCursor == -1) {
     text = "Turn/Press dial to select/OK";
+  } else if (menuCursor >= 0 && MENU_ITEMS[menuCursor].settingId == SET_DEVICE_NAME && MENU_ITEMS[menuCursor].type == MENU_ACTION) {
+    // Dynamic help: show current saved name
+    snprintf(nameHelpBuf, sizeof(nameHelpBuf), "Current: %s", settings.deviceName);
+    text = nameHelpBuf;
   } else if (menuCursor >= 0 && MENU_ITEMS[menuCursor].helpText) {
     text = MENU_ITEMS[menuCursor].helpText;
   } else {
