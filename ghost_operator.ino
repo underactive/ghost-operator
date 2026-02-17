@@ -4,11 +4,14 @@
  * For Seeed XIAO nRF52840
  * 
  * MODES (cycle with function button short press):
- *   NORMAL    - Encoder selects keystroke
+ *   NORMAL    - Encoder switches profile (LAZY/NORMAL/BUSY, clamped)
  *   KEY MIN   - Encoder adjusts key interval minimum
  *   KEY MAX   - Encoder adjusts key interval maximum
+ *   SLOTS     - Encoder cycles key per slot, button advances slot
  *   MOUSE JIG - Encoder adjusts mouse jiggle duration
  *   MOUSE IDLE- Encoder adjusts mouse idle duration
+ *   LAZY %    - Encoder adjusts lazy profile percentage (0-50%)
+ *   BUSY %    - Encoder adjusts busy profile percentage (0-50%)
  * 
  * PIN ASSIGNMENTS:
  * D0 (P0.02) - Encoder A (digital interrupt)
@@ -20,8 +23,8 @@
  * D6 (P0.30) - Activity LED (optional)
  * 
  * CONTROLS:
- * - Encoder rotation: Select key (NORMAL) or adjust value (settings)
- * - Encoder button: Toggle keys ON/OFF (key modes) or mouse ON/OFF (mouse modes)
+ * - Encoder rotation: Switch profile (NORMAL), cycle slot key (SLOTS), adjust value (settings)
+ * - Encoder button: Cycle KB/MS combos (all modes except SLOTS = advance slot)
  * - Function button short: Cycle to next mode
  * - Function button long (3s): Enter deep sleep
  */
@@ -40,10 +43,12 @@ using namespace Adafruit_LittleFS_Namespace;
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.1.1"
+#define VERSION "1.2.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x4A494747  // "JIGG"
+#define SETTINGS_MAGIC 0x50524F46  // "PROF"
+#define NUM_SLOTS 8
+#define NUM_KEYS 10  // must match AVAILABLE_KEYS[] array size
 
 // ============================================================================
 // DISPLAY CONFIGURATION
@@ -80,7 +85,8 @@ using namespace Adafruit_LittleFS_Namespace;
 // TIMING CONFIGURATION
 // ============================================================================
 #define VALUE_MIN_MS          500UL       // 0.5 seconds
-#define VALUE_MAX_MS          30000UL     // 30 seconds
+#define VALUE_MAX_KEY_MS      30000UL     // 30 seconds (keyboard)
+#define VALUE_MAX_MOUSE_MS    90000UL     // 90 seconds (mouse)
 #define VALUE_STEP_MS         500UL       // 0.5 second increments
 #define RANDOMNESS_PERCENT    20          // ±20% for mouse only
 #define MIN_CLAMP_MS          500UL
@@ -105,8 +111,11 @@ enum UIMode {
   MODE_NORMAL,
   MODE_KEY_MIN,
   MODE_KEY_MAX,
+  MODE_SLOTS,
   MODE_MOUSE_JIG,
   MODE_MOUSE_IDLE,
+  MODE_LAZY_PCT,
+  MODE_BUSY_PCT,
   MODE_COUNT
 };
 
@@ -114,9 +123,22 @@ const char* MODE_NAMES[] = {
   "NORMAL",
   "KEY MIN",
   "KEY MAX",
+  "SLOTS",
   "MOUSE JIG",
-  "MOUSE IDLE"
+  "MOUSE IDLE",
+  "LAZY %",
+  "BUSY %"
 };
+
+// ============================================================================
+// TIMING PROFILES
+// ============================================================================
+enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
+const char* PROFILE_NAMES[] = { "LAZY", "NORMAL", "BUSY" };
+
+Profile currentProfile = PROFILE_NORMAL;
+unsigned long profileDisplayUntil = 0;  // millis() timestamp; show name until this time
+#define PROFILE_DISPLAY_MS 3000
 
 // ============================================================================
 // SETTINGS STRUCTURE (saved to flash)
@@ -127,8 +149,10 @@ struct Settings {
   uint32_t keyIntervalMax;
   uint32_t mouseJiggleDuration;
   uint32_t mouseIdleDuration;
-  uint8_t selectedKeyIndex;
-  uint8_t checksum;
+  uint8_t keySlots[NUM_SLOTS];
+  uint8_t lazyPercent;    // 0-50, step 5, default 15
+  uint8_t busyPercent;    // 0-50, step 5, default 15
+  uint8_t checksum;       // must remain last
 };
 
 Settings settings;
@@ -140,7 +164,12 @@ void loadDefaults() {
   settings.keyIntervalMax = 6500;      // 6.5 seconds
   settings.mouseJiggleDuration = 15000; // 15 seconds
   settings.mouseIdleDuration = 30000;   // 30 seconds
-  settings.selectedKeyIndex = 0;
+  settings.keySlots[0] = 0;            // F15
+  for (int i = 1; i < NUM_SLOTS; i++) {
+    settings.keySlots[i] = NUM_KEYS - 1;  // NONE
+  }
+  settings.lazyPercent = 15;
+  settings.busyPercent = 15;
 }
 
 uint8_t calcChecksum() {
@@ -174,7 +203,9 @@ const KeyDef AVAILABLE_KEYS[] = {
   { 0x00,                 "NONE",   false },
 };
 
-const int NUM_KEYS = sizeof(AVAILABLE_KEYS) / sizeof(AVAILABLE_KEYS[0]);
+// Verify NUM_KEYS matches array (compile-time check)
+static_assert(sizeof(AVAILABLE_KEYS) / sizeof(AVAILABLE_KEYS[0]) == NUM_KEYS,
+              "NUM_KEYS define must match AVAILABLE_KEYS[] size");
 
 // ============================================================================
 // MOUSE DIRECTIONS
@@ -240,6 +271,8 @@ int lastEncoderPos = 0;
 bool deviceConnected = false;
 bool keyEnabled = true;
 bool mouseEnabled = true;
+uint8_t activeSlot = 0;  // UI cursor for slot selection (not persisted)
+uint8_t nextKeyIndex = 0;  // Pre-picked key for next keypress cycle
 
 // UI Mode
 UIMode currentMode = MODE_NORMAL;
@@ -259,7 +292,7 @@ unsigned long currentMouseJiggle = 15000;
 unsigned long currentMouseIdle = 30000;
 
 // Mouse state machine
-enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING };
+enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 MouseState mouseState = MOUSE_IDLE;
 int8_t currentMouseDx = 0;
 int8_t currentMouseDy = 0;
@@ -286,14 +319,55 @@ unsigned long applyRandomness(unsigned long baseValue) {
   return (unsigned long)result;
 }
 
-String formatDuration(unsigned long ms) {
+String formatDuration(unsigned long ms, bool withUnit = true) {
   float sec = ms / 1000.0;
+  String suffix = withUnit ? "s" : "";
   if (sec < 10) {
-    return String(sec, 1) + "s";
+    return String(sec, 1) + suffix;
   } else {
-    return String((int)sec) + "s";
+    return String((int)sec) + suffix;
   }
 }
+
+bool hasPopulatedSlot() {
+  for (int i = 0; i < NUM_SLOTS; i++) {
+    if (AVAILABLE_KEYS[settings.keySlots[i]].keycode != 0) return true;
+  }
+  return false;
+}
+
+void pickNextKey() {
+  uint8_t populated[NUM_SLOTS];
+  uint8_t count = 0;
+  for (int i = 0; i < NUM_SLOTS; i++) {
+    if (AVAILABLE_KEYS[settings.keySlots[i]].keycode != 0)
+      populated[count++] = i;
+  }
+  if (count == 0) { nextKeyIndex = NUM_KEYS - 1; return; }  // NONE
+  nextKeyIndex = settings.keySlots[populated[random(count)]];
+}
+
+unsigned long applyProfile(unsigned long baseValue, int direction) {
+  // direction: +1 = increase value, -1 = decrease value
+  uint8_t pct = 0;
+  switch (currentProfile) {
+    case PROFILE_LAZY:  pct = settings.lazyPercent; break;
+    case PROFILE_BUSY:  pct = settings.busyPercent; break;
+    default: return baseValue;  // NORMAL = no change
+  }
+  long delta = (long)baseValue * pct / 100;
+  long result = (long)baseValue + direction * delta;
+  if (result < (long)MIN_CLAMP_MS) result = MIN_CLAMP_MS;
+  return (unsigned long)result;
+}
+
+// Profile-adjusted effective values
+// BUSY: shorter KB intervals (-%), longer mouse jiggle (+%), shorter mouse idle (-%)
+// LAZY: longer KB intervals (+%), shorter mouse jiggle (-%), longer mouse idle (+%)
+unsigned long effectiveKeyMin()      { return applyProfile(settings.keyIntervalMin,      currentProfile == PROFILE_BUSY ? -1 : 1); }
+unsigned long effectiveKeyMax()      { return applyProfile(settings.keyIntervalMax,      currentProfile == PROFILE_BUSY ? -1 : 1); }
+unsigned long effectiveMouseJiggle() { return applyProfile(settings.mouseJiggleDuration, currentProfile == PROFILE_BUSY ? 1 : -1); }
+unsigned long effectiveMouseIdle()   { return applyProfile(settings.mouseIdleDuration,   currentProfile == PROFILE_BUSY ? -1 : 1); }
 
 String formatUptime(unsigned long ms) {
   unsigned long secs = ms / 1000;
@@ -344,11 +418,17 @@ void loadSettings() {
         
         // Bounds check
         if (settings.keyIntervalMin < VALUE_MIN_MS) settings.keyIntervalMin = VALUE_MIN_MS;
-        if (settings.keyIntervalMax > VALUE_MAX_MS) settings.keyIntervalMax = VALUE_MAX_MS;
+        if (settings.keyIntervalMax > VALUE_MAX_KEY_MS) settings.keyIntervalMax = VALUE_MAX_KEY_MS;
         if (settings.mouseJiggleDuration < VALUE_MIN_MS) settings.mouseJiggleDuration = VALUE_MIN_MS;
+        if (settings.mouseJiggleDuration > VALUE_MAX_MOUSE_MS) settings.mouseJiggleDuration = VALUE_MAX_MOUSE_MS;
         if (settings.mouseIdleDuration < VALUE_MIN_MS) settings.mouseIdleDuration = VALUE_MIN_MS;
-        if (settings.selectedKeyIndex >= NUM_KEYS) settings.selectedKeyIndex = 0;
-        
+        if (settings.mouseIdleDuration > VALUE_MAX_MOUSE_MS) settings.mouseIdleDuration = VALUE_MAX_MOUSE_MS;
+        for (int i = 0; i < NUM_SLOTS; i++) {
+          if (settings.keySlots[i] >= NUM_KEYS) settings.keySlots[i] = NUM_KEYS - 1;
+        }
+        if (settings.lazyPercent > 50) settings.lazyPercent = 15;
+        if (settings.busyPercent > 50) settings.busyPercent = 15;
+
         return;
       } else {
         Serial.println("Settings corrupted, using defaults");
@@ -469,7 +549,8 @@ void setup() {
   
   scheduleNextKey();
   scheduleNextMouseState();
-  
+  pickNextKey();
+
   startTime = millis();
   lastModeActivity = millis();
   
@@ -537,7 +618,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   
   bledis.setManufacturer("TARS Industries");
-  bledis.setModel("Ghost Operator v1.1.1");
+  bledis.setModel("Ghost Operator v1.2.0");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
   
@@ -589,7 +670,7 @@ void loop() {
   // Jiggler logic runs in background regardless of mode
   if (deviceConnected) {
     // Keystroke logic
-    if (keyEnabled && AVAILABLE_KEYS[settings.selectedKeyIndex].keycode != 0) {
+    if (keyEnabled && hasPopulatedSlot()) {
       if (now - lastKeyTime >= currentKeyInterval) {
         sendKeystroke();
         lastKeyTime = now;
@@ -629,20 +710,21 @@ void loop() {
 // ============================================================================
 
 void scheduleNextKey() {
-  // Random between min and max (no additional randomness)
-  if (settings.keyIntervalMax > settings.keyIntervalMin) {
-    currentKeyInterval = settings.keyIntervalMin + 
-      random(settings.keyIntervalMax - settings.keyIntervalMin + 1);
+  // Random between effective min and max (profile-adjusted)
+  unsigned long eMin = effectiveKeyMin();
+  unsigned long eMax = effectiveKeyMax();
+  if (eMax > eMin) {
+    currentKeyInterval = eMin + random(eMax - eMin + 1);
   } else {
-    currentKeyInterval = settings.keyIntervalMin;
+    currentKeyInterval = eMin;
   }
 }
 
 void scheduleNextMouseState() {
   if (mouseState == MOUSE_IDLE) {
-    currentMouseJiggle = applyRandomness(settings.mouseJiggleDuration);
+    currentMouseJiggle = applyRandomness(effectiveMouseJiggle());
   } else {
-    currentMouseIdle = applyRandomness(settings.mouseIdleDuration);
+    currentMouseIdle = applyRandomness(effectiveMouseIdle());
   }
 }
 
@@ -668,10 +750,8 @@ void handleMouseStateMachine(unsigned long now) {
       
     case MOUSE_JIGGLING:
       if (elapsed >= currentMouseJiggle) {
-        returnMouseToOrigin();
-        mouseState = MOUSE_IDLE;
-        lastMouseStateChange = now;
-        scheduleNextMouseState();
+        mouseState = MOUSE_RETURNING;
+        lastMouseStep = now;
       } else {
         if (now - lastMouseStep >= MOUSE_MOVE_STEP_MS) {
           if (random(100) < 15) pickNewDirection();
@@ -682,6 +762,22 @@ void handleMouseStateMachine(unsigned long now) {
         }
       }
       break;
+
+    case MOUSE_RETURNING:
+      if (mouseNetX == 0 && mouseNetY == 0) {
+        mouseState = MOUSE_IDLE;
+        lastMouseStateChange = now;
+        scheduleNextMouseState();
+      } else if (now - lastMouseStep >= MOUSE_MOVE_STEP_MS) {
+        int8_t dx = 0, dy = 0;
+        if (mouseNetX > 0) { dx = -min((int32_t)5, mouseNetX); mouseNetX += dx; }
+        else if (mouseNetX < 0) { dx = min((int32_t)5, -mouseNetX); mouseNetX += dx; }
+        if (mouseNetY > 0) { dy = -min((int32_t)5, mouseNetY); mouseNetY += dy; }
+        else if (mouseNetY < 0) { dy = min((int32_t)5, -mouseNetY); mouseNetY += dy; }
+        if (dx != 0 || dy != 0) blehid.mouseMove(dx, dy);
+        lastMouseStep = now;
+      }
+      break;
   }
 }
 
@@ -689,20 +785,6 @@ void pickNewDirection() {
   int dir = random(NUM_DIRS);
   currentMouseDx = MOUSE_DIRS[dir][0];
   currentMouseDy = MOUSE_DIRS[dir][1];
-}
-
-void returnMouseToOrigin() {
-  while (abs(mouseNetX) > 0 || abs(mouseNetY) > 0) {
-    int8_t dx = 0, dy = 0;
-    if (mouseNetX > 0) { dx = -min((int32_t)5, mouseNetX); mouseNetX += dx; }
-    else if (mouseNetX < 0) { dx = min((int32_t)5, -mouseNetX); mouseNetX += dx; }
-    if (mouseNetY > 0) { dy = -min((int32_t)5, mouseNetY); mouseNetY += dy; }
-    else if (mouseNetY < 0) { dy = min((int32_t)5, -mouseNetY); mouseNetY += dy; }
-    if (dx != 0 || dy != 0) {
-      blehid.mouseMove(dx, dy);
-      delay(5);
-    } else break;
-  }
 }
 
 // ============================================================================
@@ -718,45 +800,73 @@ void handleEncoder() {
     lastModeActivity = millis();
     
     switch (currentMode) {
-      case MODE_NORMAL:
-        // Select key
-        settings.selectedKeyIndex = (settings.selectedKeyIndex + direction + NUM_KEYS) % NUM_KEYS;
+      case MODE_NORMAL: {
+        // Switch timing profile: LAZY ← NORMAL → BUSY (clamped)
+        int p = (int)currentProfile + direction;
+        if (p < 0) p = 0;
+        if (p >= PROFILE_COUNT) p = PROFILE_COUNT - 1;
+        currentProfile = (Profile)p;
+        profileDisplayUntil = millis() + PROFILE_DISPLAY_MS;
+        // Re-schedule with new profile values
+        scheduleNextKey();
+        scheduleNextMouseState();
         break;
-        
+      }
+
+      case MODE_SLOTS:
+        // Cycle key for active slot
+        settings.keySlots[activeSlot] = (settings.keySlots[activeSlot] + direction + NUM_KEYS) % NUM_KEYS;
+        break;
+
       case MODE_KEY_MIN:
-        adjustValue(&settings.keyIntervalMin, direction);
+        adjustValue(&settings.keyIntervalMin, direction, VALUE_MAX_KEY_MS);
         // Keep min <= max
         if (settings.keyIntervalMin > settings.keyIntervalMax) {
           settings.keyIntervalMax = settings.keyIntervalMin;
         }
         break;
-        
+
       case MODE_KEY_MAX:
-        adjustValue(&settings.keyIntervalMax, direction);
+        adjustValue(&settings.keyIntervalMax, direction, VALUE_MAX_KEY_MS);
         // Keep max >= min
         if (settings.keyIntervalMax < settings.keyIntervalMin) {
           settings.keyIntervalMin = settings.keyIntervalMax;
         }
         break;
-        
+
       case MODE_MOUSE_JIG:
-        adjustValue(&settings.mouseJiggleDuration, direction);
+        adjustValue(&settings.mouseJiggleDuration, direction, VALUE_MAX_MOUSE_MS);
         break;
-        
+
       case MODE_MOUSE_IDLE:
-        adjustValue(&settings.mouseIdleDuration, direction);
+        adjustValue(&settings.mouseIdleDuration, direction, VALUE_MAX_MOUSE_MS);
         break;
-        
+
+      case MODE_LAZY_PCT: {
+        int newVal = (int)settings.lazyPercent + direction * 5;
+        if (newVal < 0) newVal = 0;
+        if (newVal > 50) newVal = 50;
+        settings.lazyPercent = (uint8_t)newVal;
+        break;
+      }
+      case MODE_BUSY_PCT: {
+        int newVal = (int)settings.busyPercent + direction * 5;
+        if (newVal < 0) newVal = 0;
+        if (newVal > 50) newVal = 50;
+        settings.busyPercent = (uint8_t)newVal;
+        break;
+      }
+
       default:
         break;
     }
   }
 }
 
-void adjustValue(uint32_t* value, int direction) {
+void adjustValue(uint32_t* value, int direction, uint32_t maxVal) {
   long newVal = (long)*value + (direction * (long)VALUE_STEP_MS);
   if (newVal < (long)VALUE_MIN_MS) newVal = VALUE_MIN_MS;
-  if (newVal > (long)VALUE_MAX_MS) newVal = VALUE_MAX_MS;
+  if (newVal > (long)maxVal) newVal = maxVal;
   *value = (uint32_t)newVal;
 }
 
@@ -769,21 +879,29 @@ void handleButtons() {
   bool encBtn = digitalRead(PIN_ENCODER_BTN);
   bool funcBtn = digitalRead(PIN_FUNC_BTN);
   
-  // Encoder button - cycle KB/MS enable combos: 11 → 10 → 01 → 00
+  // Encoder button - mode-dependent behavior
   if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
     lastEncPress = now;
     lastModeActivity = now;
 
-    uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
-    // Cycle: 3(11) → 2(10) → 1(01) → 0(00) → 3(11)
-    state = (state == 0) ? 3 : state - 1;
-    keyEnabled = (state & 2) != 0;
-    mouseEnabled = (state & 1) != 0;
+    if (currentMode == MODE_SLOTS) {
+      // Advance active slot cursor (0→1→...→7→0)
+      activeSlot = (activeSlot + 1) % NUM_SLOTS;
+      saveSettings();
+      Serial.print("Active slot: ");
+      Serial.println(activeSlot);
+    } else {
+      // All other modes (including NORMAL): cycle KB/MS enable combos
+      uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
+      state = (state == 0) ? 3 : state - 1;
+      keyEnabled = (state & 2) != 0;
+      mouseEnabled = (state & 1) != 0;
 
-    Serial.print("KB:");
-    Serial.print(keyEnabled ? "ON" : "OFF");
-    Serial.print(" MS:");
-    Serial.println(mouseEnabled ? "ON" : "OFF");
+      Serial.print("KB:");
+      Serial.print(keyEnabled ? "ON" : "OFF");
+      Serial.print(" MS:");
+      Serial.println(mouseEnabled ? "ON" : "OFF");
+    }
   }
   lastEncBtn = encBtn;
   
@@ -838,7 +956,18 @@ void handleSerialCommands() {
         Serial.print("Key MAX: "); Serial.println(settings.keyIntervalMax);
         Serial.print("Mouse Jig: "); Serial.println(settings.mouseJiggleDuration);
         Serial.print("Mouse Idle: "); Serial.println(settings.mouseIdleDuration);
-        Serial.print("Key Index: "); Serial.println(settings.selectedKeyIndex);
+        Serial.print("Slots: ");
+        for (int i = 0; i < NUM_SLOTS; i++) {
+          if (i > 0) Serial.print(", ");
+          Serial.print(i); Serial.print("=");
+          Serial.print(AVAILABLE_KEYS[settings.keySlots[i]].name);
+        }
+        Serial.println();
+        Serial.print("Profile: "); Serial.println(PROFILE_NAMES[currentProfile]);
+        Serial.print("Lazy %: "); Serial.println(settings.lazyPercent);
+        Serial.print("Busy %: "); Serial.println(settings.busyPercent);
+        Serial.print("Effective KB: "); Serial.print(effectiveKeyMin()); Serial.print("-"); Serial.println(effectiveKeyMax());
+        Serial.print("Effective Mouse: "); Serial.print(effectiveMouseJiggle()); Serial.print("/"); Serial.println(effectiveMouseIdle());
         break;
     }
   }
@@ -848,10 +977,17 @@ void printStatus() {
   Serial.println("\n=== Status ===");
   Serial.print("Mode: "); Serial.println(MODE_NAMES[currentMode]);
   Serial.print("Connected: "); Serial.println(deviceConnected ? "YES" : "NO");
-  Serial.print("Key: "); Serial.print(AVAILABLE_KEYS[settings.selectedKeyIndex].name);
-  Serial.print(" ("); Serial.print(keyEnabled ? "ON" : "OFF"); Serial.println(")");
+  Serial.print("Keys ("); Serial.print(keyEnabled ? "ON" : "OFF"); Serial.print("): ");
+  for (int i = 0; i < NUM_SLOTS; i++) {
+    if (i > 0) Serial.print(" ");
+    if (i == activeSlot) Serial.print("[");
+    Serial.print(AVAILABLE_KEYS[settings.keySlots[i]].name);
+    if (i == activeSlot) Serial.print("]");
+  }
+  Serial.println();
   Serial.print("Mouse: "); Serial.println(mouseEnabled ? "ON" : "OFF");
-  Serial.print("Mouse state: "); Serial.println(mouseState == MOUSE_JIGGLING ? "JIG" : "IDLE");
+  Serial.print("Mouse state: ");
+  Serial.println(mouseState == MOUSE_IDLE ? "IDLE" : mouseState == MOUSE_JIGGLING ? "JIG" : "RTN");
   Serial.print("Battery: "); Serial.print(batteryPercent); Serial.println("%");
 }
 
@@ -860,7 +996,7 @@ void printStatus() {
 // ============================================================================
 
 void sendKeystroke() {
-  const KeyDef& key = AVAILABLE_KEYS[settings.selectedKeyIndex];
+  const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
   if (key.keycode == 0) return;
 
   uint8_t keycodes[6] = {0};
@@ -878,6 +1014,8 @@ void sendKeystroke() {
     keycodes[0] = 0;
     blehid.keyboardReport(0, keycodes);
   }
+
+  pickNextKey();  // Pre-pick the next one for display
 }
 
 // ============================================================================
@@ -916,6 +1054,8 @@ void updateDisplay() {
   
   if (currentMode == MODE_NORMAL) {
     drawNormalMode();
+  } else if (currentMode == MODE_SLOTS) {
+    drawSlotsMode();
   } else {
     drawSettingsMode();
   }
@@ -923,10 +1063,19 @@ void updateDisplay() {
   display.display();
 }
 
+// Get short 3-char display name for a key slot
+const char* slotName(uint8_t slotIdx) {
+  static const char* SHORT_NAMES[] = {
+    "F15", "F14", "F13", "SLk", "Pau", "NLk", "LSh", "LCt", "LAl", "---"
+  };
+  if (slotIdx >= NUM_KEYS) return "---";
+  return SHORT_NAMES[slotIdx];
+}
+
 void drawNormalMode() {
   unsigned long now = millis();
-  
-  // === Header ===
+
+  // === Header (y=0) ===
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("GHOST Operator");
@@ -939,115 +1088,117 @@ void drawNormalMode() {
   if (deviceConnected) {
     display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
   } else {
-    bool btVisible = (now / 500) % 2 == 0;  // 500ms on, 500ms off
+    bool btVisible = (now / 500) % 2 == 0;
     if (btVisible) {
       display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
     }
   }
   display.setCursor(batX, 0);
   display.print(batStr);
-  
-  display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
-  
-  // === Key section ===
+
+  display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+
+  // === Key section (y=12) ===
   display.setCursor(0, 12);
   display.print("KB [");
-  display.print(AVAILABLE_KEYS[settings.selectedKeyIndex].name);
-  display.print("]");
-  display.print(" ");
-  display.print(formatDuration(settings.keyIntervalMin));
+  display.print(AVAILABLE_KEYS[nextKeyIndex].name);
+  display.print("] ");
+  display.print(formatDuration(effectiveKeyMin(), false));
   display.print("-");
-  display.print(formatDuration(settings.keyIntervalMax));
-  
+  display.print(formatDuration(effectiveKeyMax()));
+
   // ON/OFF icon right aligned
   display.drawBitmap(123, 12, keyEnabled ? iconOn : iconOff, 5, 7, SSD1306_WHITE);
-  
-  // Key progress bar (countdown)
+
+  // Key progress bar (y=21)
   unsigned long keyElapsed = now - lastKeyTime;
   int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
   int keyProgress = 0;
   if (currentKeyInterval > 0) {
     keyProgress = map(keyRemaining, 0, currentKeyInterval, 0, 100);
   }
-  
+
   display.drawRect(0, 21, 100, 7, SSD1306_WHITE);
   int keyBarWidth = map(keyProgress, 0, 100, 0, 98);
   if (keyBarWidth > 0) {
     display.fillRect(1, 22, keyBarWidth, 5, SSD1306_WHITE);
   }
-  
+
   // Time remaining
   String keyTimeStr = formatDuration(keyRemaining);
   display.setCursor(102, 21);
   display.print(keyTimeStr);
-  
+
   display.drawFastHLine(0, 29, 128, SSD1306_WHITE);
-  
-  // === Mouse section ===
+
+  // === Mouse section (y=32) ===
   display.setCursor(0, 32);
   display.print("MS ");
 
-  // State indicator
-  if (mouseState == MOUSE_JIGGLING) {
-    display.print("[MOV]");
-  } else {
+  if (mouseState == MOUSE_IDLE) {
     display.print("[IDL]");
+  } else {
+    display.print("[MOV]");
   }
-  
+
   display.print(" ");
-  display.print(formatDuration(settings.mouseJiggleDuration));
+  display.print(formatDuration(effectiveMouseJiggle()));
   display.print("/");
-  display.print(formatDuration(settings.mouseIdleDuration));
-  
+  display.print(formatDuration(effectiveMouseIdle()));
+
   // ON/OFF icon right aligned
   display.drawBitmap(123, 32, mouseEnabled ? iconOn : iconOff, 5, 7, SSD1306_WHITE);
-  
-  // Mouse progress bar
+
+  // Mouse progress bar (y=41)
   unsigned long mouseElapsed = now - lastMouseStateChange;
-  unsigned long mouseDuration = (mouseState == MOUSE_JIGGLING) ? currentMouseJiggle : currentMouseIdle;
+  unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
   int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
   int mouseProgress = 0;
   if (mouseDuration > 0) {
     if (mouseState == MOUSE_IDLE) {
-      // Count up while idle (charging up to next move)
       mouseProgress = map(mouseElapsed, 0, mouseDuration, 0, 100);
       if (mouseProgress > 100) mouseProgress = 100;
     } else {
-      // Count down while moving (draining)
       mouseProgress = map(mouseRemaining, 0, mouseDuration, 0, 100);
     }
   }
-  
+
   display.drawRect(0, 41, 100, 7, SSD1306_WHITE);
   int mouseBarWidth = map(mouseProgress, 0, 100, 0, 98);
   if (mouseBarWidth > 0) {
     display.fillRect(1, 42, mouseBarWidth, 5, SSD1306_WHITE);
   }
-  
+
   // Time remaining
   String mouseTimeStr = formatDuration(mouseRemaining);
   display.setCursor(102, 41);
   display.print(mouseTimeStr);
-  
+
   display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
-  
-  // === Uptime ===
-  display.setCursor(0, 54);
-  display.print("Up: ");
-  display.print(formatUptime(now - startTime));
-  
+
+  // === Footer (y=54) ===
+  if (millis() < profileDisplayUntil) {
+    // Show profile name left-justified
+    display.setCursor(0, 54);
+    display.print(PROFILE_NAMES[currentProfile]);
+  } else {
+    // Normal uptime display
+    display.setCursor(0, 54);
+    display.print("Up: ");
+    display.print(formatUptime(now - startTime));
+  }
+
   // Heartbeat pulse trace
   if (deviceConnected) {
     static uint8_t beatPhase = 0;
     beatPhase = (beatPhase + 1) % 20;
 
-    // ECG waveform: y-offsets from baseline (negative = up on screen)
     static const int8_t ecg[] = {
-      0, 0, 0, 0, 0,     // baseline
-      -1, -2, -1, 0,     // P wave
-      1, -5, 4, -1,      // QRS complex
-      0, -1, -2, -1,     // T wave
-      0, 0, 0            // baseline
+      0, 0, 0, 0, 0,
+      -1, -2, -1, 0,
+      1, -5, 4, -1,
+      0, -1, -2, -1,
+      0, 0, 0
     };
     const int ECG_LEN = 20;
     int baseY = 58;
@@ -1062,6 +1213,54 @@ void drawNormalMode() {
   }
 }
 
+void drawSlotsMode() {
+  // === Header ===
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("MODE: SLOTS");
+
+  // Slot indicator right aligned: [3/8]
+  char slotIndicator[8];
+  sprintf(slotIndicator, "[%d/%d]", activeSlot + 1, NUM_SLOTS);
+  int indWidth = strlen(slotIndicator) * 6;
+  display.setCursor(128 - indWidth, 0);
+  display.print(slotIndicator);
+
+  display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+
+  // === 2 rows × 4 slots (y=20, y=30) — centered vertically ===
+  for (int row = 0; row < 2; row++) {
+    int y = 20 + row * 10;
+
+    for (int col = 0; col < 4; col++) {
+      int slot = row * 4 + col;
+      int x = 14 + col * 26;
+
+      if (slot == activeSlot) {
+        // Inverted highlight: white rect, black text
+        display.fillRect(x, y, 24, 9, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+      } else {
+        display.setTextColor(SSD1306_WHITE);
+      }
+
+      // Center 3-char name in 24px cell
+      display.setCursor(x + 3, y + 1);
+      display.print(slotName(settings.keySlots[slot]));
+    }
+  }
+  display.setTextColor(SSD1306_WHITE);
+
+  display.drawFastHLine(0, 42, 128, SSD1306_WHITE);
+
+  // === Instructions (y=48) ===
+  display.setCursor(0, 48);
+  display.print("Turn=key  Press=slot");
+
+  display.setCursor(0, 57);
+  display.print("Func=exit");
+}
+
 void drawSettingsMode() {
   // === Header ===
   display.setTextSize(1);
@@ -1073,6 +1272,8 @@ void drawSettingsMode() {
   display.setCursor(100, 0);
   if (currentMode == MODE_KEY_MIN || currentMode == MODE_KEY_MAX) {
     display.print(keyEnabled ? "[K]" : "[k]");
+  } else if (currentMode == MODE_LAZY_PCT || currentMode == MODE_BUSY_PCT) {
+    display.print("[%]");
   } else {
     display.print(mouseEnabled ? "[M]" : "[m]");
   }
@@ -1080,35 +1281,65 @@ void drawSettingsMode() {
   display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
   
   // === Value display ===
-  uint32_t value = 0;
-  switch (currentMode) {
-    case MODE_KEY_MIN:   value = settings.keyIntervalMin; break;
-    case MODE_KEY_MAX:   value = settings.keyIntervalMax; break;
-    case MODE_MOUSE_JIG: value = settings.mouseJiggleDuration; break;
-    case MODE_MOUSE_IDLE: value = settings.mouseIdleDuration; break;
-    default: break;
-  }
-  
-  // Big centered value
-  display.setTextSize(2);
-  String valStr = "> " + formatDuration(value) + " <";
-  int valWidth = valStr.length() * 12;
-  int valX = (128 - valWidth) / 2;
-  display.setCursor(valX, 20);
-  display.print(valStr);
-  
-  // Progress bar showing position in range
-  display.setTextSize(1);
-  display.setCursor(0, 40);
-  display.print("0.5s");
-  display.setCursor(104, 40);
-  display.print("30s");
-  
-  int barProgress = map(value, VALUE_MIN_MS, VALUE_MAX_MS, 0, 100);
-  display.drawRect(0, 48, 128, 7, SSD1306_WHITE);
-  int barWidth = map(barProgress, 0, 100, 0, 126);
-  if (barWidth > 0) {
-    display.fillRect(1, 49, barWidth, 5, SSD1306_WHITE);
+  if (currentMode == MODE_LAZY_PCT || currentMode == MODE_BUSY_PCT) {
+    // Percentage value display
+    uint8_t pctValue = (currentMode == MODE_LAZY_PCT) ? settings.lazyPercent : settings.busyPercent;
+
+    display.setTextSize(2);
+    String valStr = "> " + String(pctValue) + "% <";
+    int valWidth = valStr.length() * 12;
+    int valX = (128 - valWidth) / 2;
+    display.setCursor(valX, 20);
+    display.print(valStr);
+
+    // Progress bar: 0-50%
+    display.setTextSize(1);
+    display.setCursor(0, 40);
+    display.print("0%");
+    display.setCursor(110, 40);
+    display.print("50%");
+
+    int barProgress = map(pctValue, 0, 50, 0, 100);
+    display.drawRect(0, 48, 128, 7, SSD1306_WHITE);
+    int barWidth = map(barProgress, 0, 100, 0, 126);
+    if (barWidth > 0) {
+      display.fillRect(1, 49, barWidth, 5, SSD1306_WHITE);
+    }
+  } else {
+    // Timing value display
+    uint32_t value = 0;
+    switch (currentMode) {
+      case MODE_KEY_MIN:   value = settings.keyIntervalMin; break;
+      case MODE_KEY_MAX:   value = settings.keyIntervalMax; break;
+      case MODE_MOUSE_JIG: value = settings.mouseJiggleDuration; break;
+      case MODE_MOUSE_IDLE: value = settings.mouseIdleDuration; break;
+      default: break;
+    }
+
+    // Big centered value
+    display.setTextSize(2);
+    String valStr = "> " + formatDuration(value) + " <";
+    int valWidth = valStr.length() * 12;
+    int valX = (128 - valWidth) / 2;
+    display.setCursor(valX, 20);
+    display.print(valStr);
+
+    // Progress bar showing position in range
+    bool isMouseMode = (currentMode == MODE_MOUSE_JIG || currentMode == MODE_MOUSE_IDLE);
+    uint32_t rangeMax = isMouseMode ? VALUE_MAX_MOUSE_MS : VALUE_MAX_KEY_MS;
+
+    display.setTextSize(1);
+    display.setCursor(0, 40);
+    display.print("0.5");
+    display.setCursor(104, 40);
+    display.print(isMouseMode ? "90s" : "30s");
+
+    int barProgress = map(value, VALUE_MIN_MS, rangeMax, 0, 100);
+    display.drawRect(0, 48, 128, 7, SSD1306_WHITE);
+    int barWidth = map(barProgress, 0, 100, 0, 126);
+    if (barWidth > 0) {
+      display.fillRect(1, 49, barWidth, 5, SSD1306_WHITE);
+    }
   }
   
   // Instructions

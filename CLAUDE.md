@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.1.1
+**Current Version:** 1.2.0
 **Status:** Production-ready
 
 ---
@@ -66,41 +66,61 @@
 #### 2. UI Modes
 ```
 enum UIMode {
-  MODE_NORMAL,      // Main display, encoder selects key
+  MODE_NORMAL,      // Shows next key; encoder switches profile (LAZY/NORMAL/BUSY)
   MODE_KEY_MIN,     // Adjust minimum key interval
   MODE_KEY_MAX,     // Adjust maximum key interval
+  MODE_SLOTS,       // Configure 8 key slots (encoder=key, button=next slot)
   MODE_MOUSE_JIG,   // Adjust jiggle duration
-  MODE_MOUSE_IDLE   // Adjust idle duration
+  MODE_MOUSE_IDLE,  // Adjust idle duration
+  MODE_LAZY_PCT,    // Adjust lazy profile percentage (0-50%)
+  MODE_BUSY_PCT     // Adjust busy profile percentage (0-50%)
 };
 ```
 Function button cycles through modes. 10-second timeout returns to NORMAL.
 
 #### 3. Settings Storage
 ```cpp
+#define NUM_SLOTS 8
+
 struct Settings {
-  uint32_t magic;              // 0x4A494747 "JIGG"
+  uint32_t magic;              // 0x50524F46 "PROF"
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
   uint32_t mouseIdleDuration;   // ms
-  uint8_t selectedKeyIndex;
-  uint8_t checksum;
+  uint8_t keySlots[NUM_SLOTS]; // index into AVAILABLE_KEYS per slot
+  uint8_t lazyPercent;         // 0-50, step 5, default 15
+  uint8_t busyPercent;         // 0-50, step 5, default 15
+  uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
+Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%.
 
-#### 4. Timing Behavior
-- **Keyboard:** Random interval between MIN and MAX each cycle (no additional randomness)
-- **Mouse:** Jiggle duration then idle duration, ±20% randomness on both
-
-#### 5. Mouse State Machine
+#### 4. Timing Profiles
 ```cpp
-enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING };
+enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
+```
+- Profiles scale base timing values by a configurable percentage at scheduling time
+- BUSY: shorter KB intervals (−%), longer mouse jiggle (+%), shorter mouse idle (−%)
+- LAZY: longer KB intervals (+%), shorter mouse jiggle (−%), longer mouse idle (+%)
+- NORMAL: passes base values through unchanged (default)
+- `applyProfile()` helper applies directional scaling; `effective*()` accessors wrap it
+- Profile resets to NORMAL on sleep/wake; lazy% and busy% persist in flash
+- Selected via encoder rotation in NORMAL mode (clamped, not wrapping); name shown on uptime line for 3s
+
+#### 5. Timing Behavior
+- **Keyboard:** Random interval between effective MIN and MAX each cycle (profile-adjusted)
+- **Mouse:** Effective jiggle then idle durations, ±20% randomness on both (profile-adjusted)
+
+#### 6. Mouse State Machine
+```cpp
+enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 ```
 - Tracks net displacement during jiggle
-- Returns to approximate origin after each jiggle phase
+- Non-blocking return to approximate origin via MOUSE_RETURNING state
 
-#### 6. Power Management
+#### 7. Power Management
 - `sd_power_system_off()` for deep sleep
 - Wake via GPIO sense on function button (P0.29)
 - Sleep triggered by 3-second long press
@@ -118,14 +138,28 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING };
 ```
 GHOST Operator          ᛒ 85%
 ─────────────────────────────
-KB [F15]  2.0s-6.5s        ↑
+KB [F15] 1.7-5.5s        ↑     ← effective (profile-adjusted) range
 ████████████░░░░░░░░░░░  3.2s
 ─────────────────────────────
-MS [MOV]  15s/30s          ↑
+MS [MOV]  17s/25s          ↑   ← effective durations
 ██████░░░░░░░░░░░░░░░░░  8.5s
 ─────────────────────────────
-Up: 02:34:15          ~^~_~^~
+BUSY                  ~^~_~^~  ← profile name (3s) or "Up: HH:MM:SS"
 ```
+`KB [F15]` shows the pre-picked next key. Changes after each keypress.
+Footer shows profile name for 3 seconds after switching, then reverts to uptime.
+
+### Slots Mode
+```
+MODE: SLOTS             [3/8]
+─────────────────────────────
+  F15 F14 --- ---
+  --- --- --- ---
+─────────────────────────────
+Turn=key  Press=slot
+Func=exit
+```
+Active slot rendered with inverted colors (white rect, black text).
 
 ### Settings Mode
 ```
@@ -148,6 +182,7 @@ Turn dial to adjust
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
 | 1.1.0 | Display overhaul, BT icon, HID keycode fix |
 | 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
+| 1.2.0 | Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode |
 
 ---
 
@@ -167,13 +202,15 @@ Turn dial to adjust
 1. Add entry to `AVAILABLE_KEYS[]` array
 2. Include HID keycode and display name
 3. Set `isModifier` flag appropriately
+4. Add 3-char short name to `SHORT_NAMES[]` in `slotName()` function
 
 ### Change timing range
 Modify these defines:
 ```cpp
-#define VALUE_MIN_MS      500UL    // 0.5 seconds
-#define VALUE_MAX_MS      30000UL  // 30 seconds
-#define VALUE_STEP_MS     500UL    // 0.5 second steps
+#define VALUE_MIN_MS          500UL    // 0.5 seconds
+#define VALUE_MAX_KEY_MS      30000UL  // 30 seconds (keyboard)
+#define VALUE_MAX_MOUSE_MS    90000UL  // 90 seconds (mouse)
+#define VALUE_STEP_MS         500UL    // 0.5 second steps
 ```
 
 ### Change mouse randomness
@@ -185,8 +222,9 @@ Modify these defines:
 1. Add to `UIMode` enum
 2. Add name to `MODE_NAMES[]`
 3. Handle in `handleEncoder()` switch
-4. Handle in `drawSettingsMode()` if needed
-5. Update `MODE_COUNT`
+4. Add draw function or handle in `drawSettingsMode()`
+5. Update `updateDisplay()` routing if using custom draw function
+6. `MODE_COUNT` auto-updates (last enum value)
 
 ### Change BLE device name
 ```cpp
@@ -235,9 +273,12 @@ pio run -t upload
 - [ ] Display initializes and shows splash screen
 - [ ] BLE advertises as "GhostOperator"
 - [ ] Pairs with computer
-- [ ] Encoder rotates through keystrokes (NORMAL mode)
-- [ ] Encoder button cycles KB/MS enable combos
-- [ ] Function button cycles modes
+- [ ] NORMAL mode encoder rotation switches profiles (LAZY/NORMAL/BUSY, clamped)
+- [ ] Profile name appears on uptime line for 3 seconds after switching
+- [ ] NORMAL mode KB/MS values update to reflect active profile
+- [ ] Encoder button cycles KB/MS enable combos in NORMAL mode
+- [ ] Function button cycles modes (NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY %)
+- [ ] SLOTS mode: encoder rotates key for active slot, button advances slot cursor
 - [ ] Settings values change in settings modes
 - [ ] Settings persist after sleep
 - [ ] Long press enters sleep (display off)
@@ -245,6 +286,12 @@ pio run -t upload
 - [ ] Keystrokes detected on host (use key test website)
 - [ ] Mouse movement visible on host
 - [ ] Battery percentage displays (with battery connected)
+- [ ] LAZY %: encoder adjusts 0-50% in 5% steps
+- [ ] BUSY %: encoder adjusts 0-50% in 5% steps
+- [ ] Scheduling uses profile-adjusted values (verify via serial `s`)
+- [ ] Profile does NOT modify base settings (enter KEY MIN → shows original, not adjusted)
+- [ ] Sleep + wake → lazy% and busy% persist, profile resets to NORMAL
+- [ ] Serial `d` → prints profile, lazy%, busy%, effective values
 
 ---
 
@@ -252,7 +299,7 @@ pio run -t upload
 
 - [ ] RGB LED for status (uses D7)
 - [ ] Buzzer feedback on mode change
-- [ ] Multiple profiles (save/load different configs)
+- [x] ~~Multiple profiles~~ → Implemented as timing profiles (LAZY/NORMAL/BUSY) in v1.2.0
 - [ ] Adjustable mouse movement amplitude
 - [ ] Configurable BLE device name
 - [ ] OTA firmware updates

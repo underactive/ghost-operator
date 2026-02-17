@@ -1,7 +1,6 @@
 # Ghost Operator - BLE Keyboard/Mouse Device
 
-## Version 1.1.1 - Encoder Menu + Flash Storage
-
+## Version 1.2.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -71,32 +70,46 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 Cycle through modes with function button short press:
 
 ```
-NORMAL → KEY MIN → KEY MAX → MOUSE JIG → MOUSE IDLE → (repeat)
+NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY % → (repeat)
 ```
 
 ### Control Actions
 
-| Control | NORMAL Mode | Settings Mode |
-|---------|-------------|---------------|
-| Encoder Turn | Select keystroke | Adjust value ±0.5s |
-| Encoder Button | Cycle KB/MS enable combos | Cycle KB/MS enable combos |
-| Func Short | Next mode | Next mode |
-| Func Long (3s) | Enter sleep | Enter sleep |
-| Func (sleeping) | Wake up | - |
+| Control | NORMAL Mode | SLOTS Mode | Other Settings |
+|---------|-------------|------------|----------------|
+| Encoder Turn | Switch profile (LAZY/NORMAL/BUSY) | Cycle key for active slot | Adjust value |
+| Encoder Button | Cycle KB/MS combos | Advance slot cursor (1-8) | Cycle KB/MS combos |
+| Func Short | Next mode | Next mode | Next mode |
+| Func Long (3s) | Enter sleep | Enter sleep | Enter sleep |
+| Func (sleeping) | Wake up | - | - |
 
 ### Settings Range
 
-All settings: **0.5s to 30s** in 0.5s increments
+All settings adjustable in **0.5s increments**:
 
-- **Key Interval MIN** - Minimum time between keystrokes
-- **Key Interval MAX** - Maximum time between keystrokes
-- **Mouse Jiggle Duration** - How long mouse jiggles
-- **Mouse Idle Duration** - Pause between jiggles
+- **Key Interval MIN** - Minimum time between keystrokes (0.5s - 30s)
+- **Key Interval MAX** - Maximum time between keystrokes (0.5s - 30s)
+- **Mouse Jiggle Duration** - How long mouse jiggles (0.5s - 90s)
+- **Mouse Idle Duration** - Pause between jiggles (0.5s - 90s)
+- **Lazy %** - How much LAZY profile scales values (0% - 50%, 5% steps)
+- **Busy %** - How much BUSY profile scales values (0% - 50%, 5% steps)
+
+### Timing Profiles
+
+Rotate the encoder in NORMAL mode to switch between **LAZY**, **NORMAL**, and **BUSY** profiles:
+
+| Profile | Key Intervals | Mouse Jiggle | Mouse Idle |
+|---------|--------------|--------------|------------|
+| LAZY | Longer (+%) | Shorter (−%) | Longer (+%) |
+| NORMAL | Base values | Base values | Base values |
+| BUSY | Shorter (−%) | Longer (+%) | Shorter (−%) |
+
+Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right past BUSY stays at BUSY. Profile percentages are adjustable (0-50% in 5% steps, default 15%) via the LAZY % and BUSY % settings modes. Profiles do not modify stored base values — they apply at scheduling time.
 
 ### Timing Behavior
 
-- **Keyboard**: Random interval between MIN and MAX each keypress
-- **Mouse**: Jiggle for set duration → Idle for set duration → repeat
+- **Keyboard**: Random interval between MIN and MAX each keypress (profile-adjusted)
+- **Mouse**: Jiggle for set duration → Idle for set duration → repeat (profile-adjusted)
   - ±20% randomness applied to jiggle and idle durations
   - Minimum clamp: 0.5s
 
@@ -110,19 +123,40 @@ All settings: **0.5s to 30s** in 0.5s increments
 ┌────────────────────────────────┐
 │ GHOST Operator          ᛒ 85%  │
 ├────────────────────────────────┤
-│ KB [F15]  2.0s-6.5s           ↑  │
+│ KB [F15] 2.0-6.5s          ↑  │
 │ ████████████░░░░░░░░░░░░  3.2s │
 ├────────────────────────────────┤
 │ MS [MOV]  15s/30s            ↑  │
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │
 ├────────────────────────────────┤
-│ Up: 02:34:15      ~^~_~^~      │
+│ Up: 02:34:15      ~^~_~^~      │  ← or profile name for 3s
 └────────────────────────────────┘
 ```
 
+- **KB [key]**: Shows the pre-picked next key that will fire when the countdown reaches zero
+- **2.0-6.5s**: Profile-adjusted key interval range (MIN-MAX)
 - **Bluetooth icon** (solid) = Connected, (flashing) = Scanning
 - ↑ = enabled, ✕ = disabled; mouse idle bar counts up, move bar counts down
 - **[MOV]** = Mouse moving, **[IDL]** = Mouse idle
+- Each keystroke cycle randomly picks from populated (non-NONE) slots
+- **Uptime line**: Shows profile name (LAZY/NORMAL/BUSY) for 3 seconds after switching, then reverts to uptime
+
+### Slots Mode
+
+```
+┌────────────────────────────────┐
+│ MODE: SLOTS              [3/8] │
+├────────────────────────────────┤
+│   F15 F14 --- ---              │
+│   --- --- --- ---              │
+├────────────────────────────────┤
+│ Turn=key  Press=slot           │
+│ Func=exit                      │
+└────────────────────────────────┘
+```
+
+- 8 configurable slots (2 rows × 4), active slot shown with inverted colors
+- Turn encoder to cycle key for active slot, press encoder to advance slot cursor
 
 ### Settings Mode
 
@@ -218,10 +252,13 @@ Connect via USB at 115200 baud:
 
 | File | Description |
 |------|-------------|
-| `ghost_operator.ino` | Firmware (current) |
-| `schematic_v8.svg` | Schematic Rev 4.0 |
+| `ghost_operator.ino` | Firmware source |
+| `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
-| `README.md` | This file |
+| `README.md` | Technical documentation (this file) |
+| `USER_MANUAL.md` | End-user guide |
+| `CHANGELOG.md` | Version history (semver) |
+| `CLAUDE.md` | Project context for AI assistants |
 
 ---
 
@@ -231,7 +268,8 @@ Connect via USB at 115200 baud:
 |---------|---------|
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
 | 1.1.0 | Display overhaul, BT icon, HID keycode fix |
-| **1.1.1** | **Icon-based status, ECG pulse, KB/MS combo cycling** |
+| 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
+| **1.2.0** | **Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode** |
 
 ---
 
