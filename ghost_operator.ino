@@ -445,13 +445,14 @@ void loadSettings() {
 // INTERRUPT HANDLER
 // ============================================================================
 
+uint8_t encoderPrevState = 0;  // Set to real pin state in setupPins()
+
 void encoderISR() {
-  static uint8_t prevState = 0;
   uint8_t state = (digitalRead(PIN_ENCODER_A) << 1) | digitalRead(PIN_ENCODER_B);
   static const int8_t transitions[] = {0,-1,1,0, 1,0,0,-1, -1,0,0,1, 0,1,-1,0};
-  int8_t delta = transitions[(prevState << 2) | state];
+  int8_t delta = transitions[(encoderPrevState << 2) | state];
   encoderPos += delta;
-  prevState = state;
+  encoderPrevState = state;
 }
 
 // ============================================================================
@@ -571,6 +572,9 @@ void setupPins() {
   pinMode(PIN_VBAT_ENABLE, OUTPUT);
   digitalWrite(PIN_VBAT_ENABLE, LOW);
   
+  // Read real pin state before enabling interrupts so ISR starts in sync
+  encoderPrevState = (digitalRead(PIN_ENCODER_A) << 1) | digitalRead(PIN_ENCODER_B);
+
   attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), encoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), encoderISR, CHANGE);
   
