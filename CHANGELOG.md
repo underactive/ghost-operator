@@ -20,13 +20,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Movement ramps from zero → peak → zero using `sin(π × progress)` curve
   - Creates natural-looking acceleration and deceleration, like a human moving the mouse
   - Steps with zero amplitude are skipped (natural pause at start/end of each jiggle)
+- **Configurable BLE device name**: New "Device name" action item in the Device menu section opens a character-by-character editor (MODE_NAME)
+  - 66-character set: A-Z, a-z, 0-9, space, dash, underscore, plus END marker
+  - Max 14 characters (fits BLE scan response; default "GhostOperator" is 13)
+  - Pre-initialized from current saved name — only change what's different
+  - END marker (`·`) terminates the name; trailing ENDs trimmed on save
+  - Encoder rotates through characters (wrapping), encoder button advances position
+  - Function button saves and shows reboot confirmation if name changed
+  - `NVIC_SystemReset()` applies new name immediately; "No" returns to menu
+  - If name unchanged, func button returns to menu directly (no reboot prompt)
+  - Empty name guard: falls back to "GhostOperator" if all positions are END
 - New `FMT_PIXELS` menu value format — renders as `"Npx"`
-- Serial `d` command prints mouse amplitude
+- Dynamic help text for "Device name" menu item shows `Current: <name>` instead of static text
+- Serial `d` command prints mouse amplitude and device name
 
 ### Changed
 
-- Settings struct: added `mouseAmplitude` field — existing settings auto-reset to defaults on first boot (checksum mismatch)
-- `MENU_ITEM_COUNT` increased from 16 to 17
+- Menu heading renamed from "Display" to "Device" (now contains brightness, screensaver, and device name settings)
+- Settings struct: added `mouseAmplitude` and `deviceName[15]` fields — existing settings auto-reset to defaults on first boot (checksum mismatch)
+- `MENU_ITEM_COUNT` increased from 16 to 18
+- BLE `Bluefruit.setName()` now reads from `settings.deviceName` instead of compile-time `DEVICE_NAME` constant
+- Mode timeout (30s) now handles MODE_NAME: saves name, skips reboot prompt, returns to NORMAL
 
 ## [1.4.0] - 2026-02-16
 

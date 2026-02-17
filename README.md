@@ -67,23 +67,24 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 
 ### UI Modes
 
-Three modes, accessed via function button:
+Four modes, accessed via function button:
 
 | Mode | Purpose |
 |------|---------|
 | **NORMAL** | Live status display; encoder switches profile, button cycles KB/MS combos |
 | **MENU** | Scrollable settings menu; encoder navigates/edits, button selects/confirms |
 | **SLOTS** | 8-key slot editor; encoder cycles key, button advances slot |
+| **NAME** | BLE device name editor; encoder cycles character, button advances position |
 
 ### Control Actions
 
-| Control | NORMAL Mode | MENU Mode | SLOTS Mode |
-|---------|-------------|-----------|------------|
-| Encoder Turn | Switch profile (LAZY/NORMAL/BUSY) | Navigate items / adjust value | Cycle key for active slot |
-| Encoder Button | Cycle KB/MS combos | Select item / confirm edit | Advance slot cursor (1-8) |
-| Func Short | Open menu | Close menu (save) | Back to menu (save) |
-| Func Long (3s) | Enter sleep | Enter sleep | Enter sleep |
-| Func (sleeping) | Wake up | - | - |
+| Control | NORMAL Mode | MENU Mode | SLOTS Mode | NAME Mode |
+|---------|-------------|-----------|------------|-----------|
+| Encoder Turn | Switch profile (LAZY/NORMAL/BUSY) | Navigate items / adjust value | Cycle key for active slot | Cycle character / toggle Yes-No |
+| Encoder Button | Cycle KB/MS combos | Select item / confirm edit | Advance slot cursor (1-8) | Advance position / confirm |
+| Func Short | Open menu | Close menu (save) | Back to menu (save) | Save name (reboot prompt) |
+| Func Long (3s) | Enter sleep | Enter sleep | Enter sleep | Enter sleep |
+| Func (sleeping) | Wake up | - | - | - |
 
 ### Menu Items
 
@@ -99,9 +100,10 @@ Settings organized under headings in the scrollable menu:
 | | Move size | 1px - 5px (1px steps) |
 | **Profiles** | Lazy adjust | -50% to 0% (5% steps) |
 | | Busy adjust | 0% to 50% (5% steps) |
-| **Display** | Brightness | 10% - 100% (10% steps) |
+| **Device** | Brightness | 10% - 100% (10% steps) |
 | | Saver bright | 10% - 100% (10% steps) |
 | | Saver time | Never / 1 / 5 / 10 / 15 / 30 min |
+| | Device name | → opens NAME mode (14 char max) |
 | **About** | Version | Read-only firmware version |
 
 ### Timing Profiles
@@ -191,6 +193,26 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 - Turn encoder to cycle key for active slot, press encoder to advance slot cursor
 - Function button returns to menu at "Key slots" item
 
+### Name Mode
+
+```
+┌────────────────────────────┐
+│ DEVICE NAME          [3/14] │
+├────────────────────────────┤
+│   G h o s t O p             │
+│   e r a t o r · ·           │
+├────────────────────────────┤
+│ Turn=char  Press=next       │
+│ Func=save                   │
+└────────────────────────────┘
+```
+
+- 14 character positions (2 rows × 7), active position shown with inverted colors
+- Turn encoder to cycle through A-Z, a-z, 0-9, space, dash, underscore, END (66 chars, wrapping)
+- END positions shown as `·` (middle dot)
+- Press encoder to advance to next position (wraps at 14)
+- Function button saves; if name changed, shows reboot confirmation (Yes/No)
+
 ---
 
 ## Wiring
@@ -262,7 +284,7 @@ Connect via USB at 115200 baud:
 
 1. Connect battery (device powers on automatically)
 2. Open Bluetooth settings on your computer
-3. Search for "GhostOperator"
+3. Search for "GhostOperator" (or your custom device name)
 4. Pair and connect
 5. Display shows Bluetooth icon when connected
 
