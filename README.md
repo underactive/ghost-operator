@@ -1,6 +1,6 @@
 # Ghost Operator - BLE Keyboard/Mouse Device
 
-## Version 1.2.0
+## Version 1.2.1
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -269,7 +269,8 @@ Connect via USB at 115200 baud:
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
 | 1.1.0 | Display overhaul, BT icon, HID keycode fix |
 | 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
-| **1.2.0** | **Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode** |
+| **1.2.1** | **Fix encoder not responding on first rotation after boot** |
+| 1.2.0 | Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode |
 
 ---
 

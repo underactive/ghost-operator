@@ -43,7 +43,7 @@ using namespace Adafruit_LittleFS_Namespace;
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.2.0"
+#define VERSION "1.2.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F46  // "PROF"
@@ -544,8 +544,16 @@ void setup() {
   setupBLE();
   readBattery();
   
-  // Seed RNG
-  uint32_t seed = analogRead(A0) ^ (millis() << 16) ^ NRF_FICR->DEVICEADDR[0];
+  // Seed RNG from hardware true random number generator
+  NRF_RNG->CONFIG = 1;  // Enable bias correction
+  NRF_RNG->TASKS_START = 1;
+  uint32_t seed = 0;
+  for (int i = 0; i < 4; i++) {
+    NRF_RNG->EVENTS_VALRDY = 0;
+    while (!NRF_RNG->EVENTS_VALRDY);
+    seed = (seed << 8) | (NRF_RNG->VALUE & 0xFF);
+  }
+  NRF_RNG->TASKS_STOP = 1;
   randomSeed(seed);
   
   scheduleNextKey();
@@ -622,7 +630,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   
   bledis.setManufacturer("TARS Industries");
-  bledis.setModel("Ghost Operator v1.2.0");
+  bledis.setModel("Ghost Operator v1.2.1");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
   
