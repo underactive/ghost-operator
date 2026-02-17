@@ -12,6 +12,7 @@
  *   MOUSE IDLE- Encoder adjusts mouse idle duration
  *   LAZY %    - Encoder adjusts lazy profile percentage (0-50%)
  *   BUSY %    - Encoder adjusts busy profile percentage (0-50%)
+ *   SCREENSAVER - Encoder adjusts screensaver timeout (Never/5/10/15/30 min)
  * 
  * PIN ASSIGNMENTS:
  * D0 (P0.02) - Encoder A (digital interrupt)
@@ -43,7 +44,7 @@ using namespace Adafruit_LittleFS_Namespace;
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.2.1"
+#define VERSION "1.3.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F46  // "PROF"
@@ -98,6 +99,12 @@ using namespace Adafruit_LittleFS_Namespace;
 #define SLEEP_DISPLAY_MS      2000
 #define MODE_TIMEOUT_MS       10000       // Return to NORMAL after 10s inactivity
 
+// Screensaver timeout options
+#define SAVER_TIMEOUT_COUNT   6
+#define DEFAULT_SAVER_IDX     3                           // 10 min
+const uint8_t  SAVER_MINUTES[] = { 0, 1, 5, 10, 15, 30 };   // 0 = Never
+const char*    SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min", "30 min" };
+
 // Battery calibration (3.0V internal reference)
 #define VBAT_MV_PER_LSB   (3000.0F / 4096.0F)
 #define VBAT_DIVIDER      (1510.0F / 510.0F)
@@ -116,6 +123,8 @@ enum UIMode {
   MODE_MOUSE_IDLE,
   MODE_LAZY_PCT,
   MODE_BUSY_PCT,
+  MODE_SAVER_TIMEOUT,
+  MODE_SAVER_BRIGHT,
   MODE_COUNT
 };
 
@@ -127,7 +136,9 @@ const char* MODE_NAMES[] = {
   "MOUSE JIG",
   "MOUSE IDLE",
   "LAZY %",
-  "BUSY %"
+  "BUSY %",
+  "SCREENSAVER",
+  "SAVER BRIGHT"
 };
 
 // ============================================================================
@@ -152,6 +163,8 @@ struct Settings {
   uint8_t keySlots[NUM_SLOTS];
   uint8_t lazyPercent;    // 0-50, step 5, default 15
   uint8_t busyPercent;    // 0-50, step 5, default 15
+  uint8_t saverTimeout;   // index into SAVER_MINUTES[] (0=Never..5=30min)
+  uint8_t saverBrightness; // 10-100 in steps of 10, default 30
   uint8_t checksum;       // must remain last
 };
 
@@ -170,6 +183,8 @@ void loadDefaults() {
   }
   settings.lazyPercent = 15;
   settings.busyPercent = 15;
+  settings.saverTimeout = DEFAULT_SAVER_IDX;  // 10 minutes
+  settings.saverBrightness = 30;               // 30%
 }
 
 uint8_t calcChecksum() {
@@ -277,6 +292,7 @@ uint8_t nextKeyIndex = 0;  // Pre-picked key for next keypress cycle
 // UI Mode
 UIMode currentMode = MODE_NORMAL;
 unsigned long lastModeActivity = 0;
+bool screensaverActive = false;
 
 // Timing
 unsigned long startTime = 0;
@@ -369,6 +385,11 @@ unsigned long effectiveKeyMax()      { return applyProfile(settings.keyIntervalM
 unsigned long effectiveMouseJiggle() { return applyProfile(settings.mouseJiggleDuration, currentProfile == PROFILE_BUSY ? 1 : -1); }
 unsigned long effectiveMouseIdle()   { return applyProfile(settings.mouseIdleDuration,   currentProfile == PROFILE_BUSY ? -1 : 1); }
 
+unsigned long saverTimeoutMs() {
+  if (settings.saverTimeout == 0) return 0;  // Never
+  return (unsigned long)SAVER_MINUTES[settings.saverTimeout] * 60000UL;
+}
+
 String formatUptime(unsigned long ms) {
   unsigned long secs = ms / 1000;
   unsigned long mins = secs / 60;
@@ -428,6 +449,8 @@ void loadSettings() {
         }
         if (settings.lazyPercent > 50) settings.lazyPercent = 15;
         if (settings.busyPercent > 50) settings.busyPercent = 15;
+        if (settings.saverTimeout >= SAVER_TIMEOUT_COUNT) settings.saverTimeout = DEFAULT_SAVER_IDX;
+        if (settings.saverBrightness < 10 || settings.saverBrightness > 100 || settings.saverBrightness % 10 != 0) settings.saverBrightness = 30;
 
         return;
       } else {
@@ -466,6 +489,17 @@ void connect_callback(uint16_t conn_handle) {
   Serial.print("Connected to: ");
   Serial.println(central_name);
   deviceConnected = true;
+
+  // Reset timers so progress bars start fresh (not stale from pre-connection)
+  unsigned long now = millis();
+  lastKeyTime = now;
+  lastMouseStateChange = now;
+  mouseState = MOUSE_IDLE;
+  mouseNetX = 0;
+  mouseNetY = 0;
+  scheduleNextKey();
+  scheduleNextMouseState();
+
   conn->requestConnectionParameter(12);
 }
 
@@ -553,6 +587,8 @@ void setup() {
   pickNextKey();
 
   startTime = millis();
+  lastKeyTime = millis();
+  lastMouseStateChange = millis();
   lastModeActivity = millis();
   
   Serial.println("Setup complete.");
@@ -622,7 +658,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   
   bledis.setManufacturer("TARS Industries");
-  bledis.setModel("Ghost Operator v1.2.1");
+  bledis.setModel("Ghost Operator v1.3.0");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
   
@@ -663,6 +699,14 @@ void loop() {
   if (currentMode != MODE_NORMAL && (now - lastModeActivity > MODE_TIMEOUT_MS)) {
     currentMode = MODE_NORMAL;
     saveSettings();  // Save when leaving settings
+  }
+
+  // Screensaver activation (only from NORMAL mode)
+  if (!screensaverActive && currentMode == MODE_NORMAL) {
+    unsigned long saverMs = saverTimeoutMs();
+    if (saverMs > 0 && (now - lastModeActivity > saverMs)) {
+      screensaverActive = true;
+    }
   }
   
   // Battery monitoring
@@ -802,7 +846,10 @@ void handleEncoder() {
     int direction = (change > 0) ? 1 : -1;
     lastEncoderPos = encoderPos;
     lastModeActivity = millis();
-    
+
+    // Wake screensaver — consume input
+    if (screensaverActive) { screensaverActive = false; return; }
+
     switch (currentMode) {
       case MODE_NORMAL: {
         // Switch timing profile: LAZY ← NORMAL → BUSY (clamped)
@@ -861,6 +908,22 @@ void handleEncoder() {
         break;
       }
 
+      case MODE_SAVER_TIMEOUT: {
+        int newIdx = (int)settings.saverTimeout + direction;
+        if (newIdx < 0) newIdx = 0;
+        if (newIdx >= SAVER_TIMEOUT_COUNT) newIdx = SAVER_TIMEOUT_COUNT - 1;
+        settings.saverTimeout = (uint8_t)newIdx;
+        break;
+      }
+
+      case MODE_SAVER_BRIGHT: {
+        int newVal = (int)settings.saverBrightness + direction * 10;
+        if (newVal < 10) newVal = 10;
+        if (newVal > 100) newVal = 100;
+        settings.saverBrightness = (uint8_t)newVal;
+        break;
+      }
+
       default:
         break;
     }
@@ -887,6 +950,9 @@ void handleButtons() {
   if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
     lastEncPress = now;
     lastModeActivity = now;
+
+    // Wake screensaver — consume input
+    if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
 
     if (currentMode == MODE_SLOTS) {
       // Advance active slot cursor (0→1→...→7→0)
@@ -924,6 +990,9 @@ void handleButtons() {
     if (funcBtnWasPressed) {
       unsigned long holdTime = now - funcBtnPressStart;
       if (holdTime < LONG_PRESS_MS && holdTime > 50) {
+        // Wake screensaver — consume input (long press sleep still works)
+        if (screensaverActive) { screensaverActive = false; lastModeActivity = now; funcBtnWasPressed = false; return; }
+
         // Short press - cycle mode
         if (currentMode != MODE_NORMAL) {
           saveSettings();  // Save when leaving a settings mode
@@ -972,6 +1041,9 @@ void handleSerialCommands() {
         Serial.print("Busy %: "); Serial.println(settings.busyPercent);
         Serial.print("Effective KB: "); Serial.print(effectiveKeyMin()); Serial.print("-"); Serial.println(effectiveKeyMax());
         Serial.print("Effective Mouse: "); Serial.print(effectiveMouseJiggle()); Serial.print("/"); Serial.println(effectiveMouseIdle());
+        Serial.print("Screensaver: "); Serial.print(SAVER_NAMES[settings.saverTimeout]);
+        Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");
+        Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
         break;
     }
   }
@@ -1053,10 +1125,20 @@ void readBattery() {
 
 void updateDisplay() {
   if (!displayInitialized) return;
-  
+
+  // Dim OLED in screensaver mode, restore on exit
+  static bool wasSaver = false;
+  if (screensaverActive != wasSaver) {
+    display.ssd1306_command(SSD1306_SETCONTRAST);
+    display.ssd1306_command(screensaverActive ? (uint8_t)(0xCF * settings.saverBrightness / 100) : 0xCF);
+    wasSaver = screensaverActive;
+  }
+
   display.clearDisplay();
-  
-  if (currentMode == MODE_NORMAL) {
+
+  if (screensaverActive) {
+    drawScreensaver();
+  } else if (currentMode == MODE_NORMAL) {
     drawNormalMode();
   } else if (currentMode == MODE_SLOTS) {
     drawSlotsMode();
@@ -1217,6 +1299,60 @@ void drawNormalMode() {
   }
 }
 
+void drawScreensaver() {
+  // Minimal display to reduce OLED burn-in
+  // Vertically centered, horizontally centered labels, 1px progress bars
+  unsigned long now = millis();
+  display.setTextSize(1);
+
+  // === KB label centered (y=11) ===
+  String kbLabel = "[" + String(AVAILABLE_KEYS[nextKeyIndex].name) + "]";
+  int kbWidth = kbLabel.length() * 6;
+  display.setCursor((128 - kbWidth) / 2, 11);
+  display.print(kbLabel);
+
+  // === KB progress bar 1px high (y=21), full width ===
+  unsigned long keyElapsed = now - lastKeyTime;
+  int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
+  int kbBarWidth = 0;
+  if (currentKeyInterval > 0) {
+    kbBarWidth = map(keyRemaining, 0, currentKeyInterval, 0, 128);
+  }
+  if (kbBarWidth > 0) {
+    display.drawFastHLine(0, 21, kbBarWidth, SSD1306_WHITE);
+  }
+
+  // === MS label centered (y=32) ===
+  const char* msTag = (mouseState == MOUSE_IDLE) ? "[IDL]" : "[MOV]";
+  int msWidth = strlen(msTag) * 6;
+  display.setCursor((128 - msWidth) / 2, 32);
+  display.print(msTag);
+
+  // === MS progress bar 1px high (y=42), full width ===
+  unsigned long mouseElapsed = now - lastMouseStateChange;
+  unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
+  int msBarWidth = 0;
+  if (mouseDuration > 0) {
+    if (mouseState == MOUSE_IDLE) {
+      msBarWidth = map(min(mouseElapsed, mouseDuration), 0, mouseDuration, 0, 128);
+    } else {
+      int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
+      msBarWidth = map(mouseRemaining, 0, mouseDuration, 0, 128);
+    }
+  }
+  if (msBarWidth > 0) {
+    display.drawFastHLine(0, 42, msBarWidth, SSD1306_WHITE);
+  }
+
+  // === Battery warning (y=48) — only if <15% ===
+  if (batteryPercent < 15) {
+    String batStr = String(batteryPercent) + "%";
+    int batWidth = batStr.length() * 6;
+    display.setCursor((128 - batWidth) / 2, 48);
+    display.print(batStr);
+  }
+}
+
 void drawSlotsMode() {
   // === Header ===
   display.setTextSize(1);
@@ -1278,6 +1414,8 @@ void drawSettingsMode() {
     display.print(keyEnabled ? "[K]" : "[k]");
   } else if (currentMode == MODE_LAZY_PCT || currentMode == MODE_BUSY_PCT) {
     display.print("[%]");
+  } else if (currentMode == MODE_SAVER_TIMEOUT || currentMode == MODE_SAVER_BRIGHT) {
+    display.print("[S]");
   } else {
     display.print(mouseEnabled ? "[M]" : "[m]");
   }
@@ -1285,7 +1423,52 @@ void drawSettingsMode() {
   display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
   
   // === Value display ===
-  if (currentMode == MODE_LAZY_PCT || currentMode == MODE_BUSY_PCT) {
+  if (currentMode == MODE_SAVER_TIMEOUT) {
+    // Screensaver timeout: name display with position dots
+    display.setTextSize(2);
+    String valStr = "> " + String(SAVER_NAMES[settings.saverTimeout]) + " <";
+    int valWidth = valStr.length() * 12;
+    int valX = (128 - valWidth) / 2;
+    display.setCursor(valX, 20);
+    display.print(valStr);
+
+    // Position dots (filled = selected, hollow = unselected)
+    display.setTextSize(1);
+    int dotSpacing = 12;
+    int dotsWidth = (SAVER_TIMEOUT_COUNT - 1) * dotSpacing;
+    int dotStartX = (128 - dotsWidth) / 2;
+    int dotY = 44;
+    for (int i = 0; i < SAVER_TIMEOUT_COUNT; i++) {
+      int dx = dotStartX + i * dotSpacing;
+      if (i == settings.saverTimeout) {
+        display.fillRect(dx, dotY, 5, 5, SSD1306_WHITE);
+      } else {
+        display.drawRect(dx, dotY, 5, 5, SSD1306_WHITE);
+      }
+    }
+  } else if (currentMode == MODE_SAVER_BRIGHT) {
+    // Brightness percentage display (10-100%)
+    display.setTextSize(2);
+    String valStr = "> " + String(settings.saverBrightness) + "% <";
+    int valWidth = valStr.length() * 12;
+    int valX = (128 - valWidth) / 2;
+    display.setCursor(valX, 20);
+    display.print(valStr);
+
+    // Progress bar: 10-100%
+    display.setTextSize(1);
+    display.setCursor(0, 40);
+    display.print("10%");
+    display.setCursor(104, 40);
+    display.print("100%");
+
+    int barProgress = map(settings.saverBrightness, 10, 100, 0, 100);
+    display.drawRect(0, 48, 128, 7, SSD1306_WHITE);
+    int barWidth = map(barProgress, 0, 100, 0, 126);
+    if (barWidth > 0) {
+      display.fillRect(1, 49, barWidth, 5, SSD1306_WHITE);
+    }
+  } else if (currentMode == MODE_LAZY_PCT || currentMode == MODE_BUSY_PCT) {
     // Percentage value display
     uint8_t pctValue = (currentMode == MODE_LAZY_PCT) ? settings.lazyPercent : settings.busyPercent;
 
