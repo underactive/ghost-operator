@@ -5,8 +5,6 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 ## [1.5.0] - 2026-02-17
 
 ### Added
@@ -40,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Yes/No confirmation overlay (defaults to "No" for safety)
   - Useful for applying pending BLE name changes without a full power cycle
 - Serial `d` command prints mouse amplitude and device name
+- **Serial PNG screenshot**: New `p` serial command dumps the current OLED display as a base64-encoded PNG
+  - Minimal on-device PNG encoder — no external library, uses uncompressed deflate (stored blocks)
+  - Output delimited by `--- PNG START ---` / `--- PNG END ---` text markers for easy capture
+  - Produces valid 128×64 1-bit grayscale PNG (~1156 bytes raw, ~1544 chars base64)
+  - Converts SSD1306 page-format framebuffer to PNG row-major format on the fly
+  - CRC32 (bit-by-bit) and Adler32 computed inline — zero extra RAM for lookup tables
 
 ### Changed
 
