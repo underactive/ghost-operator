@@ -98,7 +98,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #define DISPLAY_UPDATE_MS     100         // Faster for smooth countdown
 #define BATTERY_READ_MS       60000UL
 #define SLEEP_CONFIRM_THRESHOLD_MS  500   // Hold before showing confirmation
-#define SLEEP_COUNTDOWN_MS          3000  // Countdown duration on confirmation screen
+#define SLEEP_COUNTDOWN_MS          5000  // Countdown duration on confirmation screen
 #define SLEEP_CANCEL_DISPLAY_MS     400   // "Cancelled" display duration
 #define SLEEP_DISPLAY_MS            500   // Brief "SLEEPING..." before power-off
 #define MODE_TIMEOUT_MS       30000       // Return to NORMAL after 30s inactivity
