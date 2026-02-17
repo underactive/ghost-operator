@@ -1,9 +1,9 @@
-# Ghost Operator v1.3.0 - User Manual
+# Ghost Operator v1.3.1 - User Manual
 
 ## Quick Start
 
 1. Connect battery or USB-C
-2. Device boots and shows "GHOST OPERATOR v1.3.0"
+2. Device boots and shows custom splash screen with version number
 3. On your computer: Bluetooth settings → pair "GhostOperator"
 4. Display shows Bluetooth icon when connected
 5. Device starts sending keystrokes and mouse movements
@@ -340,6 +340,6 @@ Connect via USB and open Serial Monitor at 115200 baud.
 
 ---
 
-*Ghost Operator v1.3.0 | TARS Industries*
+*Ghost Operator v1.3.1 | TARS Industries*
 
 *"Fewer parts, more flash"*

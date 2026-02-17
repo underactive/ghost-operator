@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.3.0
+**Current Version:** 1.3.1
 **Status:** Production-ready
 
 ---
@@ -140,10 +140,15 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - `MODE_SAVER_BRIGHT` is the settings page for configuring screensaver OLED brightness
 
 ### Encoder Handling
-- Interrupt-driven state machine
-- Interrupts attached AFTER SoftDevice init (`setupBLE()`) to prevent GPIOTE disruption
+- Hybrid ISR + polling architecture:
+  - **Primary:** GPIOTE interrupt (`encoderISR`) catches every pin edge in real-time, including during blocking I2C display transfers
+  - **Fallback:** `pollEncoder()` in main loop catches edges missed during SoftDevice radio blackouts
+  - `noInterrupts()` around polling prevents race conditions with ISR (~300ns critical section, SoftDevice-safe)
+- Interrupts attached AFTER SoftDevice init (`setupBLE()`) to prevent GPIOTE channel invalidation
+- Atomic `NRF_P0->IN` register read samples both pins simultaneously (no race window)
+- 2-step jump recovery: when intermediate quadrature states are missed, direction is inferred from last known movement
 - 4 transitions per detent (divide by 4 for clicks)
-- Exponential smoothing not used (digital precision)
+- **IMPORTANT:** Do NOT use `analogRead()` on A0 or A1 — these share P0.02/P0.03 with encoder CLK/DT. `analogRead()` disconnects the digital input buffer, breaking encoder reads.
 
 ---
 
@@ -214,6 +219,7 @@ Turn dial to adjust
 | 1.2.0 | Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode |
 | 1.2.1 | Fix encoder initial state sync bug |
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
+| 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 
 ---
 
@@ -224,6 +230,7 @@ Turn dial to adjust
 3. **Encoder must use Seeed nRF52 core** - mbed core incompatible with Bluefruit
 4. **Python required for compilation** - Seeed toolchain dependency
 5. **AR_INTERNAL_3_6 not available** - Use AR_INTERNAL_3_0 on Seeed core
+6. **D0/D1 (A0/A1) are analog-capable** - `analogRead()` on these pins disconnects the digital input buffer, breaking encoder reads. Use `NRF_FICR->DEVICEADDR` or other sources for entropy.
 
 ---
 
@@ -275,6 +282,7 @@ Modify these defines:
 | `USER_MANUAL.md` | End-user guide |
 | `CHANGELOG.md` | Version history (semver) |
 | `CLAUDE.md` | This file |
+| `ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit raw) |
 
 ---
 
@@ -333,7 +341,7 @@ pio run -t upload
 - [ ] SAVER BRIGHT: encoder adjusts 10-100% in 10% steps with progress bar
 - [ ] Screensaver dims OLED to configured brightness, restores on wake
 - [ ] Serial `d` → prints screensaver timeout, brightness, and active state
-- [ ] Encoder responsive immediately after boot (ISR attached after SoftDevice init)
+- [ ] Encoder responsive immediately after boot (hybrid ISR+polling, analogRead fix)
 - [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
 
 ---
