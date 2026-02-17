@@ -32,13 +32,14 @@
 #include <InternalFileSystem.h>
 #include <nrf_soc.h>
 #include <nrf_power.h>
+#include <math.h>
 
 using namespace Adafruit_LittleFS_Namespace;
 
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.4.1"
+#define VERSION "1.5.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F46  // "PROF"
@@ -848,8 +849,8 @@ void setupBLE() {
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   
-  bledis.setManufacturer("TARS Industries");
-  bledis.setModel("Ghost Operator v1.4.1");
+  bledis.setManufacturer("TARS Industrial Technical Solutions");
+  bledis.setModel("Ghost Operator v1.5.0");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
   
@@ -1001,9 +1002,17 @@ void handleMouseStateMachine(unsigned long now) {
       } else {
         if (now - lastMouseStep >= MOUSE_MOVE_STEP_MS) {
           if (random(100) < 15) pickNewDirection();
-          blehid.mouseMove(currentMouseDx, currentMouseDy);
-          mouseNetX += currentMouseDx;
-          mouseNetY += currentMouseDy;
+          // Ease-in-out: sine curve ramps amplitude 0 → peak → 0
+          float progress = (float)elapsed / (float)currentMouseJiggle;
+          float ease = sinf(PI * progress);
+          int8_t amp = (int8_t)(settings.mouseAmplitude * ease + 0.5f);
+          if (amp > 0) {
+            int8_t dx = currentMouseDx * amp;
+            int8_t dy = currentMouseDy * amp;
+            blehid.mouseMove(dx, dy);
+            mouseNetX += dx;
+            mouseNetY += dy;
+          }
           lastMouseStep = now;
         }
       }
@@ -1029,8 +1038,8 @@ void handleMouseStateMachine(unsigned long now) {
 
 void pickNewDirection() {
   int dir = random(NUM_DIRS);
-  currentMouseDx = MOUSE_DIRS[dir][0] * settings.mouseAmplitude;
-  currentMouseDy = MOUSE_DIRS[dir][1] * settings.mouseAmplitude;
+  currentMouseDx = MOUSE_DIRS[dir][0];
+  currentMouseDy = MOUSE_DIRS[dir][1];
 }
 
 // ============================================================================

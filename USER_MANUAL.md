@@ -1,4 +1,4 @@
-# Ghost Operator v1.4.1 - User Manual
+# Ghost Operator v1.5.0 - User Manual
 
 ## Quick Start
 
@@ -249,6 +249,8 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 
 ### Mouse
 - **Move phase:** Mouse moves randomly for the set duration (adjusted by active profile)
+  - Movement starts slow, accelerates to peak speed, then decelerates to a stop — like a human moving the mouse
+  - The "Move size" setting controls the peak speed (1-5px per step)
 - **Idle phase:** Mouse stops for the set duration (adjusted by active profile)
 - ±20% randomness on both durations
 - Mouse returns to approximate starting position after each movement
@@ -356,6 +358,6 @@ Connect via USB and open Serial Monitor at 115200 baud.
 
 ---
 
-*Ghost Operator v1.4.1 | TARS Industrial Technical Solutions*
+*Ghost Operator v1.5.0 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*

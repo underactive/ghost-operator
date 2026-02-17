@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.4.1
+**Current Version:** 1.5.0
 **Status:** Production-ready
 
 ---
@@ -129,6 +129,7 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 ```
 - Tracks net displacement during movement
 - Non-blocking return to approximate origin via MOUSE_RETURNING state
+- JIGGLING uses sine ease-in-out velocity profile: `amp = mouseAmplitude * sin(π × progress)` where progress goes 0→1 over the jiggle duration. Movement ramps from zero → peak → zero. Steps with zero amplitude are skipped (natural pause at start/end). `pickNewDirection()` stores unit vectors (-1/0/+1); amplitude is applied per-step with easing.
 
 #### 7. Power Management
 - `sd_power_system_off()` for deep sleep
@@ -230,7 +231,7 @@ Active slot rendered with inverted colors (white rect, black text).
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
-| 1.4.1 | Adjustable mouse movement amplitude (1-5px) |
+| 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement |
 
 ---
 
@@ -268,7 +269,7 @@ Modify these defines:
 ```
 
 ### Change mouse amplitude range
-Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` (minVal/maxVal currently 1–5). The `pickNewDirection()` function multiplies direction vectors by `settings.mouseAmplitude`. The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
+Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` (minVal/maxVal currently 1–5). The JIGGLING case applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
 
 ### Add new menu setting
 1. Add `SettingId` enum entry
@@ -368,10 +369,13 @@ pio run -t upload
 - [ ] Encoder responsive immediately after boot (hybrid ISR+polling, analogRead fix)
 - [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
 - [ ] Menu: "Move size" shows "1px" default, editable 1-5 with `< >` arrows
-- [ ] Mouse amplitude 1: movement identical to previous behavior (1px per step)
-- [ ] Mouse amplitude 5: visibly larger mouse movements, return phase still works
+- [ ] Mouse amplitude 1: subtle pauses at start/end of jiggle, 1px movement in middle
+- [ ] Mouse amplitude 5: smooth visible ramp-up and ramp-down, 5px peak movement
 - [ ] Mouse amplitude persists after menu close → reopen, and after sleep/wake
 - [ ] Serial `d` → prints mouse amplitude value
+- [ ] Easing: mouse cursor visibly accelerates at start and decelerates at end of each jiggle
+- [ ] Easing: mouse returns to approximate origin after each jiggle (net tracking accurate with eased steps)
+- [ ] Easing: jiggle duration unchanged (only velocity profile within the jiggle changes)
 
 ---
 
@@ -380,7 +384,7 @@ pio run -t upload
 - [ ] RGB LED for status (uses D7)
 - [ ] Buzzer feedback on mode change
 - [x] ~~Multiple profiles~~ → Implemented as timing profiles (LAZY/NORMAL/BUSY) in v1.2.0
-- [x] ~~Adjustable mouse movement amplitude~~ → Implemented as "Move size" setting (1-5px) in v1.4.1
+- [x] ~~Adjustable mouse movement amplitude~~ → Implemented as "Move size" setting (1-5px) in v1.5.0
 - [ ] Configurable BLE device name
 - [ ] OTA firmware updates
 - [ ] Web-based configuration (BLE UART)
