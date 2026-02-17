@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Yes/No confirmation overlay (defaults to "No" for safety)
   - Useful for applying pending BLE name changes without a full power cycle
 - Serial `d` command prints mouse amplitude and device name
+- **Sleep confirmation**: Long-press sleep replaced with a hold-to-confirm flow
+  - After 500ms hold, an overlay appears with "Hold to sleep..." and a 5-second countdown bar
+  - Keep holding to complete the countdown and enter deep sleep
+  - Release during countdown to cancel — shows "Cancelled" briefly and returns to previous screen
+  - Encoder and button input suppressed during confirmation and cancellation overlays
 - **Serial PNG screenshot**: New `p` serial command dumps the current OLED display as a base64-encoded PNG
   - Minimal on-device PNG encoder — no external library, uses uncompressed deflate (stored blocks)
   - Output delimited by `--- PNG START ---` / `--- PNG END ---` text markers for easy capture
@@ -49,9 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Menu heading renamed from "Display" to "Device" (now contains brightness, screensaver, and device name settings)
 - Settings struct: added `mouseAmplitude` and `deviceName[15]` fields — existing settings auto-reset to defaults on first boot (checksum mismatch)
-- `MENU_ITEM_COUNT` increased from 16 to 19
+- `MENU_ITEM_COUNT` increased from 16 to 20
 - BLE `Bluefruit.setName()` now reads from `settings.deviceName` instead of compile-time `DEVICE_NAME` constant
 - Mode timeout (30s) now handles MODE_NAME: saves name, skips reboot prompt, returns to NORMAL
+- Sleep entry changed from immediate 3-second long-press to hold-to-confirm with 5-second countdown bar (cancellable by release)
+- Pre-sleep "SLEEPING..." display shortened to 500ms
 
 ## [1.4.0] - 2026-02-16
 

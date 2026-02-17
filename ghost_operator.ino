@@ -1696,9 +1696,18 @@ void handleSerialCommands() {
         Serial.println("z - Sleep");
         Serial.println("d - Dump settings");
         Serial.println("p - PNG screenshot");
+        Serial.println("v - Screensaver");
         break;
       case 'p':
         serialScreenshot();
+        break;
+      case 'v':
+        if (currentMode != MODE_NORMAL) {
+          menuEditing = false;
+          currentMode = MODE_NORMAL;
+        }
+        screensaverActive = true;
+        Serial.println("Screensaver activated");
         break;
       case 's':
         printStatus();
