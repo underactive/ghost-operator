@@ -306,6 +306,7 @@ pio run -t upload
 - [ ] Web-based configuration (BLE UART)
 - [ ] Scheduled on/off times
 - [ ] Activity logging to flash
+- [ ] Display idle timeout / dimming (OLED draws ~10-15mA continuously; turning off after inactivity could nearly double battery life)
 
 ---
 
