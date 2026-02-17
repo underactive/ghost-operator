@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-02-16
+
+### Added
+
+- **Screensaver mode**: Minimal OLED display activates after configurable idle timeout to prevent burn-in
+  - Centered key label + 1px progress bar, mouse state + 1px progress bar
+  - Battery percentage shown only when below 15%
+  - OLED contrast dimmed to configurable brightness level
+  - Dramatically reduces lit pixels and power compared to normal display
+- **SCREENSAVER settings page**: Configure timeout via encoder (Never / 1 / 5 / 10 / 15 / 30 min, default 10 min)
+  - Position dots UI (filled = selected, hollow = unselected)
+- **SAVER BRIGHT settings page**: Configure screensaver OLED brightness (10-100% in 10% steps, default 30%)
+  - Progress bar UI consistent with other percentage settings
+
+### Changed
+
+- Mode cycle: NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY % → SCREENSAVER → SAVER BRIGHT
+- Settings struct: added `saverTimeout` and `saverBrightness` fields — existing settings auto-reset to defaults on first boot
+- Serial `d` command now prints screensaver timeout name, brightness, and active state
+- Any user input (encoder turn, encoder press, function button short press) wakes screensaver; input is consumed to prevent accidental changes
+- Long-press sleep still works from screensaver (not consumed)
+- BLE reconnection now resets keyboard/mouse timers and mouse state, preventing stale progress bars
+- Encoder interrupts attached after SoftDevice initialization to prevent intermittent GPIOTE disruption
+
 ## [1.2.1] - 2026-02-16
 
 ### Fixed

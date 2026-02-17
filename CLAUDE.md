@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.2.1
+**Current Version:** 1.3.0
 **Status:** Production-ready
 
 ---
@@ -73,7 +73,9 @@ enum UIMode {
   MODE_MOUSE_JIG,   // Adjust jiggle duration
   MODE_MOUSE_IDLE,  // Adjust idle duration
   MODE_LAZY_PCT,    // Adjust lazy profile percentage (0-50%)
-  MODE_BUSY_PCT     // Adjust busy profile percentage (0-50%)
+  MODE_BUSY_PCT,    // Adjust busy profile percentage (0-50%)
+  MODE_SAVER_TIMEOUT, // Adjust screensaver timeout (Never/1/5/10/15/30 min)
+  MODE_SAVER_BRIGHT  // Adjust screensaver brightness (10-100%, default 30%)
 };
 ```
 Function button cycles through modes. 10-second timeout returns to NORMAL.
@@ -91,11 +93,13 @@ struct Settings {
   uint8_t keySlots[NUM_SLOTS]; // index into AVAILABLE_KEYS per slot
   uint8_t lazyPercent;         // 0-50, step 5, default 15
   uint8_t busyPercent;         // 0-50, step 5, default 15
+  uint8_t saverTimeout;        // index into SAVER_MINUTES[] (0=Never..5=30min)
+  uint8_t saverBrightness;     // 10-100, step 10, default 30
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%.
+Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 10 min, brightness = 30%.
 
 #### 4. Timing Profiles
 ```cpp
@@ -125,8 +129,19 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - Wake via GPIO sense on function button (P0.29)
 - Sleep triggered by 3-second long press
 
+#### 8. Screensaver
+- Overlay state (`screensaverActive` flag), not a UIMode — gates display rendering
+- Activates only on top of `MODE_NORMAL` after configurable timeout (Never/1/5/10/15/30 min)
+- Minimal display: centered key label + 1px progress bar, mouse state + 1px bar, battery only if <15%
+- OLED contrast dimmed to configurable brightness (10-100%, default 30%) via `SSD1306_SETCONTRAST`
+- Any input (encoder, buttons) wakes screensaver — input is consumed, not passed through
+- Long-press sleep still works from screensaver (not consumed)
+- `MODE_SAVER_TIMEOUT` is the settings page for configuring timeout
+- `MODE_SAVER_BRIGHT` is the settings page for configuring screensaver OLED brightness
+
 ### Encoder Handling
 - Interrupt-driven state machine
+- Interrupts attached AFTER SoftDevice init (`setupBLE()`) to prevent GPIOTE disruption
 - 4 transitions per detent (divide by 4 for clicks)
 - Exponential smoothing not used (digital precision)
 
@@ -173,6 +188,20 @@ MODE: KEY MIN           [K]
 Turn dial to adjust
 ```
 
+### Screensaver Mode (overlay)
+```
+                              (blank)
+
+             [F15]            ← next key label, centered
+  ████████████████░░░░░░░░░░  ← 1px high KB progress bar (full width)
+
+             [IDL]            ← mouse state, centered
+  ██████░░░░░░░░░░░░░░░░░░░░  ← 1px high MS progress bar (full width)
+
+              12%             ← battery % (ONLY if <15%)
+                              (blank)
+```
+
 ---
 
 ## Version History
@@ -184,6 +213,7 @@ Turn dial to adjust
 | 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
 | 1.2.0 | Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode |
 | 1.2.1 | Fix encoder initial state sync bug |
+| 1.3.0 | Screensaver mode for OLED burn-in prevention |
 
 ---
 
@@ -278,7 +308,7 @@ pio run -t upload
 - [ ] Profile name appears on uptime line for 3 seconds after switching
 - [ ] NORMAL mode KB/MS values update to reflect active profile
 - [ ] Encoder button cycles KB/MS enable combos in NORMAL mode
-- [ ] Function button cycles modes (NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY %)
+- [ ] Function button cycles modes (NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY % → SCREENSAVER → SAVER BRIGHT)
 - [ ] SLOTS mode: encoder rotates key for active slot, button advances slot cursor
 - [ ] Settings values change in settings modes
 - [ ] Settings persist after sleep
@@ -293,6 +323,18 @@ pio run -t upload
 - [ ] Profile does NOT modify base settings (enter KEY MIN → shows original, not adjusted)
 - [ ] Sleep + wake → lazy% and busy% persist, profile resets to NORMAL
 - [ ] Serial `d` → prints profile, lazy%, busy%, effective values
+- [ ] SCREENSAVER timeout: encoder adjusts Never/1/5/10/15/30 min with position dots
+- [ ] Screensaver activates after configured timeout with no input (minimal display)
+- [ ] Screensaver shows centered key label + 1px bar, mouse state + 1px bar
+- [ ] Screensaver battery warning appears only when <15%
+- [ ] Any input wakes screensaver without side effects (consumed)
+- [ ] Long-press sleep works from screensaver
+- [ ] "Never" disables screensaver
+- [ ] SAVER BRIGHT: encoder adjusts 10-100% in 10% steps with progress bar
+- [ ] Screensaver dims OLED to configured brightness, restores on wake
+- [ ] Serial `d` → prints screensaver timeout, brightness, and active state
+- [ ] Encoder responsive immediately after boot (ISR attached after SoftDevice init)
+- [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
 
 ---
 
@@ -307,7 +349,7 @@ pio run -t upload
 - [ ] Web-based configuration (BLE UART)
 - [ ] Scheduled on/off times
 - [ ] Activity logging to flash
-- [ ] Display idle timeout / dimming (OLED draws ~10-15mA continuously; turning off after inactivity could nearly double battery life)
+- [x] ~~Display idle timeout / dimming~~ → Implemented as screensaver mode in v1.3.0 (minimal pixel display after configurable timeout)
 
 ---
 

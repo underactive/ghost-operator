@@ -1,9 +1,9 @@
-# Ghost Operator v1.2.1 - User Manual
+# Ghost Operator v1.3.0 - User Manual
 
 ## Quick Start
 
 1. Connect battery or USB-C
-2. Device boots and shows "GHOST OPERATOR v1.2.1"
+2. Device boots and shows "GHOST OPERATOR v1.3.0"
 3. On your computer: Bluetooth settings → pair "GhostOperator"
 4. Display shows Bluetooth icon when connected
 5. Device starts sending keystrokes and mouse movements
@@ -30,10 +30,10 @@
 ┌────────────────────────────────┐
 │ GHOST Operator          ᛒ 85%  │  ← Status bar
 ├────────────────────────────────┤
-│ KB [F15] 2.0-6.5s          ↑  │  ← Next key + interval
+│ KB [F15] 2.0-6.5s          ↑   │  ← Next key + interval
 │ ████████████░░░░░░░░░░░░  3.2s │  ← Countdown bar
 ├────────────────────────────────┤
-│ MS [MOV]  15s/30s            ↑  │  ← Mouse settings
+│ MS [MOV]  15s/30s            ↑ │  ← Mouse settings
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │  ← Countdown bar
 ├────────────────────────────────┤
 │ Up: 02:34:15      ~^~_~^~      │  ← Uptime (or profile name) + pulse
@@ -99,11 +99,11 @@
 │ MODE: KEY MIN            [K]   │  ← Current mode
 ├────────────────────────────────┤
 │                                │
-│       > 2.0s <             │  ← Current value
+│       > 2.0s <                 │  ← Current value
 │                                │
 │ 0.5s ████████░░░░░░░░░░░░ 30s  │  ← Position in range
 ├────────────────────────────────┤
-│ Turn dial to adjust         │
+│ Turn dial to adjust            │
 └────────────────────────────────┘
 ```
 
@@ -111,9 +111,39 @@
 - `[K]` or `[k]` - Keys ON or off (press encoder to toggle)
 - `[M]` or `[m]` - Mouse ON or off (in mouse modes)
 - `[%]` - Shown in LAZY % and BUSY % modes
+- `[S]` - Shown in SCREENSAVER and SAVER BRIGHT modes
 - `> 2.0s <` - Current value (turn encoder to change)
 - `> 15% <` - Current percentage (in LAZY % / BUSY % modes)
-- Progress bar shows position in range (0.5s-30s for key, 0.5s-90s for mouse, 0-50% for profiles)
+- `> 10 min <` - Current timeout (in SCREENSAVER mode)
+- `> 30% <` - Current brightness (in SAVER BRIGHT mode)
+- Progress bar shows position in range (0.5s-30s for key, 0.5s-90s for mouse, 0-50% for profiles, 10-100% for brightness)
+- Position dots show selection in SCREENSAVER mode (filled = selected, hollow = unselected)
+
+---
+
+### Screensaver (activates automatically)
+
+```
+┌────────────────────────────────┐
+│                                │
+│            [F15]               │  ← Next key, centered
+│ ████████████████░░░░░░░░░░░░░  │  ← 1px KB progress bar
+│                                │
+│            [IDL]               │  ← Mouse state, centered
+│ ██████░░░░░░░░░░░░░░░░░░░░░░   │  ← 1px MS progress bar
+│                                │
+│             12%                │  ← Battery (only if <15%)
+└────────────────────────────────┘
+```
+
+- Activates after the configured timeout of no user interaction (default: 10 minutes)
+- Only activates in NORMAL mode — settings modes auto-return first
+- Minimal pixel display to prevent OLED burn-in and save power
+- OLED brightness dimmed to configured level (default 30%) — adjust in SAVER BRIGHT settings page
+- **Any input** (encoder turn, encoder press, function button) wakes the display — the input is consumed so you don't accidentally change settings
+- **Long-press sleep** still works from screensaver
+- Configure timeout in SCREENSAVER settings page (Never / 1 / 5 / 10 / 15 / 30 min)
+- Configure brightness in SAVER BRIGHT settings page (10-100%)
 
 ---
 
@@ -122,7 +152,7 @@
 Press the **function button** (short press) to cycle through modes:
 
 ```
-NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY % → NORMAL...
+NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY % → SCREENSAVER → SAVER BRIGHT → NORMAL...
 ```
 
 | Mode | What It Adjusts |
@@ -135,6 +165,8 @@ NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY %
 | MOUSE IDLE | How long the mouse pauses between jiggles |
 | LAZY % | How much the LAZY profile scales values (0-50%) |
 | BUSY % | How much the BUSY profile scales values (0-50%) |
+| SCREENSAVER | How long before screensaver activates (Never/1/5/10/15/30 min) |
+| SAVER BRIGHT | OLED brightness during screensaver (10-100%, default 30%) |
 
 **Auto-return:** If you don't touch anything for 10 seconds in a settings mode, it returns to NORMAL and saves.
 
@@ -308,5 +340,6 @@ Connect via USB and open Serial Monitor at 115200 baud.
 
 ---
 
-*Ghost Operator v1.2.1 | TARS Industries*
+*Ghost Operator v1.3.0 | TARS Industries*
+
 *"Fewer parts, more flash"*
