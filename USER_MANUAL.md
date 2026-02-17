@@ -4,7 +4,7 @@
 
 1. Connect battery or USB-C
 2. Device boots and shows custom splash screen with version number
-3. On your computer: Bluetooth settings → pair "GhostOperator"
+3. On your computer: Bluetooth settings → pair "GhostOperator" (or your custom name)
 4. Display shows Bluetooth icon when connected
 5. Device starts sending keystrokes and mouse movements
 
@@ -12,13 +12,13 @@
 
 ## Controls Overview
 
-| Control | NORMAL | MENU | SLOTS |
-|---------|--------|------|-------|
-| **Encoder Turn** | Switch profile | Navigate / adjust value | Cycle slot key |
-| **Encoder Press** | Cycle KB/MS enable | Select / confirm | Advance slot cursor |
-| **Button Short** | Open menu | Close menu (save) | Back to menu (save) |
-| **Button Long (3s)** | Sleep | Sleep | Sleep |
-| **Button (sleeping)** | Wake up | - | - |
+| Control | NORMAL | MENU | SLOTS | NAME |
+|---------|--------|------|-------|------|
+| **Encoder Turn** | Switch profile | Navigate / adjust value | Cycle slot key | Cycle character / Yes-No |
+| **Encoder Press** | Cycle KB/MS enable | Select / confirm | Advance slot cursor | Advance position / confirm |
+| **Button Short** | Open menu | Close menu (save) | Back to menu (save) | Save name (reboot prompt) |
+| **Button Long (3s)** | Sleep | Sleep | Sleep | Sleep |
+| **Button (sleeping)** | Wake up | - | - | - |
 
 ---
 
@@ -106,9 +106,12 @@
 | | Move size | Mouse movement step size (1-5px, default 1px) |
 | **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
 | | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
-| **Display** | Brightness | OLED display brightness (10-100%, default 100%) |
-| | Saver bright | Screensaver dimmed brightness (10-100%, default 30%) |
+| **Device** | Brightness | OLED display brightness (10-100%, default 80%) |
+| | Saver bright | Screensaver dimmed brightness (10-100%, default 20%) |
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
+| | Device name | BLE device name editor (press encoder to enter) |
+| | Reset defaults | Restore all settings to factory defaults (confirmation required) |
+| | Reboot | Restart the device (confirmation required) |
 | **About** | Version | Firmware version (read-only) |
 
 **Help bar:** The bottom line shows context-sensitive help for the selected item. Long text scrolls automatically.
@@ -137,6 +140,34 @@
 
 ---
 
+### Name Mode (BLE Device Name Editor)
+
+```
+┌────────────────────────────────┐
+│ DEVICE NAME             [3/14] │  ← Active position / total
+├────────────────────────────────┤
+│   G h o s t O p                │  ← Character row 1
+│   e r a t o r · ·              │  ← Character row 2 (· = END)
+├────────────────────────────────┤
+│ Turn=char  Press=next          │  ← Controls
+│ Func=save                      │
+└────────────────────────────────┘
+```
+
+- `[3/14]` - Active character position / total positions (14 max)
+- Active position shown with inverted colors (white background, black text)
+- **Turn encoder** to cycle through: A-Z, a-z, 0-9, space, dash, underscore, END (66 characters, wrapping)
+- END positions shown as `·` (middle dot) — everything after the first END is ignored
+- **Press encoder** to advance to the next position (wraps from 14 back to 1)
+- **Press function button** to save:
+  - If the name **changed**, a reboot confirmation appears: "Reboot to apply? Yes / No"
+    - Turn encoder to select Yes or No, press encoder to confirm
+    - Yes = device reboots immediately with new name
+    - No (or function button) = returns to menu; new name is saved but won't take effect until next reboot
+  - If the name is **unchanged**, returns to menu directly (no reboot prompt)
+
+---
+
 ### Screensaver (activates automatically)
 
 ```
@@ -152,10 +183,10 @@
 └────────────────────────────────┘
 ```
 
-- Activates after the configured timeout of no user interaction (default: 10 minutes)
+- Activates after the configured timeout of no user interaction (default: 30 minutes)
 - Only activates in NORMAL mode — settings modes auto-return first
 - Minimal pixel display to prevent OLED burn-in and save power
-- OLED brightness dimmed to configured level (default 30%) — adjust "Saver bright" in menu
+- OLED brightness dimmed to configured level (default 20%) — adjust "Saver bright" in menu
 - **Any input** (encoder turn, encoder press, function button) wakes the display — the input is consumed so you don't accidentally change settings
 - **Long-press sleep** still works from screensaver
 - Configure timeout via "Saver time" in menu (Never / 1 / 5 / 10 / 15 / 30 min)
@@ -165,11 +196,13 @@
 
 ## Navigating Modes
 
-The device has three modes:
+The device has four modes:
 
 ```
 NORMAL ←→ MENU → SLOTS → MENU
          (func)  (func)  (func)
+                → NAME  → MENU
+                 (func)  (func)
 ```
 
 | Mode | Purpose |
@@ -177,10 +210,12 @@ NORMAL ←→ MENU → SLOTS → MENU
 | **NORMAL** | Live status display — turn encoder to switch profile, press encoder to toggle KB/MS |
 | **MENU** | Scrollable settings menu — turn encoder to navigate, press to select/edit |
 | **SLOTS** | Key slot editor — turn encoder to change key, press to advance slot |
+| **NAME** | Device name editor — turn encoder to change character, press to advance position |
 
 - **Function button** toggles between NORMAL and MENU
 - From SLOTS, **function button** returns to MENU (at the "Key slots" item)
-- **Auto-return:** If you don't touch anything for 30 seconds in MENU or SLOTS, it returns to NORMAL and saves
+- From NAME, **function button** saves and returns to MENU (with optional reboot prompt)
+- **Auto-return:** If you don't touch anything for 30 seconds in MENU, SLOTS, or NAME, it returns to NORMAL and saves
 
 ---
 
@@ -202,6 +237,43 @@ Ghost Operator has three timing profiles that scale all timing values:
 4. Adjust how much each profile scales values in **"Lazy adjust"** and **"Busy adjust"** in the menu (default: 15%)
 
 Profiles do **not** change your saved base settings — they apply scaling at runtime only. Profile resets to NORMAL after sleep/wake.
+
+### Change Device Name
+
+You can customize the Bluetooth name your Ghost Operator advertises (default: "GhostOperator"):
+
+1. Open the **menu** (short press function button)
+2. Scroll to **"Device name"** under the **Device** heading and **press encoder** to enter NAME mode
+3. The **active position** is shown with inverted colors (white background)
+4. **Turn encoder** to cycle through characters (A-Z, a-z, 0-9, space, dash, underscore, END)
+5. **Press encoder** to advance to the next position (1→2→...→14→1)
+6. Set positions to **END** (`·`) to mark the end of the name — trailing END markers are trimmed
+7. Press **function button** to save:
+   - If the name changed, choose **Yes** to reboot now (applies immediately) or **No** to apply later
+   - If unchanged, returns to menu directly
+8. After reboot, your computer's Bluetooth settings will show the new name
+
+### Reset to Factory Defaults
+
+If you want to restore all settings to their original factory values:
+
+1. Open the **menu** (short press function button)
+2. Scroll to **"Reset defaults"** under the **Device** heading and **press encoder**
+3. A confirmation screen appears with **"No"** highlighted by default
+4. **Turn encoder** to select **Yes** or **No**, then **press encoder** to confirm
+   - **Yes** = all settings restored to defaults (key slots, timing, profiles, brightness, device name)
+   - **No** (or **function button**) = cancels, returns to menu with settings unchanged
+
+### Reboot Device
+
+To restart the device from the menu (useful for applying a pending BLE name change):
+
+1. Open the **menu** (short press function button)
+2. Scroll to **"Reboot"** under the **Device** heading and **press encoder**
+3. A confirmation screen appears with **"No"** highlighted by default
+4. **Turn encoder** to select **Yes** or **No**, then **press encoder** to confirm
+   - **Yes** = device reboots immediately
+   - **No** (or **function button**) = cancels, returns to menu
 
 ### Configure Key Slots
 
@@ -278,9 +350,9 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 1. Power on the device
 2. Bluetooth icon flashes (searching)
 3. On your computer:
-   - **Mac:** System Preferences → Bluetooth → "GhostOperator" → Connect
-   - **Windows:** Settings → Bluetooth → Add device → "GhostOperator"
-   - **Linux:** Bluetooth manager → Scan → Pair "GhostOperator"
+   - **Mac:** System Preferences → Bluetooth → "GhostOperator" (or your custom name) → Connect
+   - **Windows:** Settings → Bluetooth → Add device → "GhostOperator" (or your custom name)
+   - **Linux:** Bluetooth manager → Scan → Pair "GhostOperator" (or your custom name)
 4. Display shows Bluetooth icon when connected
 
 ### Reconnecting
