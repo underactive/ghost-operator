@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-02-17
+
+### Added
+
+- **Adjustable mouse movement amplitude**: New "Move size" setting in the Mouse menu section (1-5px, step 1, default 1px)
+  - Multiplies direction vectors in `pickNewDirection()` by configured amplitude
+  - At amplitude 1, behavior is identical to previous versions (1px per step)
+  - At amplitude 5, each step moves 5px — mouse wanders ~5× farther during jiggle
+  - Return phase naturally handles all amplitudes ≤ 5 (existing `min(5, remaining)` clamp)
+- New `FMT_PIXELS` menu value format — renders as `"Npx"`
+- Serial `d` command prints mouse amplitude
+
+### Changed
+
+- Settings struct: added `mouseAmplitude` field — existing settings auto-reset to defaults on first boot (checksum mismatch)
+- `MENU_ITEM_COUNT` increased from 16 to 17
+
 ## [1.4.0] - 2026-02-16
 
 ### Added
