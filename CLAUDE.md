@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.3.1
+**Current Version:** 1.4.0
 **Status:** Production-ready
 
 ---
@@ -64,21 +64,25 @@
 - Auto-reconnects to last paired host
 
 #### 2. UI Modes
+```cpp
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_COUNT };
 ```
-enum UIMode {
-  MODE_NORMAL,      // Shows next key; encoder switches profile (LAZY/NORMAL/BUSY)
-  MODE_KEY_MIN,     // Adjust minimum key interval
-  MODE_KEY_MAX,     // Adjust maximum key interval
-  MODE_SLOTS,       // Configure 8 key slots (encoder=key, button=next slot)
-  MODE_MOUSE_JIG,   // Adjust jiggle duration
-  MODE_MOUSE_IDLE,  // Adjust idle duration
-  MODE_LAZY_PCT,    // Adjust lazy profile percentage (0-50%)
-  MODE_BUSY_PCT,    // Adjust busy profile percentage (0-50%)
-  MODE_SAVER_TIMEOUT, // Adjust screensaver timeout (Never/1/5/10/15/30 min)
-  MODE_SAVER_BRIGHT  // Adjust screensaver brightness (10-100%, default 30%)
-};
+- **NORMAL**: Live status; encoder switches profile, button cycles KB/MS combos
+- **MENU**: Scrollable settings menu; encoder navigates/edits, button selects/confirms
+- **SLOTS**: 8-key slot editor; encoder cycles key, button advances slot
+- Function button toggles NORMAL ↔ MENU; from SLOTS returns to MENU
+- 30-second timeout returns to NORMAL from MENU or SLOTS
+
+#### 2a. Menu System
+Data-driven architecture using `MenuItem` struct array (14 entries: 4 headings + 10 items):
+```cpp
+enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME };
 ```
-Function button cycles through modes. 10-second timeout returns to NORMAL.
+- `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
+- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, or `SAVER_NAMES[]`
+- `moveCursor(direction)` — skips headings, clamps at bounds, manages viewport scroll
+- `FMT_PERCENT_NEG` items: encoder direction and arrow bounds are inverted so displayed value direction matches encoder rotation
 
 #### 3. Settings Storage
 ```cpp
@@ -95,11 +99,12 @@ struct Settings {
   uint8_t busyPercent;         // 0-50, step 5, default 15
   uint8_t saverTimeout;        // index into SAVER_MINUTES[] (0=Never..5=30min)
   uint8_t saverBrightness;     // 10-100, step 10, default 30
+  uint8_t displayBrightness;   // 10-100, step 10, default 100
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 10 min, brightness = 30%.
+Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 10 min, saver brightness = 30%, display brightness = 100%.
 
 #### 4. Timing Profiles
 ```cpp
@@ -136,8 +141,7 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - OLED contrast dimmed to configurable brightness (10-100%, default 30%) via `SSD1306_SETCONTRAST`
 - Any input (encoder, buttons) wakes screensaver — input is consumed, not passed through
 - Long-press sleep still works from screensaver (not consumed)
-- `MODE_SAVER_TIMEOUT` is the settings page for configuring timeout
-- `MODE_SAVER_BRIGHT` is the settings page for configuring screensaver OLED brightness
+- Timeout and brightness configurable via MENU items ("Saver time" and "Saver bright")
 
 ### Encoder Handling
 - Hybrid ISR + polling architecture:
@@ -169,6 +173,22 @@ BUSY                  ~^~_~^~  ← profile name (3s) or "Up: HH:MM:SS"
 `KB [F15]` shows the pre-picked next key. Changes after each keypress.
 Footer shows profile name for 3 seconds after switching, then reverts to uptime.
 
+### Menu Mode
+```
+MENU                    ᛒ 85%
+──────────────────────────────
+      - Keyboard -               ← heading (not selectable)
+▌Key min        < 2.0s >  ▐     ← selected (inverted row)
+ Key max          < 6.5s >       ← value item with arrows
+ Key slots               >      ← action item
+      - Mouse -
+──────────────────────────────
+Minimum delay between keys       ← help bar (scrolls if long)
+```
+5-row scrollable viewport. Headings centered. Selected row inverted.
+Editing inverts only value portion with `< >` arrows. Arrows hidden at bounds.
+`FMT_PERCENT_NEG` items have inverted encoder direction and swapped arrow bounds.
+
 ### Slots Mode
 ```
 MODE: SLOTS             [3/8]
@@ -177,21 +197,9 @@ MODE: SLOTS             [3/8]
   --- --- --- ---
 ─────────────────────────────
 Turn=key  Press=slot
-Func=exit
+Func=back
 ```
 Active slot rendered with inverted colors (white rect, black text).
-
-### Settings Mode
-```
-MODE: KEY MIN           [K]
-─────────────────────────────
-
-      > 2.0s <
-
-0.5s ████████░░░░░░░░░░░ 30s
-─────────────────────────────
-Turn dial to adjust
-```
 
 ### Screensaver Mode (overlay)
 ```
@@ -220,6 +228,7 @@ Turn dial to adjust
 | 1.2.1 | Fix encoder initial state sync bug |
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
+| 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 
 ---
 
@@ -256,13 +265,13 @@ Modify these defines:
 #define RANDOMNESS_PERCENT 20  // ±20%
 ```
 
-### Add new UI mode
-1. Add to `UIMode` enum
-2. Add name to `MODE_NAMES[]`
-3. Handle in `handleEncoder()` switch
-4. Add draw function or handle in `drawSettingsMode()`
-5. Update `updateDisplay()` routing if using custom draw function
-6. `MODE_COUNT` auto-updates (last enum value)
+### Add new menu setting
+1. Add `SettingId` enum entry
+2. Add field to `Settings` struct (before `checksum`)
+3. Set default in `loadDefaults()`, add bounds check in `loadSettings()`
+4. Add `MenuItem` entry to `MENU_ITEMS[]` array (update `MENU_ITEM_COUNT`)
+5. Add cases to `getSettingValue()` and `setSettingValue()`
+6. `calcChecksum()` auto-adapts (loops `sizeof(Settings) - 1`)
 
 ### Change BLE device name
 ```cpp
@@ -316,31 +325,41 @@ pio run -t upload
 - [ ] Profile name appears on uptime line for 3 seconds after switching
 - [ ] NORMAL mode KB/MS values update to reflect active profile
 - [ ] Encoder button cycles KB/MS enable combos in NORMAL mode
-- [ ] Function button cycles modes (NORMAL → KEY MIN → KEY MAX → SLOTS → MOUSE JIG → MOUSE IDLE → LAZY % → BUSY % → SCREENSAVER → SAVER BRIGHT)
+- [ ] Function button opens menu from NORMAL, closes menu back to NORMAL
+- [ ] Menu: encoder scrolls through items (headings skipped), cursor clamps at bounds
+- [ ] Menu: "MENU" title inverted when cursor at -1, scroll down to first item
+- [ ] Menu: encoder press on value item enters edit mode (value portion inverted)
+- [ ] Menu: encoder adjusts value in edit mode, press confirms and exits edit
+- [ ] Menu: `< >` arrows visible; `<` hidden at min, `>` hidden at max
+- [ ] Menu: "Key slots" action item → press encoder → enters SLOTS mode
+- [ ] Menu: function button from SLOTS returns to menu at "Key slots" item
+- [ ] Menu: help bar shows context text, scrolls if >21 chars with pauses at ends
+- [ ] Menu: Lazy adj shows 0% (not -0%) at zero, -50% at max; encoder CW → toward 0%
+- [ ] Menu: Key min/max cross-constraint works (min cannot exceed max)
 - [ ] SLOTS mode: encoder rotates key for active slot, button advances slot cursor
-- [ ] Settings values change in settings modes
+- [ ] SLOTS mode: bottom shows "Func=back" (not "Func=exit")
+- [ ] All menu values persist after close → reopen menu
 - [ ] Settings persist after sleep
-- [ ] Long press enters sleep (display off)
+- [ ] Long press enters sleep from any mode (NORMAL, MENU, SLOTS)
 - [ ] Button press wakes from sleep
 - [ ] Keystrokes detected on host (use key test website)
 - [ ] Mouse movement visible on host
 - [ ] Battery percentage displays (with battery connected)
-- [ ] LAZY %: encoder adjusts 0-50% in 5% steps
-- [ ] BUSY %: encoder adjusts 0-50% in 5% steps
 - [ ] Scheduling uses profile-adjusted values (verify via serial `s`)
-- [ ] Profile does NOT modify base settings (enter KEY MIN → shows original, not adjusted)
+- [ ] Profile does NOT modify base settings (open menu → shows original, not adjusted)
 - [ ] Sleep + wake → lazy% and busy% persist, profile resets to NORMAL
-- [ ] Serial `d` → prints profile, lazy%, busy%, effective values
-- [ ] SCREENSAVER timeout: encoder adjusts Never/1/5/10/15/30 min with position dots
+- [ ] Serial `d` → prints profile, lazy%, busy%, display brightness, effective values
+- [ ] Brightness: editing in menu live-updates OLED contrast
+- [ ] Brightness: value persists after menu close and sleep/wake
 - [ ] Screensaver activates after configured timeout with no input (minimal display)
 - [ ] Screensaver shows centered key label + 1px bar, mouse state + 1px bar
 - [ ] Screensaver battery warning appears only when <15%
 - [ ] Any input wakes screensaver without side effects (consumed)
 - [ ] Long-press sleep works from screensaver
 - [ ] "Never" disables screensaver
-- [ ] SAVER BRIGHT: encoder adjusts 10-100% in 10% steps with progress bar
-- [ ] Screensaver dims OLED to configured brightness, restores on wake
+- [ ] Screensaver dims OLED to saver brightness, restores display brightness on wake
 - [ ] Serial `d` → prints screensaver timeout, brightness, and active state
+- [ ] Mode timeout (30s): returns to NORMAL from MENU or SLOTS, resets menuEditing
 - [ ] Encoder responsive immediately after boot (hybrid ISR+polling, analogRead fix)
 - [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
 
