@@ -82,6 +82,11 @@ using namespace Adafruit_LittleFS_Namespace;
 // nRF52840 GPIO for wake
 #define PIN_FUNC_BTN_NRF  29
 
+// nRF52840 GPIO numbers for direct port reads in encoder ISR
+// Must match Arduino D0/D1 → P0.02/P0.03 mapping on XIAO nRF52840
+#define PIN_ENC_A_NRF  2   // P0.02 = D0
+#define PIN_ENC_B_NRF  3   // P0.03 = D1
+
 // ============================================================================
 // TIMING CONFIGURATION
 // ============================================================================
@@ -465,17 +470,42 @@ void loadSettings() {
 }
 
 // ============================================================================
-// INTERRUPT HANDLER
+// ENCODER: ISR + POLLING
 // ============================================================================
+// Primary: GPIOTE interrupt catches every pin edge in real-time (even during
+// blocking I2C display transfers).  Secondary: main-loop polling covers edges
+// the ISR might miss during SoftDevice radio events.  noInterrupts() around
+// the polling call prevents the ISR from racing with it.
 
-uint8_t encoderPrevState = 0;  // Set to real pin state in setupPins()
+uint8_t encoderPrevState = 0;  // Set to real pin state in setup()
+int8_t  lastEncoderDir  = 0;  // Last known direction (+1 or -1)
 
-void encoderISR() {
-  uint8_t state = (digitalRead(PIN_ENCODER_A) << 1) | digitalRead(PIN_ENCODER_B);
+static inline void processEncoderState() {
+  uint32_t port = NRF_P0->IN;
+  uint8_t state = ((port >> PIN_ENC_A_NRF) & 1) << 1 | ((port >> PIN_ENC_B_NRF) & 1);
+  if (state == encoderPrevState) return;
   static const int8_t transitions[] = {0,-1,1,0, 1,0,0,-1, -1,0,0,1, 0,1,-1,0};
   int8_t delta = transitions[(encoderPrevState << 2) | state];
+  if (delta == 0 && lastEncoderDir != 0) {
+    // Missed an intermediate state (2-step jump) — infer direction from last
+    // known movement.  Common during fast rotation when polling is blocked by
+    // I2C display updates or BLE radio events.
+    delta = lastEncoderDir * 2;
+  } else if (delta != 0) {
+    lastEncoderDir = delta;
+  }
   encoderPos += delta;
   encoderPrevState = state;
+}
+
+void encoderISR() {
+  processEncoderState();
+}
+
+void pollEncoder() {
+  noInterrupts();
+  processEncoderState();
+  interrupts();
 }
 
 // ============================================================================
@@ -539,10 +569,10 @@ void enterDeepSleep() {
   Bluefruit.Advertising.stop();
   NRF_UARTE0->ENABLE = 0;
   NRF_TWIM0->ENABLE = 0;
-  
+
   detachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A));
   detachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B));
-  
+
   nrf_gpio_cfg_input(PIN_FUNC_BTN_NRF, NRF_GPIO_PIN_PULLUP);
   nrf_gpio_cfg_sense_set(PIN_FUNC_BTN_NRF, NRF_GPIO_PIN_SENSE_LOW);
   
@@ -576,10 +606,18 @@ void setup() {
   setupPins();
   setupDisplay();
   setupBLE();
+
+  // Attach encoder interrupts AFTER SoftDevice init (setupBLE).
+  // Polling in loop() provides a fallback; ISR is the primary mechanism.
+  encoderPrevState = (digitalRead(PIN_ENCODER_A) << 1) | digitalRead(PIN_ENCODER_B);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), encoderISR, CHANGE);
+
   readBattery();
   
-  // Seed RNG
-  uint32_t seed = analogRead(A0) ^ (millis() << 16) ^ NRF_FICR->DEVICEADDR[0];
+  // Seed RNG — avoid analogRead(A0) because A0 shares P0.02 with encoder CLK;
+  // analogRead disconnects the digital input buffer, breaking encoder reads.
+  uint32_t seed = NRF_FICR->DEVICEADDR[0] ^ (micros() << 16) ^ NRF_FICR->DEVICEADDR[1];
   randomSeed(seed);
   
   scheduleNextKey();
@@ -607,12 +645,6 @@ void setupPins() {
   
   pinMode(PIN_VBAT_ENABLE, OUTPUT);
   digitalWrite(PIN_VBAT_ENABLE, LOW);
-  
-  // Read real pin state before enabling interrupts so ISR starts in sync
-  encoderPrevState = (digitalRead(PIN_ENCODER_A) << 1) | digitalRead(PIN_ENCODER_B);
-
-  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_A), encoderISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(PIN_ENCODER_B), encoderISR, CHANGE);
   
   NRF_POWER->DCDCEN = 1;
   
@@ -691,6 +723,7 @@ void loop() {
     enterDeepSleep();
   }
   
+  pollEncoder();
   handleSerialCommands();
   handleEncoder();
   handleButtons();
@@ -712,6 +745,7 @@ void loop() {
   // Battery monitoring
   if (now - lastBatteryRead >= BATTERY_READ_MS) {
     readBattery();
+    pollEncoder();  // Catch transitions missed during ADC sampling
     lastBatteryRead = now;
   }
   
@@ -735,7 +769,9 @@ void loop() {
   // Display update
   if (displayInitialized) {
     if (now - lastDisplayUpdate >= DISPLAY_UPDATE_MS) {
+      pollEncoder();  // Catch transitions right before I2C transfer
       updateDisplay();
+      pollEncoder();  // Catch transitions right after I2C transfer
       lastDisplayUpdate = now;
     }
   }
@@ -750,7 +786,7 @@ void loop() {
     lastBlink = now;
   }
   
-  delay(5);
+  delay(1);  // Short delay — keeps polling rate high for encoder responsiveness
 }
 
 // ============================================================================
