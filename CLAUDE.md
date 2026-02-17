@@ -424,6 +424,11 @@ pio run -t upload
 - [ ] Reboot: encoder press with No → returns to menu
 - [ ] Reboot: function button during confirmation → cancels (same as No)
 - [ ] Reboot: mode timeout (30s) during confirmation → cancels, returns to NORMAL
+- [ ] Serial `p` → outputs base64-encoded PNG between `--- PNG START ---` / `--- PNG END ---`
+- [ ] Screenshot PNG decodes to valid 128x64 1-bit grayscale image matching OLED display
+- [ ] Screenshot works in all UI modes (NORMAL, MENU, SLOTS, screensaver)
+- [ ] Screenshot with display not initialized prints error, does not crash
+- [ ] Encoder and BLE remain responsive during/after screenshot capture
 
 ---
 
@@ -451,6 +456,7 @@ At 115200 baud:
 | s | Status report |
 | d | Dump settings |
 | z | Sleep |
+| p | PNG screenshot (base64-encoded between `--- PNG START ---` / `--- PNG END ---` markers) |
 
 ---
 
