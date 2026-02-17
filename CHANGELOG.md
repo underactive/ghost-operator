@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Yes/No confirmation overlay (defaults to "No" for safety)
   - Resets all values including key slots, timing, profiles, brightness, screensaver, device name
   - Profile resets to NORMAL, next key re-picked from default slot
+- **Reboot**: New "Reboot" action item in Device menu section for restarting the device
+  - Yes/No confirmation overlay (defaults to "No" for safety)
+  - Useful for applying pending BLE name changes without a full power cycle
 - Serial `d` command prints mouse amplitude and device name
 
 ### Changed

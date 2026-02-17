@@ -111,6 +111,7 @@
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
 | | Device name | BLE device name editor (press encoder to enter) |
 | | Reset defaults | Restore all settings to factory defaults (confirmation required) |
+| | Reboot | Restart the device (confirmation required) |
 | **About** | Version | Firmware version (read-only) |
 
 **Help bar:** The bottom line shows context-sensitive help for the selected item. Long text scrolls automatically.
@@ -262,6 +263,17 @@ If you want to restore all settings to their original factory values:
 4. **Turn encoder** to select **Yes** or **No**, then **press encoder** to confirm
    - **Yes** = all settings restored to defaults (key slots, timing, profiles, brightness, device name)
    - **No** (or **function button**) = cancels, returns to menu with settings unchanged
+
+### Reboot Device
+
+To restart the device from the menu (useful for applying a pending BLE name change):
+
+1. Open the **menu** (short press function button)
+2. Scroll to **"Reboot"** under the **Device** heading and **press encoder**
+3. A confirmation screen appears with **"No"** highlighted by default
+4. **Turn encoder** to select **Yes** or **No**, then **press encoder** to confirm
+   - **Yes** = device reboots immediately
+   - **No** (or **function button**) = cancels, returns to menu
 
 ### Configure Key Slots
 
