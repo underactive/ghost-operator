@@ -21,7 +21,7 @@
  * - Encoder rotation: Switch profile (NORMAL), navigate/adjust (MENU), cycle slot key (SLOTS)
  * - Encoder button: Cycle KB/MS combos (NORMAL), select/confirm (MENU), advance slot (SLOTS)
  * - Function button short: Open/close menu (NORMAL↔MENU), back to menu (SLOTS→MENU)
- * - Function button long (3s): Enter deep sleep
+ * - Function button long (hold 3.5s): Sleep confirmation countdown → deep sleep
  */
 
 #include <bluefruit.h>
@@ -95,8 +95,10 @@ using namespace Adafruit_LittleFS_Namespace;
 #define MOUSE_MOVE_STEP_MS    20
 #define DISPLAY_UPDATE_MS     100         // Faster for smooth countdown
 #define BATTERY_READ_MS       60000UL
-#define LONG_PRESS_MS         3000
-#define SLEEP_DISPLAY_MS      2000
+#define SLEEP_CONFIRM_THRESHOLD_MS  500   // Hold before showing confirmation
+#define SLEEP_COUNTDOWN_MS          3000  // Countdown duration on confirmation screen
+#define SLEEP_CANCEL_DISPLAY_MS     400   // "Cancelled" display duration
+#define SLEEP_DISPLAY_MS            500   // Brief "SLEEPING..." before power-off
 #define MODE_TIMEOUT_MS       30000       // Return to NORMAL after 30s inactivity
 
 // Screensaver timeout options
@@ -430,6 +432,10 @@ float batteryVoltage = 4.2;
 unsigned long funcBtnPressStart = 0;
 bool funcBtnWasPressed = false;
 bool sleepPending = false;
+bool     sleepConfirmActive = false;
+unsigned long sleepConfirmStart = 0;
+bool     sleepCancelActive = false;
+unsigned long sleepCancelStart = 0;
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -882,7 +888,11 @@ void loop() {
   if (sleepPending) {
     enterDeepSleep();
   }
-  
+
+  if (sleepCancelActive && (now - sleepCancelStart >= SLEEP_CANCEL_DISPLAY_MS)) {
+    sleepCancelActive = false;
+  }
+
   pollEncoder();
   handleSerialCommands();
   handleEncoder();
@@ -1087,6 +1097,9 @@ void handleEncoder() {
     lastEncoderPos = encoderPos;
     lastModeActivity = millis();
 
+    // Suppress input during sleep confirm/cancel overlay
+    if (sleepConfirmActive || sleepCancelActive) return;
+
     // Wake screensaver — consume input
     if (screensaverActive) { screensaverActive = false; return; }
 
@@ -1151,6 +1164,9 @@ void handleButtons() {
     lastEncPress = now;
     lastModeActivity = now;
 
+    // Suppress input during sleep confirm/cancel overlay
+    if (sleepConfirmActive || sleepCancelActive) { lastEncBtn = encBtn; return; }
+
     // Wake screensaver — consume input
     if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
 
@@ -1213,13 +1229,23 @@ void handleButtons() {
   }
   lastEncBtn = encBtn;
 
-  // Function button - short = open/close menu, long = sleep
+  // Function button - short = open/close menu, hold = sleep confirmation
   if (funcBtn == LOW) {
     if (!funcBtnWasPressed) {
       funcBtnPressStart = now;
       funcBtnWasPressed = true;
     } else {
-      if (now - funcBtnPressStart >= LONG_PRESS_MS) {
+      unsigned long holdTime = now - funcBtnPressStart;
+      // Show confirmation overlay after threshold
+      if (!sleepConfirmActive && holdTime >= SLEEP_CONFIRM_THRESHOLD_MS) {
+        sleepConfirmActive = true;
+        sleepConfirmStart = now;
+        if (screensaverActive) screensaverActive = false;
+        Serial.println("Sleep confirm: started");
+      }
+      // Countdown elapsed — trigger sleep
+      if (sleepConfirmActive && (now - sleepConfirmStart >= SLEEP_COUNTDOWN_MS)) {
+        sleepConfirmActive = false;
         sleepPending = true;
         funcBtnWasPressed = false;
       }
@@ -1227,10 +1253,17 @@ void handleButtons() {
   } else {
     if (funcBtnWasPressed) {
       unsigned long holdTime = now - funcBtnPressStart;
-      if (holdTime < LONG_PRESS_MS && holdTime > 50) {
+      if (sleepConfirmActive) {
+        // Released during countdown — cancel
+        sleepConfirmActive = false;
+        sleepCancelActive = true;
+        sleepCancelStart = now;
+        Serial.println("Sleep confirm: cancelled");
+      } else if (holdTime > 50) {
+        // Short press — mode switching
         lastModeActivity = now;
 
-        // Wake screensaver — consume input (long press sleep still works)
+        // Wake screensaver — consume input
         if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
 
         switch (currentMode) {
@@ -1413,7 +1446,11 @@ void updateDisplay() {
 
   display.clearDisplay();
 
-  if (screensaverActive) {
+  if (sleepCancelActive) {
+    drawSleepCancelled();
+  } else if (sleepConfirmActive) {
+    drawSleepConfirm();
+  } else if (screensaverActive) {
     drawScreensaver();
   } else if (currentMode == MODE_NORMAL) {
     drawNormalMode();
@@ -1597,6 +1634,44 @@ void drawNormalMode() {
                        startX + i + 1, baseY + ecg[b], SSD1306_WHITE);
     }
   }
+}
+
+void drawSleepConfirm() {
+  unsigned long elapsed = millis() - sleepConfirmStart;
+  unsigned long remaining = (elapsed >= SLEEP_COUNTDOWN_MS) ? 0 : SLEEP_COUNTDOWN_MS - elapsed;
+
+  display.setTextSize(1);
+
+  // "Hold to sleep..." centered at y=18
+  const char* holdMsg = "Hold to sleep...";
+  int holdWidth = strlen(holdMsg) * 6;
+  display.setCursor((128 - holdWidth) / 2, 18);
+  display.print(holdMsg);
+
+  // Progress bar (same style as KB bar): border + fill, drains from full to empty
+  display.drawRect(0, 28, 100, 7, SSD1306_WHITE);
+  int barWidth = map(remaining, 0, SLEEP_COUNTDOWN_MS, 0, 98);
+  if (barWidth > 0) {
+    display.fillRect(1, 29, barWidth, 5, SSD1306_WHITE);
+  }
+
+  // Time remaining label at (102, 28)
+  display.setCursor(102, 28);
+  display.print(formatDuration(remaining));
+
+  // "Release to cancel" centered at y=40
+  const char* cancelMsg = "Release to cancel";
+  int cancelWidth = strlen(cancelMsg) * 6;
+  display.setCursor((128 - cancelWidth) / 2, 40);
+  display.print(cancelMsg);
+}
+
+void drawSleepCancelled() {
+  display.setTextSize(1);
+  const char* msg = "Cancelled";
+  int msgWidth = strlen(msg) * 6;
+  display.setCursor((128 - msgWidth) / 2, 28);
+  display.print(msg);
 }
 
 void drawScreensaver() {
