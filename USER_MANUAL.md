@@ -1,4 +1,4 @@
-# Ghost Operator v1.4.0 - User Manual
+# Ghost Operator v1.4.1 - User Manual
 
 ## Quick Start
 
@@ -58,7 +58,7 @@
 **Mouse Section:**
 - `[MOV]` - Currently moving
 - `[IDL]` - Currently idle (paused)
-- `15s/30s` - Jiggle duration / idle duration (profile-adjusted)
+- `15s/30s` - Move duration / idle duration (profile-adjusted)
 - ↑ / ✕ - Mouse enabled or disabled
 - Progress bar counts up while idle (charging), counts down while moving (draining)
 - `8.5s` - Time remaining in current state
@@ -101,8 +101,9 @@
 | **Keyboard** | Key min | Minimum delay between keystrokes (0.5s-30s) |
 | | Key max | Maximum delay between keystrokes (0.5s-30s) |
 | | Key slots | Opens the slot editor (press encoder to enter) |
-| **Mouse** | Move duration | How long the mouse jiggles (0.5s-90s) |
-| | Idle duration | Pause between jiggles (0.5s-90s) |
+| **Mouse** | Move duration | How long the mouse moves (0.5s-90s) |
+| | Idle duration | Pause between moves (0.5s-90s) |
+| | Move size | Mouse movement step size (1-5px, default 1px) |
 | **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
 | | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
 | **Display** | Brightness | OLED display brightness (10-100%, default 100%) |
@@ -247,10 +248,10 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 - Example: MIN=2s, MAX=6s, slots=[F15, F14, F13] → F14 at 3.2s, F15 at 5.1s, F13 at 2.4s...
 
 ### Mouse
-- **Jiggle phase:** Mouse moves randomly for the set duration (adjusted by active profile)
+- **Move phase:** Mouse moves randomly for the set duration (adjusted by active profile)
 - **Idle phase:** Mouse stops for the set duration (adjusted by active profile)
 - ±20% randomness on both durations
-- Mouse returns to approximate starting position after each jiggle
+- Mouse returns to approximate starting position after each movement
 
 ---
 
@@ -330,6 +331,7 @@ Connect via USB and open Serial Monitor at 115200 baud.
 | Key timing range | 0.5s - 30s |
 | Mouse timing range | 0.5s - 90s |
 | Timing step | 0.5s |
+| Mouse amplitude | 1-5px (1px steps, default 1px) |
 | Mouse randomness | ±20% |
 | Sleep current | ~3µA |
 | Active current | ~15mA (with display) |
@@ -354,6 +356,6 @@ Connect via USB and open Serial Monitor at 115200 baud.
 
 ---
 
-*Ghost Operator v1.4.0 | TARS Industries*
+*Ghost Operator v1.4.1 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*

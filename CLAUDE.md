@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.4.0
+**Current Version:** 1.4.1
 **Status:** Production-ready
 
 ---
@@ -74,13 +74,13 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_COUNT };
 - 30-second timeout returns to NORMAL from MENU or SLOTS
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (14 entries: 4 headings + 10 items):
+Data-driven architecture using `MenuItem` struct array (17 entries: 5 headings + 12 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
-- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, or `SAVER_NAMES[]`
+- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, or `Npx`
 - `moveCursor(direction)` — skips headings, clamps at bounds, manages viewport scroll
 - `FMT_PERCENT_NEG` items: encoder direction and arrow bounds are inverted so displayed value direction matches encoder rotation
 
@@ -100,19 +100,20 @@ struct Settings {
   uint8_t saverTimeout;        // index into SAVER_MINUTES[] (0=Never..5=30min)
   uint8_t saverBrightness;     // 10-100, step 10, default 30
   uint8_t displayBrightness;   // 10-100, step 10, default 100
+  uint8_t mouseAmplitude;      // 1-5, step 1, default 1 (pixels per movement step)
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 10 min, saver brightness = 30%, display brightness = 100%.
+Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 10 min, saver brightness = 30%, display brightness = 100%, mouse amplitude = 1px.
 
 #### 4. Timing Profiles
 ```cpp
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 ```
 - Profiles scale base timing values by a configurable percentage at scheduling time
-- BUSY: shorter KB intervals (−%), longer mouse jiggle (+%), shorter mouse idle (−%)
-- LAZY: longer KB intervals (+%), shorter mouse jiggle (−%), longer mouse idle (+%)
+- BUSY: shorter KB intervals (−%), longer mouse movement (+%), shorter mouse idle (−%)
+- LAZY: longer KB intervals (+%), shorter mouse movement (−%), longer mouse idle (+%)
 - NORMAL: passes base values through unchanged (default)
 - `applyProfile()` helper applies directional scaling; `effective*()` accessors wrap it
 - Profile resets to NORMAL on sleep/wake; lazy% and busy% persist in flash
@@ -120,13 +121,13 @@ enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 
 #### 5. Timing Behavior
 - **Keyboard:** Random interval between effective MIN and MAX each cycle (profile-adjusted)
-- **Mouse:** Effective jiggle then idle durations, ±20% randomness on both (profile-adjusted)
+- **Mouse:** Effective movement then idle durations, ±20% randomness on both (profile-adjusted)
 
 #### 6. Mouse State Machine
 ```cpp
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 ```
-- Tracks net displacement during jiggle
+- Tracks net displacement during movement
 - Non-blocking return to approximate origin via MOUSE_RETURNING state
 
 #### 7. Power Management
@@ -229,6 +230,7 @@ Active slot rendered with inverted colors (white rect, black text).
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
+| 1.4.1 | Adjustable mouse movement amplitude (1-5px) |
 
 ---
 
@@ -264,6 +266,9 @@ Modify these defines:
 ```cpp
 #define RANDOMNESS_PERCENT 20  // ±20%
 ```
+
+### Change mouse amplitude range
+Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` (minVal/maxVal currently 1–5). The `pickNewDirection()` function multiplies direction vectors by `settings.mouseAmplitude`. The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
 
 ### Add new menu setting
 1. Add `SettingId` enum entry
@@ -362,6 +367,11 @@ pio run -t upload
 - [ ] Mode timeout (30s): returns to NORMAL from MENU or SLOTS, resets menuEditing
 - [ ] Encoder responsive immediately after boot (hybrid ISR+polling, analogRead fix)
 - [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
+- [ ] Menu: "Move size" shows "1px" default, editable 1-5 with `< >` arrows
+- [ ] Mouse amplitude 1: movement identical to previous behavior (1px per step)
+- [ ] Mouse amplitude 5: visibly larger mouse movements, return phase still works
+- [ ] Mouse amplitude persists after menu close → reopen, and after sleep/wake
+- [ ] Serial `d` → prints mouse amplitude value
 
 ---
 
@@ -370,7 +380,7 @@ pio run -t upload
 - [ ] RGB LED for status (uses D7)
 - [ ] Buzzer feedback on mode change
 - [x] ~~Multiple profiles~~ → Implemented as timing profiles (LAZY/NORMAL/BUSY) in v1.2.0
-- [ ] Adjustable mouse movement amplitude
+- [x] ~~Adjustable mouse movement amplitude~~ → Implemented as "Move size" setting (1-5px) in v1.4.1
 - [ ] Configurable BLE device name
 - [ ] OTA firmware updates
 - [ ] Web-based configuration (BLE UART)
@@ -392,9 +402,8 @@ At 115200 baud:
 
 ---
 
-## Contact / Origin
+## Origin
 
-Created with Claude (Anthropic)  
-TARS Settings: Humor 80%, Honesty 100%
+Created with Claude (Anthropic)
 
 *"Fewer parts, more flash"*

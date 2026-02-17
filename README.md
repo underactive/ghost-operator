@@ -1,6 +1,6 @@
-# Ghost Operator - BLE Keyboard/Mouse Device
+# Ghost Operator - BLE HID Device
 
-## Version 1.4.0
+## Version 1.4.1
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -96,6 +96,7 @@ Settings organized under headings in the scrollable menu:
 | | Key slots | → opens SLOTS mode |
 | **Mouse** | Move duration | 0.5s - 90s (0.5s steps) |
 | | Idle duration | 0.5s - 90s (0.5s steps) |
+| | Move size | 1px - 5px (1px steps) |
 | **Profiles** | Lazy adjust | -50% to 0% (5% steps) |
 | | Busy adjust | 0% to 50% (5% steps) |
 | **Display** | Brightness | 10% - 100% (10% steps) |
@@ -107,7 +108,7 @@ Settings organized under headings in the scrollable menu:
 
 Rotate the encoder in NORMAL mode to switch between **LAZY**, **NORMAL**, and **BUSY** profiles:
 
-| Profile | Key Intervals | Mouse Jiggle | Mouse Idle |
+| Profile | Key Intervals | Mouse Move | Mouse Idle |
 |---------|--------------|--------------|------------|
 | LAZY | Longer (+%) | Shorter (−%) | Longer (+%) |
 | NORMAL | Base values | Base values | Base values |
@@ -118,8 +119,8 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 ### Timing Behavior
 
 - **Keyboard**: Random interval between MIN and MAX each keypress (profile-adjusted)
-- **Mouse**: Jiggle for set duration → Idle for set duration → repeat (profile-adjusted)
-  - ±20% randomness applied to jiggle and idle durations
+- **Mouse**: Move for set duration → Idle for set duration → repeat (profile-adjusted)
+  - ±20% randomness applied to movement and idle durations
   - Minimum clamp: 0.5s
 
 ---
@@ -285,7 +286,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.4.0** | **Scrollable settings menu, display brightness, data-driven menu architecture** |
+| **1.4.1** | **Adjustable mouse movement amplitude (1-5px)** |
+| 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
 | 1.2.1 | Fix encoder initial state sync bug |
@@ -298,6 +300,6 @@ Connect via USB at 115200 baud:
 
 ## License
 
-Do what you want. TARS Industries takes no responsibility for angry IT departments.
+Do what you want. TARS Industrial Technical Solutions takes no responsibility for angry IT departments.
 
 *"Fewer parts, more flash"*

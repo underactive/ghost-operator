@@ -38,7 +38,7 @@ using namespace Adafruit_LittleFS_Namespace;
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.4.0"
+#define VERSION "1.4.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F46  // "PROF"
@@ -121,11 +121,11 @@ const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS" };
 // ============================================================================
 
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS };
 
 enum SettingId {
   SET_KEY_MIN, SET_KEY_MAX, SET_KEY_SLOTS,
-  SET_MOUSE_JIG, SET_MOUSE_IDLE,
+  SET_MOUSE_JIG, SET_MOUSE_IDLE, SET_MOUSE_AMP,
   SET_LAZY_PCT, SET_BUSY_PCT,
   SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
   SET_VERSION
@@ -140,7 +140,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 16
+#define MENU_ITEM_COUNT 17
 const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   // Keyboard settings
   { MENU_HEADING, "Keyboard",   NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
@@ -151,6 +151,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_HEADING, "Mouse",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Move duration", "Duration of mouse jiggle movement", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_JIG },
   { MENU_VALUE,   "Idle duration", "Pause between mouse jiggles", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_IDLE },
+  { MENU_VALUE,   "Move size",  "Mouse movement step size in pixels", FMT_PIXELS, 1, 5, 1, SET_MOUSE_AMP },
   // Profile settings
   { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },
@@ -159,7 +160,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_HEADING, "Display",       NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Brightness",    "OLED display brightness", FMT_PERCENT, 10, 100, 10, SET_DISPLAY_BRIGHT },
   { MENU_VALUE,   "Saver bright",  "Screensaver dimmed brightness", FMT_PERCENT, 10, 100, 10, SET_SAVER_BRIGHT },
-  { MENU_VALUE,   "Saver time",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
+  { MENU_VALUE,   "Saver T.O.",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
   // About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Version",       "(c) 2026 TARS Industries", FMT_VERSION, 0, 0, 0, SET_VERSION },
@@ -190,6 +191,7 @@ struct Settings {
   uint8_t saverTimeout;   // index into SAVER_MINUTES[] (0=Never..5=30min)
   uint8_t saverBrightness; // 10-100 in steps of 10, default 30
   uint8_t displayBrightness; // 10-100 in steps of 10, default 100
+  uint8_t mouseAmplitude;  // 1-5, step 1, default 1 (pixels per movement step)
   uint8_t checksum;       // must remain last
 };
 
@@ -211,6 +213,7 @@ void loadDefaults() {
   settings.saverTimeout = DEFAULT_SAVER_IDX;  // 10 minutes
   settings.saverBrightness = 30;               // 30%
   settings.displayBrightness = 100;            // 100% (full brightness)
+  settings.mouseAmplitude = 1;                 // 1px per step (default)
 }
 
 uint8_t calcChecksum() {
@@ -416,6 +419,7 @@ int8_t currentMouseDx = 0;
 int8_t currentMouseDy = 0;
 int32_t mouseNetX = 0;
 int32_t mouseNetY = 0;
+int32_t mouseReturnTotal = 0;  // displacement magnitude at start of RETURNING
 
 // Battery
 int batteryPercent = 100;
@@ -515,6 +519,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_KEY_MAX:        return settings.keyIntervalMax;
     case SET_MOUSE_JIG:      return settings.mouseJiggleDuration;
     case SET_MOUSE_IDLE:     return settings.mouseIdleDuration;
+    case SET_MOUSE_AMP:      return settings.mouseAmplitude;
     case SET_LAZY_PCT:       return settings.lazyPercent;
     case SET_BUSY_PCT:       return settings.busyPercent;
     case SET_DISPLAY_BRIGHT: return settings.displayBrightness;
@@ -539,6 +544,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       break;
     case SET_MOUSE_JIG:      settings.mouseJiggleDuration = value; break;
     case SET_MOUSE_IDLE:     settings.mouseIdleDuration = value; break;
+    case SET_MOUSE_AMP:      settings.mouseAmplitude = (uint8_t)value; break;
     case SET_LAZY_PCT:       settings.lazyPercent = (uint8_t)value; break;
     case SET_BUSY_PCT:       settings.busyPercent = (uint8_t)value; break;
     case SET_DISPLAY_BRIGHT: settings.displayBrightness = (uint8_t)value; break;
@@ -554,6 +560,7 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
     case FMT_PERCENT:      return String(val) + "%";
     case FMT_PERCENT_NEG:  return (val == 0) ? String("0%") : ("-" + String(val) + "%");
     case FMT_SAVER_NAME:   return String(SAVER_NAMES[val]);
+    case FMT_PIXELS:       return String(val) + "px";
     case FMT_VERSION:      return String("v") + String(VERSION);
     default:               return String(val);
   }
@@ -608,6 +615,7 @@ void loadSettings() {
         if (settings.saverTimeout >= SAVER_TIMEOUT_COUNT) settings.saverTimeout = DEFAULT_SAVER_IDX;
         if (settings.saverBrightness < 10 || settings.saverBrightness > 100 || settings.saverBrightness % 10 != 0) settings.saverBrightness = 30;
         if (settings.displayBrightness < 10 || settings.displayBrightness > 100 || settings.displayBrightness % 10 != 0) settings.displayBrightness = 100;
+        if (settings.mouseAmplitude < 1 || settings.mouseAmplitude > 5) settings.mouseAmplitude = 1;
 
         return;
       } else {
@@ -679,6 +687,7 @@ void connect_callback(uint16_t conn_handle) {
   mouseState = MOUSE_IDLE;
   mouseNetX = 0;
   mouseNetY = 0;
+  mouseReturnTotal = 0;
   scheduleNextKey();
   scheduleNextMouseState();
 
@@ -840,7 +849,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   
   bledis.setManufacturer("TARS Industries");
-  bledis.setModel("Ghost Operator v1.4.0");
+  bledis.setModel("Ghost Operator v1.4.1");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
   
@@ -986,6 +995,8 @@ void handleMouseStateMachine(unsigned long now) {
     case MOUSE_JIGGLING:
       if (elapsed >= currentMouseJiggle) {
         mouseState = MOUSE_RETURNING;
+        mouseReturnTotal = abs(mouseNetX) + abs(mouseNetY);
+        lastMouseStateChange = now;
         lastMouseStep = now;
       } else {
         if (now - lastMouseStep >= MOUSE_MOVE_STEP_MS) {
@@ -1018,8 +1029,8 @@ void handleMouseStateMachine(unsigned long now) {
 
 void pickNewDirection() {
   int dir = random(NUM_DIRS);
-  currentMouseDx = MOUSE_DIRS[dir][0];
-  currentMouseDy = MOUSE_DIRS[dir][1];
+  currentMouseDx = MOUSE_DIRS[dir][0] * settings.mouseAmplitude;
+  currentMouseDy = MOUSE_DIRS[dir][1] * settings.mouseAmplitude;
 }
 
 // ============================================================================
@@ -1137,10 +1148,25 @@ void handleButtons() {
     switch (currentMode) {
       case MODE_NORMAL: {
         // Cycle KB/MS enable combos
+        bool wasKeyEnabled = keyEnabled;
+        bool wasMouseEnabled = mouseEnabled;
         uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
         state = (state == 0) ? 3 : state - 1;
         keyEnabled = (state & 2) != 0;
         mouseEnabled = (state & 1) != 0;
+        // Reset timers when toggling back on so bars start fresh
+        if (keyEnabled && !wasKeyEnabled) {
+          lastKeyTime = now;
+          scheduleNextKey();
+        }
+        if (mouseEnabled && !wasMouseEnabled) {
+          lastMouseStateChange = now;
+          mouseState = MOUSE_IDLE;
+          mouseNetX = 0;
+          mouseNetY = 0;
+          mouseReturnTotal = 0;
+          scheduleNextMouseState();
+        }
         Serial.print("KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
         Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
         break;
@@ -1272,6 +1298,7 @@ void handleSerialCommands() {
         Serial.print("Busy %: "); Serial.println(settings.busyPercent);
         Serial.print("Effective KB: "); Serial.print(effectiveKeyMin()); Serial.print("-"); Serial.println(effectiveKeyMax());
         Serial.print("Effective Mouse: "); Serial.print(effectiveMouseJiggle()); Serial.print("/"); Serial.println(effectiveMouseIdle());
+        Serial.print("Mouse amplitude: "); Serial.print(settings.mouseAmplitude); Serial.println("px");
         Serial.print("Display brightness: "); Serial.print(settings.displayBrightness); Serial.println("%");
         Serial.print("Screensaver: "); Serial.print(SAVER_NAMES[settings.saverTimeout]);
         Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");
@@ -1438,23 +1465,26 @@ void drawNormalMode() {
   display.drawBitmap(123, 12, keyEnabled ? iconOn : iconOff, 5, 7, SSD1306_WHITE);
 
   // Key progress bar (y=21)
-  unsigned long keyElapsed = now - lastKeyTime;
-  int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
-  int keyProgress = 0;
-  if (currentKeyInterval > 0) {
-    keyProgress = map(keyRemaining, 0, currentKeyInterval, 0, 100);
-  }
-
   display.drawRect(0, 21, 100, 7, SSD1306_WHITE);
-  int keyBarWidth = map(keyProgress, 0, 100, 0, 98);
-  if (keyBarWidth > 0) {
-    display.fillRect(1, 22, keyBarWidth, 5, SSD1306_WHITE);
+  if (!deviceConnected) {
+    // BLE disconnected — show empty bar and "---"
+    display.setCursor(102, 21);
+    display.print("---");
+  } else {
+    unsigned long keyElapsed = now - lastKeyTime;
+    int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
+    int keyProgress = 0;
+    if (currentKeyInterval > 0) {
+      keyProgress = map(keyRemaining, 0, currentKeyInterval, 0, 100);
+    }
+    int keyBarWidth = map(keyProgress, 0, 100, 0, 98);
+    if (keyBarWidth > 0) {
+      display.fillRect(1, 22, keyBarWidth, 5, SSD1306_WHITE);
+    }
+    String keyTimeStr = formatDuration(keyRemaining);
+    display.setCursor(102, 21);
+    display.print(keyTimeStr);
   }
-
-  // Time remaining
-  String keyTimeStr = formatDuration(keyRemaining);
-  display.setCursor(102, 21);
-  display.print(keyTimeStr);
 
   display.drawFastHLine(0, 29, 128, SSD1306_WHITE);
 
@@ -1464,6 +1494,8 @@ void drawNormalMode() {
 
   if (mouseState == MOUSE_IDLE) {
     display.print("[IDL]");
+  } else if (mouseState == MOUSE_RETURNING) {
+    display.print("[RTN]");
   } else {
     display.print("[MOV]");
   }
@@ -1477,29 +1509,47 @@ void drawNormalMode() {
   display.drawBitmap(123, 32, mouseEnabled ? iconOn : iconOff, 5, 7, SSD1306_WHITE);
 
   // Mouse progress bar (y=41)
-  unsigned long mouseElapsed = now - lastMouseStateChange;
-  unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
-  int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
-  int mouseProgress = 0;
-  if (mouseDuration > 0) {
-    if (mouseState == MOUSE_IDLE) {
-      mouseProgress = map(mouseElapsed, 0, mouseDuration, 0, 100);
-      if (mouseProgress > 100) mouseProgress = 100;
-    } else {
-      mouseProgress = map(mouseRemaining, 0, mouseDuration, 0, 100);
-    }
-  }
-
   display.drawRect(0, 41, 100, 7, SSD1306_WHITE);
-  int mouseBarWidth = map(mouseProgress, 0, 100, 0, 98);
-  if (mouseBarWidth > 0) {
-    display.fillRect(1, 42, mouseBarWidth, 5, SSD1306_WHITE);
+  if (!deviceConnected) {
+    // BLE disconnected — show empty bar and "---"
+    display.setCursor(102, 41);
+    display.print("---");
+  } else if (mouseState == MOUSE_RETURNING) {
+    // Show return progress: bar fills up as mouse returns to origin
+    int32_t remaining = abs(mouseNetX) + abs(mouseNetY);
+    int mouseProgress = 0;
+    if (mouseReturnTotal > 0) {
+      mouseProgress = map(mouseReturnTotal - remaining, 0, mouseReturnTotal, 0, 100);
+      if (mouseProgress > 100) mouseProgress = 100;
+      if (mouseProgress < 0) mouseProgress = 0;
+    }
+    int mouseBarWidth = map(mouseProgress, 0, 100, 0, 98);
+    if (mouseBarWidth > 0) {
+      display.fillRect(1, 42, mouseBarWidth, 5, SSD1306_WHITE);
+    }
+    display.setCursor(102, 41);
+    display.print("RTN");
+  } else {
+    unsigned long mouseElapsed = now - lastMouseStateChange;
+    unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
+    int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
+    int mouseProgress = 0;
+    if (mouseDuration > 0) {
+      if (mouseState == MOUSE_IDLE) {
+        mouseProgress = map(mouseElapsed, 0, mouseDuration, 0, 100);
+        if (mouseProgress > 100) mouseProgress = 100;
+      } else {
+        mouseProgress = map(mouseRemaining, 0, mouseDuration, 0, 100);
+      }
+    }
+    int mouseBarWidth = map(mouseProgress, 0, 100, 0, 98);
+    if (mouseBarWidth > 0) {
+      display.fillRect(1, 42, mouseBarWidth, 5, SSD1306_WHITE);
+    }
+    String mouseTimeStr = formatDuration(mouseRemaining);
+    display.setCursor(102, 41);
+    display.print(mouseTimeStr);
   }
-
-  // Time remaining
-  String mouseTimeStr = formatDuration(mouseRemaining);
-  display.setCursor(102, 41);
-  display.print(mouseTimeStr);
 
   display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
 
@@ -1553,36 +1603,56 @@ void drawScreensaver() {
   display.print(kbLabel);
 
   // === KB progress bar 1px high (y=21), full width ===
-  unsigned long keyElapsed = now - lastKeyTime;
-  int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
-  int kbBarWidth = 0;
-  if (currentKeyInterval > 0) {
-    kbBarWidth = map(keyRemaining, 0, currentKeyInterval, 0, 128);
+  if (deviceConnected) {
+    unsigned long keyElapsed = now - lastKeyTime;
+    int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
+    int kbBarWidth = 0;
+    if (currentKeyInterval > 0) {
+      kbBarWidth = map(keyRemaining, 0, currentKeyInterval, 0, 128);
+    }
+    if (kbBarWidth > 0) {
+      display.drawFastHLine(0, 21, kbBarWidth, SSD1306_WHITE);
+    }
   }
-  if (kbBarWidth > 0) {
-    display.drawFastHLine(0, 21, kbBarWidth, SSD1306_WHITE);
-  }
+  // When disconnected: no bar drawn (empty = visual hint)
 
   // === MS label centered (y=32) ===
-  const char* msTag = (mouseState == MOUSE_IDLE) ? "[IDL]" : "[MOV]";
+  const char* msTag = (mouseState == MOUSE_IDLE) ? "[IDL]" :
+                      (mouseState == MOUSE_RETURNING) ? "[RTN]" : "[MOV]";
   int msWidth = strlen(msTag) * 6;
   display.setCursor((128 - msWidth) / 2, 32);
   display.print(msTag);
 
   // === MS progress bar 1px high (y=42), full width ===
-  unsigned long mouseElapsed = now - lastMouseStateChange;
-  unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
-  int msBarWidth = 0;
-  if (mouseDuration > 0) {
-    if (mouseState == MOUSE_IDLE) {
-      msBarWidth = map(min(mouseElapsed, mouseDuration), 0, mouseDuration, 0, 128);
-    } else {
-      int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
-      msBarWidth = map(mouseRemaining, 0, mouseDuration, 0, 128);
+  if (!deviceConnected) {
+    // BLE disconnected — no bar drawn
+  } else if (mouseState == MOUSE_RETURNING) {
+    // Show return progress: bar fills up as mouse returns to origin
+    int32_t remaining = abs(mouseNetX) + abs(mouseNetY);
+    int msBarWidth = 0;
+    if (mouseReturnTotal > 0) {
+      msBarWidth = map(mouseReturnTotal - remaining, 0, mouseReturnTotal, 0, 128);
+      if (msBarWidth > 128) msBarWidth = 128;
+      if (msBarWidth < 0) msBarWidth = 0;
     }
-  }
-  if (msBarWidth > 0) {
-    display.drawFastHLine(0, 42, msBarWidth, SSD1306_WHITE);
+    if (msBarWidth > 0) {
+      display.drawFastHLine(0, 42, msBarWidth, SSD1306_WHITE);
+    }
+  } else {
+    unsigned long mouseElapsed = now - lastMouseStateChange;
+    unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
+    int msBarWidth = 0;
+    if (mouseDuration > 0) {
+      if (mouseState == MOUSE_IDLE) {
+        msBarWidth = map(min(mouseElapsed, mouseDuration), 0, mouseDuration, 0, 128);
+      } else {
+        int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
+        msBarWidth = map(mouseRemaining, 0, mouseDuration, 0, 128);
+      }
+    }
+    if (msBarWidth > 0) {
+      display.drawFastHLine(0, 42, msBarWidth, SSD1306_WHITE);
+    }
   }
 
   // === Battery warning (y=48) — only if <15% ===
