@@ -376,6 +376,11 @@ pio run -t upload
 - [ ] Easing: mouse cursor visibly accelerates at start and decelerates at end of each jiggle
 - [ ] Easing: mouse returns to approximate origin after each jiggle (net tracking accurate with eased steps)
 - [ ] Easing: jiggle duration unchanged (only velocity profile within the jiggle changes)
+- [ ] Serial `p` → outputs base64-encoded PNG between `--- PNG START ---` / `--- PNG END ---`
+- [ ] Screenshot PNG decodes to valid 128x64 1-bit grayscale image matching OLED display
+- [ ] Screenshot works in all UI modes (NORMAL, MENU, SLOTS, screensaver)
+- [ ] Screenshot with display not initialized prints error, does not crash
+- [ ] Encoder and BLE remain responsive during/after screenshot capture
 
 ---
 
@@ -403,6 +408,7 @@ At 115200 baud:
 | s | Status report |
 | d | Dump settings |
 | z | Sleep |
+| p | PNG screenshot (base64-encoded between `--- PNG START ---` / `--- PNG END ---` markers) |
 
 ---
 
