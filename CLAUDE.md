@@ -65,16 +65,17 @@
 
 #### 2. UI Modes
 ```cpp
-enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_COUNT };
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 ```
 - **NORMAL**: Live status; encoder switches profile, button cycles KB/MS combos
 - **MENU**: Scrollable settings menu; encoder navigates/edits, button selects/confirms
 - **SLOTS**: 8-key slot editor; encoder cycles key, button advances slot
-- Function button toggles NORMAL ↔ MENU; from SLOTS returns to MENU
-- 30-second timeout returns to NORMAL from MENU or SLOTS
+- **NAME**: BLE device name editor; encoder cycles character, button advances position
+- Function button toggles NORMAL ↔ MENU; from SLOTS/NAME returns to MENU
+- 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (17 entries: 5 headings + 12 items):
+Data-driven architecture using `MenuItem` struct array (20 entries: 5 headings + 15 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS };
@@ -101,11 +102,12 @@ struct Settings {
   uint8_t saverBrightness;     // 10-100, step 10, default 30
   uint8_t displayBrightness;   // 10-100, step 10, default 100
   uint8_t mouseAmplitude;      // 1-5, step 1, default 1 (pixels per movement step)
+  char    deviceName[15];      // 14 chars + null terminator (BLE device name)
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 10 min, saver brightness = 30%, display brightness = 100%, mouse amplitude = 1px.
+Default: slot 0 = F15 (index 0), slots 1-7 = NONE (index 9), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, device name = "GhostOperator".
 
 #### 4. Timing Profiles
 ```cpp
@@ -140,7 +142,7 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - Overlay state (`screensaverActive` flag), not a UIMode — gates display rendering
 - Activates only on top of `MODE_NORMAL` after configurable timeout (Never/1/5/10/15/30 min)
 - Minimal display: centered key label + 1px progress bar, mouse state + 1px bar, battery only if <15%
-- OLED contrast dimmed to configurable brightness (10-100%, default 30%) via `SSD1306_SETCONTRAST`
+- OLED contrast dimmed to configurable brightness (10-100%, default 20%) via `SSD1306_SETCONTRAST`
 - Any input (encoder, buttons) wakes screensaver — input is consumed, not passed through
 - Long-press sleep still works from screensaver (not consumed)
 - Timeout and brightness configurable via MENU items ("Saver time" and "Saver bright")
@@ -203,6 +205,19 @@ Func=back
 ```
 Active slot rendered with inverted colors (white rect, black text).
 
+### Name Mode
+```
+DEVICE NAME          [3/14]
+──────────────────────────────
+  G h o s t O p
+  e r a t o r · ·
+──────────────────────────────
+Turn=char  Press=next
+Func=save
+```
+Active position rendered with inverted colors. END positions shown as `·`.
+On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
+
 ### Screensaver Mode (overlay)
 ```
                               (blank)
@@ -231,7 +246,7 @@ Active slot rendered with inverted colors (white rect, black text).
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
-| 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement |
+| 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
 
 ---
 
@@ -280,6 +295,7 @@ Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` (minVal/maxVal currently 1–5).
 6. `calcChecksum()` auto-adapts (loops `sizeof(Settings) - 1`)
 
 ### Change BLE device name
+Configurable via menu: Device → "Device name" action item opens a character editor (MODE_NAME). Max 14 characters, A-Z, a-z, 0-9, space, dash, underscore. Requires reboot to apply. The compile-time default is:
 ```cpp
 #define DEVICE_NAME "GhostOperator"
 ```
@@ -376,6 +392,38 @@ pio run -t upload
 - [ ] Easing: mouse cursor visibly accelerates at start and decelerates at end of each jiggle
 - [ ] Easing: mouse returns to approximate origin after each jiggle (net tracking accurate with eased steps)
 - [ ] Easing: jiggle duration unchanged (only velocity profile within the jiggle changes)
+- [ ] Menu: "Device" heading visible (was "Display"), "Device name" action item at bottom of section
+- [ ] Menu: help bar shows "Current: GhostOperator" when cursor on "Device name"
+- [ ] Menu: press encoder on "Device name" → enters MODE_NAME with current name pre-loaded
+- [ ] Name editor: encoder rotates through A-Z, a-z, 0-9, space, -, _, END (66 total, wrapping)
+- [ ] Name editor: encoder button advances cursor (wraps at 14)
+- [ ] Name editor: active position inverted, END positions shown as `·`, header shows `[pos/14]`
+- [ ] Name editor: func button saves and shows reboot prompt if name changed
+- [ ] Name editor: func button returns to menu directly if name unchanged
+- [ ] Reboot prompt: encoder toggles Yes/No, encoder button confirms selection
+- [ ] Reboot prompt: Yes → `NVIC_SystemReset()` → device reboots with new name
+- [ ] Reboot prompt: No (or func button) → returns to menu at "Device name" item
+- [ ] BLE name: after reboot, device advertises new name (verify in host Bluetooth settings)
+- [ ] Name persists after menu close → reopen, and after sleep/wake
+- [ ] Empty name guard: if all positions END, defaults to "GhostOperator"
+- [ ] 30s timeout: returns to NORMAL from NAME mode (saves, skips reboot prompt)
+- [ ] Serial `d` → prints device name
+- [ ] Menu: "Reset defaults" appears after "Device name" in Device section with `>` indicator
+- [ ] Menu: help bar shows "Restore all settings to factory defaults" when "Reset defaults" selected
+- [ ] Menu: press encoder on "Reset defaults" → confirmation overlay with "No" highlighted by default
+- [ ] Reset defaults: encoder toggles Yes/No, encoder press with No → returns to menu, settings unchanged
+- [ ] Reset defaults: encoder press with Yes → all settings reset to defaults, returns to menu
+- [ ] Reset defaults: function button during confirmation → cancels (same as No)
+- [ ] Reset defaults: mode timeout (30s) during confirmation → cancels, returns to NORMAL
+- [ ] After restore: reopen menu → all values show defaults; serial `d` → default values
+- [ ] After restore: profile resets to NORMAL, next key updates to F15
+- [ ] Menu: "Reboot" appears after "Reset defaults" in Device section with `>` indicator
+- [ ] Menu: help bar shows "Restart device (applies pending changes)" when "Reboot" selected
+- [ ] Menu: press encoder on "Reboot" → confirmation overlay with "No" highlighted by default
+- [ ] Reboot: encoder toggles Yes/No, encoder press with Yes → device reboots immediately
+- [ ] Reboot: encoder press with No → returns to menu
+- [ ] Reboot: function button during confirmation → cancels (same as No)
+- [ ] Reboot: mode timeout (30s) during confirmation → cancels, returns to NORMAL
 
 ---
 
@@ -385,7 +433,7 @@ pio run -t upload
 - [ ] Buzzer feedback on mode change
 - [x] ~~Multiple profiles~~ → Implemented as timing profiles (LAZY/NORMAL/BUSY) in v1.2.0
 - [x] ~~Adjustable mouse movement amplitude~~ → Implemented as "Move size" setting (1-5px) in v1.5.0
-- [ ] Configurable BLE device name
+- [x] ~~Configurable BLE device name~~ → Implemented as "Device name" editor (MODE_NAME) in v1.5.0
 - [ ] OTA firmware updates
 - [ ] Web-based configuration (BLE UART)
 - [ ] Scheduled on/off times
