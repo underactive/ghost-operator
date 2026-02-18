@@ -1,4 +1,4 @@
-# Ghost Operator v1.5.0 - User Manual
+# Ghost Operator v1.6.0 - User Manual
 
 ## Quick Start
 
@@ -58,9 +58,11 @@
 **Mouse Section:**
 - `[MOV]` - Currently moving
 - `[IDL]` - Currently idle (paused)
+- `[RTN]` - Returning to original position (Knight Rider sweep animation on progress bar)
 - `15s/30s` - Move duration / idle duration (profile-adjusted)
 - ↑ / ✕ - Mouse enabled or disabled
 - Progress bar counts up while idle (charging), counts down while moving (draining)
+- During return phase, progress bar shows a bouncing highlight segment instead of filling
 - `8.5s` - Time remaining in current state
 
 **Footer:**
@@ -327,7 +329,7 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
   - The "Move size" setting controls the peak speed (1-5px per step)
 - **Idle phase:** Mouse stops for the set duration (adjusted by active profile)
 - ±20% randomness on both durations
-- Mouse returns to approximate starting position after each movement
+- Mouse returns to approximate starting position after each movement (display shows `[RTN]` with a Knight Rider sweep animation)
 
 ---
 
@@ -385,6 +387,7 @@ Connect via USB and open Serial Monitor at 115200 baud.
 | `d` | Dump current settings |
 | `z` | Enter sleep mode |
 | `p` | Capture PNG screenshot of the OLED display |
+| `v` | Activate screensaver (forces NORMAL mode first) |
 
 ### Taking a Screenshot
 
@@ -478,6 +481,6 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 
 ---
 
-*Ghost Operator v1.5.0 | TARS Industrial Technical Solutions*
+*Ghost Operator v1.6.0 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*
