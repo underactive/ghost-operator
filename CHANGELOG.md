@@ -5,6 +5,29 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-02-17
+
+### Changed
+
+- **Modular codebase architecture**: Split monolithic `ghost_operator.ino` (2,602 lines) into 15 focused `.h/.cpp` module pairs + lean `.ino` (~297 lines). Zero logic changes — purely structural refactor for maintainability.
+  - `config.h` — all `#define` constants, enums, structs (header-only)
+  - `keys.h/.cpp` — const data tables (`AVAILABLE_KEYS`, `MENU_ITEMS`, etc.)
+  - `icons.h/.cpp` — PROGMEM bitmaps (splash, BT icon, arrows)
+  - `state.h/.cpp` — all mutable globals as `extern` declarations
+  - `settings.h/.cpp` — flash persistence + value accessors
+  - `timing.h/.cpp` — profiles, scheduling, formatting
+  - `encoder.h/.cpp` — ISR + polling quadrature decode
+  - `battery.h/.cpp` — ADC battery reading
+  - `hid.h/.cpp` — keystroke sending + key selection
+  - `mouse.h/.cpp` — mouse state machine
+  - `sleep.h/.cpp` — deep sleep sequence
+  - `screenshot.h/.cpp` — PNG encoder + base64 serial output
+  - `serial_cmd.h/.cpp` — serial debug commands + status
+  - `input.h/.cpp` — encoder dispatch, buttons, name editor
+  - `display.h/.cpp` — all rendering (~800 lines, largest module)
+- **Mouse RETURNING progress bar**: Replaced filling progress bar with Knight Rider sweep animation (bouncing highlight segment) — filling bar implied "charging up" which was misleading for a return-to-origin phase
+- Removed redundant "RTN" text from mouse timer area during MOUSE_RETURNING state — `[RTN]` in the status label is sufficient
+
 ## [1.5.0] - 2026-02-17
 
 ### Added

@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.5.0
+**Current Version:** 1.6.0
 **Status:** Production-ready
 
 ---
@@ -48,7 +48,24 @@
 ## Firmware Architecture
 
 ### Core Files
-- `ghost_operator.ino` - Main firmware (single file)
+Modular architecture — 15 `.h/.cpp` module pairs + lean `.ino` entry point:
+
+- `ghost_operator.ino` - Entry point: setup(), loop(), BLE setup/callbacks (~297 lines)
+- `config.h` - All `#define` constants, enums, structs (header-only)
+- `keys.h/.cpp` - Const data tables (AVAILABLE_KEYS, MENU_ITEMS, names)
+- `icons.h/.cpp` - PROGMEM bitmaps (splash, BT icon, arrows)
+- `state.h/.cpp` - All ~60 mutable globals as `extern` declarations
+- `settings.h/.cpp` - Flash persistence + value accessors
+- `timing.h/.cpp` - Profiles, scheduling, formatting
+- `encoder.h/.cpp` - ISR + polling quadrature decode
+- `battery.h/.cpp` - ADC battery reading
+- `hid.h/.cpp` - Keystroke sending + key selection
+- `mouse.h/.cpp` - Mouse state machine with sine easing
+- `sleep.h/.cpp` - Deep sleep sequence
+- `screenshot.h/.cpp` - PNG encoder + base64 serial output
+- `serial_cmd.h/.cpp` - Serial debug commands + status
+- `input.h/.cpp` - Encoder dispatch, buttons, name editor
+- `display.h/.cpp` - All rendering (~800 lines, largest module)
 
 ### Dependencies
 - Adafruit Bluefruit (built into Seeed nRF52 core)
@@ -132,6 +149,7 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - Tracks net displacement during movement
 - Non-blocking return to approximate origin via MOUSE_RETURNING state
 - JIGGLING uses sine ease-in-out velocity profile: `amp = mouseAmplitude * sin(π × progress)` where progress goes 0→1 over the jiggle duration. Movement ramps from zero → peak → zero. Steps with zero amplitude are skipped (natural pause at start/end). `pickNewDirection()` stores unit vectors (-1/0/+1); amplitude is applied per-step with easing.
+- Display shows `[RTN]` during MOUSE_RETURNING state; progress bar uses a Knight Rider sweep animation (bouncing highlight segment) instead of a filling bar
 
 #### 7. Power Management
 - `sd_power_system_off()` for deep sleep
@@ -178,6 +196,7 @@ MS [MOV]  17s/25s          ↑   ← effective durations
 BUSY                  ~^~_~^~  ← profile name (3s) or "Up: HH:MM:SS"
 ```
 `KB [F15]` shows the pre-picked next key. Changes after each keypress.
+`[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (Knight Rider sweep on progress bar).
 Footer shows profile name for 3 seconds after switching, then reverts to uptime.
 
 ### Menu Mode
@@ -250,6 +269,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
+| 1.6.0 | Modular codebase (15 module pairs), Knight Rider mouse return animation |
 
 ---
 
@@ -267,13 +287,14 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 ## Common Modifications
 
 ### Add a new keystroke option
-1. Add entry to `AVAILABLE_KEYS[]` array
+1. Add entry to `AVAILABLE_KEYS[]` array in `keys.cpp`
 2. Include HID keycode and display name
 3. Set `isModifier` flag appropriately
-4. Add 3-char short name to `SHORT_NAMES[]` in `slotName()` function
+4. Update `NUM_KEYS` in `config.h`
+5. Add 3-char short name to `SHORT_NAMES[]` in `slotName()` function in `display.cpp`
 
 ### Change timing range
-Modify these defines:
+Modify these defines in `config.h`:
 ```cpp
 #define VALUE_MIN_MS          500UL    // 0.5 seconds
 #define VALUE_MAX_KEY_MS      30000UL  // 30 seconds (keyboard)
@@ -282,19 +303,20 @@ Modify these defines:
 ```
 
 ### Change mouse randomness
+In `config.h`:
 ```cpp
 #define RANDOMNESS_PERCENT 20  // ±20%
 ```
 
 ### Change mouse amplitude range
-Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` (minVal/maxVal currently 1–5). The JIGGLING case applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
+Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `keys.cpp` (minVal/maxVal currently 1–5). The JIGGLING case in `mouse.cpp` applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
 
 ### Add new menu setting
-1. Add `SettingId` enum entry
-2. Add field to `Settings` struct (before `checksum`)
-3. Set default in `loadDefaults()`, add bounds check in `loadSettings()`
-4. Add `MenuItem` entry to `MENU_ITEMS[]` array (update `MENU_ITEM_COUNT`)
-5. Add cases to `getSettingValue()` and `setSettingValue()`
+1. Add `SettingId` enum entry in `config.h`
+2. Add field to `Settings` struct in `config.h` (before `checksum`)
+3. Set default in `loadDefaults()` in `settings.cpp`, add bounds check in `loadSettings()`
+4. Add `MenuItem` entry to `MENU_ITEMS[]` array in `keys.cpp` (update `MENU_ITEM_COUNT` in `config.h`)
+5. Add cases to `getSettingValue()` and `setSettingValue()` in `settings.cpp`
 6. `calcChecksum()` auto-adapts (loops `sizeof(Settings) - 1`)
 
 ### Change BLE device name
@@ -309,7 +331,22 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 
 | File | Purpose |
 |------|---------|
-| `ghost_operator.ino` | Firmware source |
+| `ghost_operator.ino` | Entry point: setup(), loop(), BLE setup/callbacks |
+| `config.h` | Constants, enums, structs (header-only) |
+| `keys.h/.cpp` | Const data tables (keys, menu items, names) |
+| `icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, arrows) |
+| `state.h/.cpp` | All mutable globals (extern declarations) |
+| `settings.h/.cpp` | Flash persistence + value accessors |
+| `timing.h/.cpp` | Profiles, scheduling, formatting |
+| `encoder.h/.cpp` | ISR + polling quadrature decode |
+| `battery.h/.cpp` | ADC battery reading |
+| `hid.h/.cpp` | Keystroke sending + key selection |
+| `mouse.h/.cpp` | Mouse state machine with sine easing |
+| `sleep.h/.cpp` | Deep sleep sequence |
+| `screenshot.h/.cpp` | PNG encoder + base64 serial output |
+| `serial_cmd.h/.cpp` | Serial debug commands + status |
+| `input.h/.cpp` | Encoder dispatch, buttons, name editor |
+| `display.h/.cpp` | All rendering (~800 lines, largest module) |
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | Technical documentation |

@@ -1,6 +1,6 @@
 # Ghost Operator - BLE HID Device
 
-## Version 1.5.0
+## Version 1.6.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -164,7 +164,7 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 - **2.0-6.5s**: Profile-adjusted key interval range (MIN-MAX)
 - **Bluetooth icon** (solid) = Connected, (flashing) = Scanning
 - ↑ = enabled, ✕ = disabled; mouse idle bar counts up, move bar counts down
-- **[MOV]** = Mouse moving, **[IDL]** = Mouse idle
+- **[MOV]** = Mouse moving, **[IDL]** = Mouse idle, **[RTN]** = Returning to origin
 - Each keystroke cycle randomly picks from populated (non-NONE) slots
 - **Uptime line**: Shows profile name (LAZY/NORMAL/BUSY) for 3 seconds after switching, then reverts to uptime
 
@@ -292,6 +292,7 @@ Connect via USB at 115200 baud:
 | d | Dump settings |
 | z | Enter sleep mode |
 | p | PNG screenshot (base64-encoded) |
+| v | Activate screensaver |
 
 ---
 
@@ -309,7 +310,22 @@ Connect via USB at 115200 baud:
 
 | File | Description |
 |------|-------------|
-| `ghost_operator.ino` | Firmware source |
+| `ghost_operator.ino` | Main entry point: setup(), loop(), BLE callbacks |
+| `config.h` | Constants, enums, structs (header-only) |
+| `keys.h/.cpp` | Const data tables (keys, menu items, names) |
+| `icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, arrows) |
+| `state.h/.cpp` | All mutable globals (extern declarations) |
+| `settings.h/.cpp` | Flash persistence + value accessors |
+| `timing.h/.cpp` | Profiles, scheduling, formatting |
+| `encoder.h/.cpp` | ISR + polling quadrature decode |
+| `battery.h/.cpp` | ADC battery reading |
+| `hid.h/.cpp` | Keystroke sending + key selection |
+| `mouse.h/.cpp` | Mouse state machine |
+| `sleep.h/.cpp` | Deep sleep sequence |
+| `screenshot.h/.cpp` | PNG encoder + base64 serial output |
+| `serial_cmd.h/.cpp` | Serial debug commands + status |
+| `input.h/.cpp` | Encoder dispatch, buttons, name editor |
+| `display.h/.cpp` | All rendering (~800 lines) |
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | Technical documentation (this file) |
@@ -324,7 +340,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.5.0** | **Adjustable mouse amplitude (1-5px), inertial movement, reset defaults** |
+| **1.6.0** | **Modular codebase (15 module pairs), Knight Rider mouse return animation** |
+| 1.5.0 | Adjustable mouse amplitude (1-5px), inertial movement, reset defaults |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.3.0 | Screensaver mode for OLED burn-in prevention |
