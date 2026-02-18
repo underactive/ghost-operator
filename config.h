@@ -144,7 +144,7 @@ struct Settings {
   uint8_t saverBrightness; // 10-100 in steps of 10, default 20
   uint8_t displayBrightness; // 10-100 in steps of 10, default 80
   uint8_t mouseAmplitude;  // 1-5, step 1, default 1 (pixels per movement step)
-  uint8_t animStyle;       // 0-6 index into ANIM_NAMES (default 0 = ECG)
+  uint8_t animStyle;       // 0-5 index into ANIM_NAMES[] (default 2 = Ghost)
   char    deviceName[15]; // 14 chars + null terminator (BLE device name)
   uint8_t checksum;       // must remain last
 };
