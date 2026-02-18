@@ -92,7 +92,7 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (20 entries: 5 headings + 15 items):
+Data-driven architecture using `MenuItem` struct array (22 entries: 6 headings + 16 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS };
@@ -437,7 +437,8 @@ pio run -t upload
 - [ ] Easing: mouse cursor visibly accelerates at start and decelerates at end of each jiggle
 - [ ] Easing: mouse returns to approximate origin after each jiggle (net tracking accurate with eased steps)
 - [ ] Easing: jiggle duration unchanged (only velocity profile within the jiggle changes)
-- [ ] Menu: "Device" heading visible (was "Display"), "Device name" action item at bottom of section
+- [ ] Menu: "Display" heading visible with Brightness/Saver bright/Saver T.O./Animation items
+- [ ] Menu: "Device" heading visible with Device name/Reset defaults/Reboot items
 - [ ] Menu: help bar shows "Current: GhostOperator" when cursor on "Device name"
 - [ ] Menu: press encoder on "Device name" → enters MODE_NAME with current name pre-loaded
 - [ ] Name editor: encoder rotates through A-Z, a-z, 0-9, space, -, _, END (66 total, wrapping)
