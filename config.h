@@ -129,7 +129,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 21
+#define MENU_ITEM_COUNT 22
 
 struct Settings {
   uint32_t magic;
