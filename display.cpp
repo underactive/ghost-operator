@@ -22,6 +22,178 @@ static const char* slotName(uint8_t slotIdx) {
 }
 
 // ============================================================================
+// ANIMATIONS (footer corner, 20x10px region: x=108..127, y=54..63)
+// ============================================================================
+
+// ECG heartbeat trace (original animation)
+static void drawAnimECG() {
+  static uint8_t beatPhase = 0;
+  beatPhase = (beatPhase + 1) % 20;
+
+  static const int8_t ecg[] = {
+    0, 0, 0, 0, 0,
+    -1, -2, -1, 0,
+    1, -5, 4, -1,
+    0, -1, -2, -1,
+    0, 0, 0
+  };
+  const int ECG_LEN = 20;
+  int baseY = 58;
+  int startX = 108;
+
+  for (int i = 0; i < ECG_LEN - 1; i++) {
+    int a = (beatPhase + i) % ECG_LEN;
+    int b = (beatPhase + i + 1) % ECG_LEN;
+    display.drawLine(startX + i, baseY + ecg[a],
+                     startX + i + 1, baseY + ecg[b], SSD1306_WHITE);
+  }
+}
+
+// Ghost sprite with gentle bob
+static void drawAnimGhost() {
+  static const uint8_t ghostLeft[] PROGMEM = {
+    0b00111100,
+    0b01111110,
+    0b11111111,
+    0b10110111,  // pupils left: .X.. .X..
+    0b11111111,
+    0b11111111,
+    0b11111111,
+    0b11111111,
+    0b10110101,
+    0b01001010,
+  };
+  static const uint8_t ghostRight[] PROGMEM = {
+    0b00111100,
+    0b01111110,
+    0b11111111,
+    0b11101101,  // pupils right: ...X ...X
+    0b11111111,
+    0b11111111,
+    0b11111111,
+    0b11111111,
+    0b10110101,
+    0b01001010,
+  };
+  static uint8_t phase = 0;
+  phase = (phase + 1) % 40;
+
+  // Vertical bob: 0 → -1 → 0 → +1 over 40 steps
+  int bob = 0;
+  if (phase >= 5 && phase < 15) bob = -1;
+  else if (phase >= 25 && phase < 35) bob = 1;
+
+  // Horizontal drift: sway across 108..120 (12px range for 8px-wide sprite)
+  // Phase 0..19 drifts right, 20..39 drifts left
+  int drift;
+  if (phase < 20) drift = (int)phase * 12 / 20;
+  else drift = 12 - (int)(phase - 20) * 12 / 20;
+
+  const uint8_t* sprite = (phase < 20) ? ghostRight : ghostLeft;
+  display.drawBitmap(108 + drift, 54 + bob, sprite, 8, 10, SSD1306_WHITE);
+}
+
+// Radar sweep with trailing lines
+static void drawAnimRadar() {
+  static uint16_t angle = 0;
+  angle = (angle + 3) % 360;
+
+  int cx = 118, cy = 58, r = 4;
+  // Circle outline
+  display.drawCircle(cx, cy, r, SSD1306_WHITE);
+  display.drawPixel(cx, cy, SSD1306_WHITE);
+
+  // Sweep line + 2 trailing lines
+  for (int t = 0; t < 3; t++) {
+    int a = ((int)angle - t * 15 + 360) % 360;
+    float rad = (float)a * PI / 180.0f;
+    int lineR = (t == 0) ? r : r - 1;
+    int ex = cx + (int)(lineR * cos(rad));
+    int ey = cy + (int)(lineR * sin(rad));
+    display.drawLine(cx, cy, ex, ey, SSD1306_WHITE);
+  }
+}
+
+// Equalizer bars
+static void drawAnimEQ() {
+  static uint8_t heights[5] = {3, 5, 2, 6, 4};
+  static uint8_t targets[5] = {3, 5, 2, 6, 4};
+  static uint8_t frameCount = 0;
+  frameCount++;
+
+  // Pick new random targets every 3 frames (~300ms)
+  if (frameCount % 3 == 0) {
+    for (int i = 0; i < 5; i++) {
+      targets[i] = 1 + (random(8));  // 1-8
+    }
+  }
+
+  // Animate heights toward targets
+  for (int i = 0; i < 5; i++) {
+    if (heights[i] < targets[i]) heights[i]++;
+    else if (heights[i] > targets[i]) heights[i]--;
+  }
+
+  // Draw 5 bars: 3px wide, 1px gap, starting at x=109
+  int baseY = 63;
+  for (int i = 0; i < 5; i++) {
+    int x = 109 + i * 4;
+    display.fillRect(x, baseY - heights[i], 3, heights[i], SSD1306_WHITE);
+  }
+}
+
+// Matrix rain effect
+static void drawAnimMatrix() {
+  static uint8_t dropY[7];
+  static uint8_t dropLen[7];
+  static bool initialized = false;
+  static uint8_t frameCount = 0;
+
+  if (!initialized) {
+    for (int i = 0; i < 7; i++) {
+      dropY[i] = random(13);         // stagger start positions
+      dropLen[i] = 2 + random(3);    // trail length 2-4
+    }
+    initialized = true;
+  }
+
+  frameCount++;
+  if (frameCount % 2 == 0) {
+    for (int i = 0; i < 7; i++) {
+      dropY[i]++;
+      if (dropY[i] > (uint8_t)(10 + dropLen[i])) {
+        dropY[i] = 0;
+        dropLen[i] = 2 + random(3);
+      }
+    }
+  }
+
+  // Draw drops: head pixel + trailing pixels
+  for (int i = 0; i < 7; i++) {
+    int x = 109 + i * 3;  // 7 columns, 3px apart
+    for (int t = 0; t < (int)dropLen[i]; t++) {
+      int y = (int)dropY[i] - t;
+      if (y >= 0 && y < 10) {
+        display.drawPixel(x, 54 + y, SSD1306_WHITE);
+        if (t == 0) display.drawPixel(x + 1, 54 + y, SSD1306_WHITE);  // wider head
+      }
+    }
+  }
+}
+
+// Animation dispatcher
+static void drawAnimation() {
+  switch (settings.animStyle) {
+    case 0: drawAnimECG();     break;
+    case 1: drawAnimEQ();      break;
+    case 2: drawAnimGhost();   break;
+    case 3: drawAnimMatrix();  break;
+    case 4: drawAnimRadar();   break;
+    case 5: break;  // None
+  }
+}
+
+// ============================================================================
 // NORMAL MODE
 // ============================================================================
 
@@ -161,28 +333,9 @@ static void drawNormalMode() {
     display.print(formatUptime(now - startTime));
   }
 
-  // Heartbeat pulse trace
+  // Status animation (lower-right corner)
   if (deviceConnected) {
-    static uint8_t beatPhase = 0;
-    beatPhase = (beatPhase + 1) % 20;
-
-    static const int8_t ecg[] = {
-      0, 0, 0, 0, 0,
-      -1, -2, -1, 0,
-      1, -5, 4, -1,
-      0, -1, -2, -1,
-      0, 0, 0
-    };
-    const int ECG_LEN = 20;
-    int baseY = 58;
-    int startX = 108;
-
-    for (int i = 0; i < ECG_LEN - 1; i++) {
-      int a = (beatPhase + i) % ECG_LEN;
-      int b = (beatPhase + i + 1) % ECG_LEN;
-      display.drawLine(startX + i, baseY + ecg[a],
-                       startX + i + 1, baseY + ecg[b], SSD1306_WHITE);
-    }
+    drawAnimation();
   }
 }
 
@@ -451,14 +604,13 @@ static void drawNameMode() {
         }
 
         // Center character in cell
-        char ch;
         if (nameCharIndex[pos] >= NAME_CHAR_COUNT) {
-          ch = '\xB7';  // middle dot for END
+          // Draw a 2x2 dot centered in cell (ASCII font lacks middle dot)
+          display.fillRect(x + 7, y + 4, 2, 2, isActive ? SSD1306_BLACK : SSD1306_WHITE);
         } else {
-          ch = NAME_CHARS[nameCharIndex[pos]];
+          display.setCursor(x + 5, y + 1);
+          display.print(NAME_CHARS[nameCharIndex[pos]]);
         }
-        display.setCursor(x + 5, y + 1);
-        display.print(ch);
       }
     }
     display.setTextColor(SSD1306_WHITE);

@@ -55,10 +55,10 @@ bool saveNameEditor() {
 
 void returnToMenuFromName() {
   currentMode = MODE_MENU;
-  menuCursor = 15;           // "Device name" item index
+  menuCursor = 16;           // "Device name" item index
   menuEditing = false;
   nameConfirming = false;
-  menuScrollOffset = (15 > 4) ? 15 - 4 : 0;  // ensure cursor visible in viewport
+  menuScrollOffset = (16 > 4) ? 16 - 4 : 0;  // ensure cursor visible in viewport
   Serial.println("Mode: MENU (from NAME)");
 }
 

@@ -75,6 +75,7 @@ void handleSerialCommands() {
         Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
         Serial.print("Device name: "); Serial.println(settings.deviceName);
+        Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
         break;
     }
   }
