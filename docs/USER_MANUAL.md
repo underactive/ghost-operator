@@ -68,7 +68,7 @@
 **Footer:**
 - `Up: 02:34:15` - Uptime (hours:minutes:seconds)
 - After changing profile, shows profile name (LAZY/NORMAL/BUSY) for 3 seconds, then reverts to uptime
-- Heartbeat pulse trace (scrolling ECG animation when connected)
+- Status animation in footer area (default: Ghost) — configurable via Display → Animation in the menu (ECG, EQ, Ghost, Matrix, Radar, None)
 
 ---
 
@@ -108,10 +108,11 @@
 | | Move size | Mouse movement step size (1-5px, default 1px) |
 | **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
 | | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
-| **Device** | Brightness | OLED display brightness (10-100%, default 80%) |
+| **Display** | Brightness | OLED display brightness (10-100%, default 80%) |
 | | Saver bright | Screensaver dimmed brightness (10-100%, default 20%) |
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
-| | Device name | BLE device name editor (press encoder to enter) |
+| | Animation | Status animation style (ECG / EQ / Ghost / Matrix / Radar / None, default Ghost) |
+| **Device** | Device name | BLE device name editor (press encoder to enter) |
 | | Reset defaults | Restore all settings to factory defaults (confirmation required) |
 | | Reboot | Restart the device (confirmation required) |
 | **About** | Version | Firmware version (read-only) |

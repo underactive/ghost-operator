@@ -95,10 +95,10 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 Data-driven architecture using `MenuItem` struct array (22 entries: 6 headings + 16 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
-- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, or `Npx`
+- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, or `ANIM_NAMES[]`
 - `moveCursor(direction)` — skips headings, clamps at bounds, manages viewport scroll
 - `FMT_PERCENT_NEG` items: encoder direction and arrow bounds are inverted so displayed value direction matches encoder rotation
 
@@ -107,7 +107,7 @@ enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F46 "PROF"
+  uint32_t magic;              // 0x50524F48 (bumped for animStyle)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -119,12 +119,13 @@ struct Settings {
   uint8_t saverBrightness;     // 10-100, step 10, default 20
   uint8_t displayBrightness;   // 10-100, step 10, default 80
   uint8_t mouseAmplitude;      // 1-5, step 1, default 1 (pixels per movement step)
+  uint8_t animStyle;           // 0-5 index into ANIM_NAMES[] (default 2 = Ghost)
   char    deviceName[15];      // 14 chars + null terminator (BLE device name)
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 2), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, device name = "GhostOperator".
+Default: slot 0 = F15 (index 2), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, animation = Ghost, device name = "GhostOperator".
 
 #### 4. Timing Profiles
 ```cpp
@@ -193,11 +194,11 @@ KB [F15] 1.7-5.5s        ↑     ← effective (profile-adjusted) range
 MS [MOV]  17s/25s          ↑   ← effective durations
 ██████░░░░░░░░░░░░░░░░░  8.5s
 ─────────────────────────────
-BUSY                  ~^~_~^~  ← profile name (3s) or "Up: HH:MM:SS"
+BUSY                  ~^~_~^~  ← profile name (3s) or "Up: HH:MM:SS"; animation on right
 ```
 `KB [F15]` shows the pre-picked next key. Changes after each keypress.
 `[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (Knight Rider sweep on progress bar).
-Footer shows profile name for 3 seconds after switching, then reverts to uptime.
+Footer shows profile name for 3 seconds after switching, then reverts to uptime. Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost).
 
 ### Menu Mode
 ```
@@ -269,7 +270,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
-| 1.6.0 | Modular codebase (15 module pairs), Knight Rider mouse return animation |
+| 1.6.0 | Modular codebase (15 module pairs), Knight Rider mouse return animation, configurable status animation (6 styles), Display/Device menu split |
 
 ---
 
@@ -415,7 +416,7 @@ pio run -t upload
 - [ ] Scheduling uses profile-adjusted values (verify via serial `s`)
 - [ ] Profile does NOT modify base settings (open menu → shows original, not adjusted)
 - [ ] Sleep + wake → lazy% and busy% persist, profile resets to NORMAL
-- [ ] Serial `d` → prints profile, lazy%, busy%, display brightness, effective values
+- [ ] Serial `d` → prints profile, lazy%, busy%, display brightness, animation, effective values
 - [ ] Brightness: editing in menu live-updates OLED contrast
 - [ ] Brightness: value persists after menu close and sleep/wake
 - [ ] Screensaver activates after configured timeout with no input (minimal display)
@@ -438,6 +439,10 @@ pio run -t upload
 - [ ] Easing: mouse returns to approximate origin after each jiggle (net tracking accurate with eased steps)
 - [ ] Easing: jiggle duration unchanged (only velocity profile within the jiggle changes)
 - [ ] Menu: "Display" heading visible with Brightness/Saver bright/Saver T.O./Animation items
+- [ ] Menu: "Animation" shows default "Ghost", editable with 6 options (ECG/EQ/Ghost/Matrix/Radar/None)
+- [ ] Animation setting persists after menu close → reopen, and after sleep/wake
+- [ ] Animation changes live in NORMAL mode footer area
+- [ ] Serial `d` → prints animation style name
 - [ ] Menu: "Device" heading visible with Device name/Reset defaults/Reboot items
 - [ ] Menu: help bar shows "Current: GhostOperator" when cursor on "Device name"
 - [ ] Menu: press encoder on "Device name" → enters MODE_NAME with current name pre-loaded

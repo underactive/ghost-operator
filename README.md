@@ -112,10 +112,11 @@ Settings organized under headings in the scrollable menu:
 | | Move size | 1px - 5px (1px steps) |
 | **Profiles** | Lazy adjust | -50% to 0% (5% steps) |
 | | Busy adjust | 0% to 50% (5% steps) |
-| **Device** | Brightness | 10% - 100% (10% steps) |
+| **Display** | Brightness | 10% - 100% (10% steps) |
 | | Saver bright | 10% - 100% (10% steps) |
 | | Saver time | Never / 1 / 5 / 10 / 15 / 30 min |
-| | Device name | → opens NAME mode (14 char max) |
+| | Animation | ECG / EQ / Ghost / Matrix / Radar / None |
+| **Device** | Device name | → opens NAME mode (14 char max) |
 | | Reset defaults | → confirmation prompt (restores factory settings) |
 | | Reboot | → confirmation prompt (restarts device) |
 | **About** | Version | Read-only firmware version |
@@ -167,6 +168,7 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 - **[MOV]** = Mouse moving, **[IDL]** = Mouse idle, **[RTN]** = Returning to origin
 - Each keystroke cycle randomly picks from populated (non-NONE) slots
 - **Uptime line**: Shows profile name (LAZY/NORMAL/BUSY) for 3 seconds after switching, then reverts to uptime
+- **Status animation**: Configurable animation in the footer area (default: Ghost). Options: ECG, EQ, Ghost, Matrix, Radar, None — changeable via Display → Animation in the menu
 
 ### Menu Mode
 
@@ -340,7 +342,7 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.6.0** | **Modular codebase (15 module pairs), Knight Rider mouse return animation** |
+| **1.6.0** | **Modular codebase (15 module pairs), Knight Rider mouse return animation, configurable status animation (6 styles), Display/Device menu split** |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial movement, reset defaults |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |

@@ -27,6 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `display.h/.cpp` — all rendering (~800 lines, largest module)
 - **Mouse RETURNING progress bar**: Replaced filling progress bar with Knight Rider sweep animation (bouncing highlight segment) — filling bar implied "charging up" which was misleading for a return-to-origin phase
 - Removed redundant "RTN" text from mouse timer area during MOUSE_RETURNING state — `[RTN]` in the status label is sufficient
+- **Configurable status animation**: New "Animation" setting in the Display menu section with 6 styles
+  - ECG (scrolling heartbeat trace), EQ (equalizer bars), Ghost (animated ghost character), Matrix (falling characters), Radar (rotating sweep), None (disabled)
+  - Default animation: Ghost; persists in flash
+  - Settings struct: added `animStyle` field — bumped `SETTINGS_MAGIC` (existing settings auto-reset to defaults on first boot)
+- **Menu section reorganization**: Split combined "Display/Device" heading into separate "Display" and "Device" sections
+  - Display section: Brightness, Saver bright, Saver T.O., Animation
+  - Device section: Device name, Reset defaults, Reboot
+  - `MENU_ITEM_COUNT` increased from 20 to 22 (6 headings + 16 items)
+- Name editor: END positions drawn as 2×2 filled rectangle instead of middle-dot glyph (no suitable glyph in Adafruit GFX default font)
+- Serial `d` command prints current animation style name
 
 ## [1.5.0] - 2026-02-17
 
