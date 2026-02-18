@@ -40,6 +40,7 @@
 #include "serial_cmd.h"
 #include "input.h"
 #include "display.h"
+#include "ble_uart.h"
 
 #include <nrf_soc.h>
 #include <nrf_power.h>
@@ -127,6 +128,10 @@ void setupDisplay() {
 void setupBLE() {
   Serial.println("[...] Initializing Bluetooth...");
 
+  // Increase GATT attribute table to fit HID + DIS + NUS services
+  // Default is too small — HID alone consumes most of the default allocation
+  Bluefruit.configAttrTableSize(2048);
+
   Bluefruit.begin();
   Bluefruit.setTxPower(4);
   Bluefruit.setName(settings.deviceName);
@@ -135,11 +140,12 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
 
   bledis.setManufacturer("TARS Industrial Technical Solutions");
-  bledis.setModel("Ghost Operator v1.6.1");
+  bledis.setModel("Ghost Operator v1.7.0");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
 
   blehid.begin();
+  setupBleUart();
   startAdvertising();
 
   Serial.println("[OK] BLE initialized");
@@ -224,6 +230,7 @@ void loop() {
 
   pollEncoder();
   handleSerialCommands();
+  handleBleUart();
   handleEncoder();
   handleButtons();
 

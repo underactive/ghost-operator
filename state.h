@@ -19,6 +19,7 @@ extern Adafruit_LittleFS_Namespace::File settingsFile;
 // BLE Services
 extern BLEDis bledis;
 extern BLEHidAdafruit blehid;
+extern BLEUart bleuart;
 
 // Settings
 extern Settings settings;

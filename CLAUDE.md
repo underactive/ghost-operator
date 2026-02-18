@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.6.1
+**Current Version:** 1.7.0
 **Status:** Production-ready
 
 ---
@@ -48,7 +48,7 @@
 ## Firmware Architecture
 
 ### Core Files
-Modular architecture — 15 `.h/.cpp` module pairs + lean `.ino` entry point:
+Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 - `ghost_operator.ino` - Entry point: setup(), loop(), BLE setup/callbacks (~297 lines)
 - `config.h` - All `#define` constants, enums, structs (header-only)
@@ -66,6 +66,7 @@ Modular architecture — 15 `.h/.cpp` module pairs + lean `.ino` entry point:
 - `serial_cmd.h/.cpp` - Serial debug commands + status
 - `input.h/.cpp` - Encoder dispatch, buttons, name editor
 - `display.h/.cpp` - All rendering (~800 lines, largest module)
+- `ble_uart.h/.cpp` - BLE UART (NUS) wireless config protocol
 
 ### Dependencies
 - Adafruit Bluefruit (built into Seeed nRF52 core)
@@ -169,6 +170,27 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - Long-press sleep still works from screensaver (not consumed)
 - Timeout and brightness configurable via MENU items ("Saver time" and "Saver bright")
 
+#### 9. BLE UART Config
+```
+WEB → DEVICE                    DEVICE → WEB
+────────────────────────────────────────────────
+?status                     →   !status|connected=1|kb=1|ms=1|bat=85|...
+?settings                   →   !settings|keyMin=2000|keyMax=6500|...
+?keys                       →   !keys|F13|F14|F15|...|NONE
+=keyMin:2000                →   +ok
+=slots:2,28,28,28,28,28,28,28 → +ok
+=name:MyDevice              →   +ok
+!save                       →   +ok
+!defaults                   →   +ok
+!reboot                     →   (device reboots)
+```
+- Nordic UART Service (NUS) via `BLEUart` — serial-over-BLE
+- Text protocol: `?` = query, `=` = set, `!` = action, pipe-delimited responses
+- Settings changes apply to in-memory struct immediately (like encoder); flash save on `!save`
+- 20-byte chunked writes for default MTU compatibility
+- NUS not added to advertising packet (would overflow 31 bytes); discovered via `optionalServices`
+- Web dashboard (Vue 3 + Vite) in `dashboard/` connects via Chrome Web Bluetooth API
+
 ### Encoder Handling
 - Hybrid ISR + polling architecture:
   - **Primary:** GPIOTE interrupt (`encoderISR`) catches every pin edge in real-time, including during blocking I2C display transfers
@@ -270,6 +292,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
+| 1.7.0 | BLE UART wireless config (NUS protocol), Vue 3 web dashboard |
 | 1.6.0 | Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split |
 
 ---
@@ -348,6 +371,8 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `serial_cmd.h/.cpp` | Serial debug commands + status |
 | `input.h/.cpp` | Encoder dispatch, buttons, name editor |
 | `display.h/.cpp` | All rendering (~800 lines, largest module) |
+| `ble_uart.h/.cpp` | BLE UART wireless config protocol |
+| `dashboard/` | Vue 3 web dashboard (Vite + Web Bluetooth) |
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | Technical documentation |
@@ -491,7 +516,7 @@ pio run -t upload
 - [x] ~~Adjustable mouse movement amplitude~~ → Implemented as "Move size" setting (1-5px) in v1.5.0
 - [x] ~~Configurable BLE device name~~ → Implemented as "Device name" editor (MODE_NAME) in v1.5.0
 - [ ] OTA firmware updates
-- [ ] Web-based configuration (BLE UART)
+- [x] ~~Web-based configuration (BLE UART)~~ → Implemented as BLE UART protocol + Vue 3 web dashboard in v1.7.0
 - [ ] Scheduled on/off times
 - [ ] Activity logging to flash
 - [x] ~~Display idle timeout / dimming~~ → Implemented as screensaver mode in v1.3.0 (minimal pixel display after configurable timeout)

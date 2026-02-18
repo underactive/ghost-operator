@@ -5,6 +5,29 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-02-18
+
+### Added
+
+- **BLE UART wireless configuration**: New `ble_uart.h/.cpp` module adds Nordic UART Service (NUS) for wireless settings management
+  - Text-based protocol: `?` queries, `=` sets, `!` actions, pipe-delimited key=value responses
+  - `?status` — battery, profile, mode, mouse state, uptime, next key (polled by dashboard)
+  - `?settings` — all persistent settings in one response
+  - `?keys` — available keystroke names for populating UI dropdowns
+  - `=key:value` — change any setting in memory (like encoder editing)
+  - `!save` — persist to flash, `!defaults` — factory reset, `!reboot` — restart device
+  - 20-byte chunked writes for default MTU compatibility
+  - Does NOT modify BLE advertising (NUS discovered via `optionalServices` after connection)
+- **Web dashboard** (`dashboard/`): Vue 3 + Vite single-page app for wireless configuration via Chrome Web Bluetooth API
+  - Connect/disconnect with auto-reconnect handling
+  - Real-time status bar (battery, profile, mode, KB/MS state, uptime, next key)
+  - Slider controls for all timing settings with cross-constraint enforcement
+  - 8-slot key editor with dropdown populated from device
+  - Profile adjustment sliders, display settings, animation/screensaver dropdowns
+  - Device name editor, Reset Defaults and Reboot with confirmation dialogs
+  - Explicit Save button (dirty flag tracking) — avoids flash wear from rapid adjustments
+  - Dark theme, responsive layout, zero runtime dependencies beyond Vue
+
 ## [1.6.1] - 2026-02-17
 
 ### Changed

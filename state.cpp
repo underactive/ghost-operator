@@ -12,6 +12,7 @@ File settingsFile(InternalFS);
 // BLE Services
 BLEDis bledis;
 BLEHidAdafruit blehid;
+BLEUart bleuart;
 
 // Settings
 Settings settings;

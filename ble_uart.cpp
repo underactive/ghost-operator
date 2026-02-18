@@ -1,0 +1,281 @@
+#include "ble_uart.h"
+#include "config.h"
+#include "state.h"
+#include "keys.h"
+#include "settings.h"
+#include "timing.h"
+#include "hid.h"
+
+// Line buffer for accumulating UART bytes
+#define UART_BUF_SIZE 128
+static char uartBuf[UART_BUF_SIZE];
+static uint8_t uartBufPos = 0;
+
+// Forward declarations
+static void processCommand(const char* line);
+static void cmdQueryStatus();
+static void cmdQuerySettings();
+static void cmdQueryKeys();
+static void cmdSetValue(const char* body);
+static void cmdSave();
+static void cmdDefaults();
+static void cmdReboot();
+
+// ----------------------------------------------------------------------------
+// BLE UART RX callback — called from SoftDevice context
+// We just let handleBleUart() poll; no work here.
+// ----------------------------------------------------------------------------
+static void bleUartRxCallback(uint16_t conn_handle) {
+  (void)conn_handle;
+  // Data available — will be read in handleBleUart()
+}
+
+// ----------------------------------------------------------------------------
+// Setup: initialize BLEUart service
+// Called from setupBLE() in ghost_operator.ino, BEFORE startAdvertising()
+// ----------------------------------------------------------------------------
+void setupBleUart() {
+  bleuart.begin();
+  bleuart.setRxCallback(bleUartRxCallback);
+  Serial.println("[OK] BLE UART initialized");
+}
+
+// ----------------------------------------------------------------------------
+// Poll: read bytes into line buffer, dispatch on newline
+// Called from loop() in ghost_operator.ino
+// ----------------------------------------------------------------------------
+void handleBleUart() {
+  while (bleuart.available()) {
+    char c = (char)bleuart.read();
+    if (c == '\n' || c == '\r') {
+      if (uartBufPos > 0) {
+        uartBuf[uartBufPos] = '\0';
+        processCommand(uartBuf);
+        uartBufPos = 0;
+      }
+    } else if (uartBufPos < UART_BUF_SIZE - 1) {
+      uartBuf[uartBufPos++] = c;
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Send a response string over BLE UART (appends newline)
+// Chunks writes to 20 bytes for default MTU compatibility
+// ----------------------------------------------------------------------------
+static void bleWrite(const String& msg) {
+  String out = msg + "\n";
+  const char* data = out.c_str();
+  uint16_t len = out.length();
+  uint16_t offset = 0;
+  while (offset < len) {
+    uint16_t chunk = min((uint16_t)20, (uint16_t)(len - offset));
+    bleuart.write((const uint8_t*)(data + offset), chunk);
+    offset += chunk;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Command dispatcher
+// Protocol: ? = query, = = set, ! = action
+// ----------------------------------------------------------------------------
+static void processCommand(const char* line) {
+  Serial.print("[UART] RX: ");
+  Serial.println(line);
+
+  if (line[0] == '?') {
+    // Query commands
+    const char* cmd = line + 1;
+    if (strcmp(cmd, "status") == 0) {
+      cmdQueryStatus();
+    } else if (strcmp(cmd, "settings") == 0) {
+      cmdQuerySettings();
+    } else if (strcmp(cmd, "keys") == 0) {
+      cmdQueryKeys();
+    } else {
+      bleWrite("-err:unknown query");
+    }
+  } else if (line[0] == '=') {
+    // Set commands: =key:value
+    cmdSetValue(line + 1);
+  } else if (line[0] == '!') {
+    // Action commands
+    const char* cmd = line + 1;
+    if (strcmp(cmd, "save") == 0) {
+      cmdSave();
+    } else if (strcmp(cmd, "defaults") == 0) {
+      cmdDefaults();
+    } else if (strcmp(cmd, "reboot") == 0) {
+      cmdReboot();
+    } else {
+      bleWrite("-err:unknown action");
+    }
+  } else {
+    bleWrite("-err:invalid prefix");
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ?status — runtime status (polled by dashboard)
+// ----------------------------------------------------------------------------
+static void cmdQueryStatus() {
+  unsigned long now = millis();
+  unsigned long uptime = now - startTime;
+
+  String resp = "!status";
+  resp += "|connected=";  resp += deviceConnected ? "1" : "0";
+  resp += "|kb=";          resp += keyEnabled ? "1" : "0";
+  resp += "|ms=";          resp += mouseEnabled ? "1" : "0";
+  resp += "|bat=";         resp += String(batteryPercent);
+  resp += "|profile=";     resp += String((int)currentProfile);
+  resp += "|mode=";        resp += String((int)currentMode);
+  resp += "|mouseState=";  resp += String((int)mouseState);
+  resp += "|uptime=";      resp += String(uptime);
+  resp += "|kbNext=";      resp += String(AVAILABLE_KEYS[nextKeyIndex].name);
+
+  bleWrite(resp);
+}
+
+// ----------------------------------------------------------------------------
+// ?settings — all persistent settings
+// ----------------------------------------------------------------------------
+static void cmdQuerySettings() {
+  String resp = "!settings";
+  resp += "|keyMin=";       resp += String(settings.keyIntervalMin);
+  resp += "|keyMax=";       resp += String(settings.keyIntervalMax);
+  resp += "|mouseJig=";     resp += String(settings.mouseJiggleDuration);
+  resp += "|mouseIdle=";    resp += String(settings.mouseIdleDuration);
+  resp += "|mouseAmp=";     resp += String(settings.mouseAmplitude);
+  resp += "|lazyPct=";      resp += String(settings.lazyPercent);
+  resp += "|busyPct=";      resp += String(settings.busyPercent);
+  resp += "|dispBright=";   resp += String(settings.displayBrightness);
+  resp += "|saverBright=";  resp += String(settings.saverBrightness);
+  resp += "|saverTimeout="; resp += String(settings.saverTimeout);
+  resp += "|animStyle=";    resp += String(settings.animStyle);
+  resp += "|name=";         resp += String(settings.deviceName);
+
+  // Slots as comma-separated indices
+  resp += "|slots=";
+  for (int i = 0; i < NUM_SLOTS; i++) {
+    if (i > 0) resp += ",";
+    resp += String(settings.keySlots[i]);
+  }
+
+  bleWrite(resp);
+}
+
+// ----------------------------------------------------------------------------
+// ?keys — list of all available key names (populates dropdowns)
+// ----------------------------------------------------------------------------
+static void cmdQueryKeys() {
+  String resp = "!keys";
+  for (int i = 0; i < NUM_KEYS; i++) {
+    resp += "|";
+    resp += AVAILABLE_KEYS[i].name;
+  }
+  bleWrite(resp);
+}
+
+// ----------------------------------------------------------------------------
+// =key:value — set a single setting
+// Applies to in-memory struct immediately (like encoder editing).
+// Flash save only on explicit !save command.
+// ----------------------------------------------------------------------------
+static void cmdSetValue(const char* body) {
+  // Find the colon separator
+  const char* colon = strchr(body, ':');
+  if (!colon) {
+    bleWrite("-err:missing colon");
+    return;
+  }
+
+  // Extract key and value strings
+  int keyLen = colon - body;
+  char key[32];
+  if (keyLen >= (int)sizeof(key)) keyLen = sizeof(key) - 1;
+  strncpy(key, body, keyLen);
+  key[keyLen] = '\0';
+
+  const char* valStr = colon + 1;
+
+  // Match key name to setting and apply
+  if (strcmp(key, "keyMin") == 0) {
+    setSettingValue(SET_KEY_MIN, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "keyMax") == 0) {
+    setSettingValue(SET_KEY_MAX, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "mouseJig") == 0) {
+    setSettingValue(SET_MOUSE_JIG, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "mouseIdle") == 0) {
+    setSettingValue(SET_MOUSE_IDLE, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "mouseAmp") == 0) {
+    setSettingValue(SET_MOUSE_AMP, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "lazyPct") == 0) {
+    setSettingValue(SET_LAZY_PCT, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "busyPct") == 0) {
+    setSettingValue(SET_BUSY_PCT, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "dispBright") == 0) {
+    setSettingValue(SET_DISPLAY_BRIGHT, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "saverBright") == 0) {
+    setSettingValue(SET_SAVER_BRIGHT, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "saverTimeout") == 0) {
+    setSettingValue(SET_SAVER_TIMEOUT, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "animStyle") == 0) {
+    setSettingValue(SET_ANIMATION, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "name") == 0) {
+    // Device name — up to 14 chars
+    strncpy(settings.deviceName, valStr, NAME_MAX_LEN);
+    settings.deviceName[NAME_MAX_LEN] = '\0';
+  } else if (strcmp(key, "slots") == 0) {
+    // Comma-separated slot indices: "2,28,28,28,28,28,28,28"
+    int slot = 0;
+    const char* p = valStr;
+    while (slot < NUM_SLOTS && *p) {
+      settings.keySlots[slot] = (uint8_t)atoi(p);
+      if (settings.keySlots[slot] >= NUM_KEYS) {
+        settings.keySlots[slot] = NUM_KEYS - 1;
+      }
+      slot++;
+      // Advance past this number and the comma
+      while (*p && *p != ',') p++;
+      if (*p == ',') p++;
+    }
+  } else {
+    bleWrite("-err:unknown key");
+    return;
+  }
+
+  // Re-schedule timing after any change (like encoder editing does)
+  scheduleNextKey();
+  scheduleNextMouseState();
+
+  bleWrite("+ok");
+}
+
+// ----------------------------------------------------------------------------
+// !save — persist current settings to flash
+// ----------------------------------------------------------------------------
+static void cmdSave() {
+  saveSettings();
+  bleWrite("+ok");
+}
+
+// ----------------------------------------------------------------------------
+// !defaults — reset all settings to factory defaults
+// ----------------------------------------------------------------------------
+static void cmdDefaults() {
+  loadDefaults();
+  scheduleNextKey();
+  scheduleNextMouseState();
+  pickNextKey();
+  currentProfile = PROFILE_NORMAL;
+  bleWrite("+ok");
+}
+
+// ----------------------------------------------------------------------------
+// !reboot — restart the device
+// ----------------------------------------------------------------------------
+static void cmdReboot() {
+  bleWrite("+ok");
+  delay(100);  // Let the BLE response transmit
+  NVIC_SystemReset();
+}
