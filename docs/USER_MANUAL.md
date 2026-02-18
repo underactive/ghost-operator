@@ -1,4 +1,4 @@
-# Ghost Operator v1.7.0 - User Manual
+# Ghost Operator v1.7.1 - User Manual
 
 ## Quick Start
 
@@ -482,6 +482,6 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 
 ---
 
-*Ghost Operator v1.7.0 | TARS Industrial Technical Solutions*
+*Ghost Operator v1.7.1 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*

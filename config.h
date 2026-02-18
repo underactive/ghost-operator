@@ -7,7 +7,7 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.7.0"
+#define VERSION "1.7.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F48  // bumped: added animStyle field

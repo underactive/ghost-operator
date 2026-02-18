@@ -5,6 +5,18 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-02-18
+
+### Added
+
+- **OTA DFU mode**: Firmware commands to reboot into DFU bootloader for over-the-air updates via nRF Connect mobile or `adafruit-nrfutil`
+  - New `!dfu` BLE UART command reboots device into DFU bootloader mode
+  - New `f` serial command for entering DFU mode during development/testing
+  - Uses SoftDevice-safe GPREGRET API (`sd_power_gpregret_set`) — direct register access hard-faults
+  - OLED shows "OTA DFU" screen during bootloader mode (persists through reboot)
+  - Bootloader stays in DFU mode indefinitely; power cycle to exit without completing transfer
+  - **Note:** Web Bluetooth DFU not supported — Adafruit bootloader uses legacy DFU protocol (`00001530-...`) which Chrome blocklists. Use nRF Connect mobile app or `adafruit-nrfutil dfu ble` instead.
+
 ## [1.7.0] - 2026-02-18
 
 ### Added

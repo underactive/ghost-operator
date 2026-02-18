@@ -5,5 +5,6 @@
 
 void setupBleUart();
 void handleBleUart();
+void resetToDfu();
 
 #endif // GHOST_BLE_UART_H

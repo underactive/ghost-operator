@@ -1,4 +1,5 @@
 #include "serial_cmd.h"
+#include "ble_uart.h"
 #include "state.h"
 #include "keys.h"
 #include "timing.h"
@@ -33,6 +34,7 @@ void handleSerialCommands() {
         Serial.println("d - Dump settings");
         Serial.println("p - PNG screenshot");
         Serial.println("v - Screensaver");
+        Serial.println("f - OTA DFU mode");
         break;
       case 'p':
         serialScreenshot();
@@ -76,6 +78,10 @@ void handleSerialCommands() {
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
         Serial.print("Device name: "); Serial.println(settings.deviceName);
         Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
+        break;
+      case 'f':
+        Serial.println("Entering OTA DFU mode...");
+        resetToDfu();
         break;
     }
   }
