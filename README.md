@@ -1,6 +1,6 @@
 # Ghost Operator - BLE HID Device
 
-## Version 1.7.0
+## Version 1.7.1
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -15,6 +15,7 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 - **USB-C Charging** - Charge while operating
 - **~60+ hours runtime** on 1000mAh battery
 - **Web Dashboard** - Configure wirelessly via Chrome Web Bluetooth (BLE UART)
+- **OTA DFU Mode** - Update firmware over Bluetooth via nRF Connect mobile app
 
 ---
 
@@ -296,6 +297,7 @@ Connect via USB at 115200 baud:
 | z | Enter sleep mode |
 | p | PNG screenshot (base64-encoded) |
 | v | Activate screensaver |
+| f | Enter OTA DFU mode |
 
 ---
 
@@ -343,7 +345,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.7.0** | **BLE UART wireless config, Vue 3 web dashboard** |
+| **1.7.1** | **OTA DFU mode via nRF Connect mobile app** |
+| 1.7.0 | BLE UART wireless config, Vue 3 web dashboard |
 | 1.6.0 | Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial movement, reset defaults |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |

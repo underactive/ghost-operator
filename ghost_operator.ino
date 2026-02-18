@@ -140,7 +140,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
 
   bledis.setManufacturer("TARS Industrial Technical Solutions");
-  bledis.setModel("Ghost Operator v1.7.0");
+  bledis.setModel("Ghost Operator v1.7.1");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
 

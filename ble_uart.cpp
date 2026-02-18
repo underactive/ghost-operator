@@ -20,6 +20,7 @@ static void cmdSetValue(const char* body);
 static void cmdSave();
 static void cmdDefaults();
 static void cmdReboot();
+static void cmdDfu();
 
 // ----------------------------------------------------------------------------
 // BLE UART RX callback — called from SoftDevice context
@@ -107,6 +108,8 @@ static void processCommand(const char* line) {
       cmdDefaults();
     } else if (strcmp(cmd, "reboot") == 0) {
       cmdReboot();
+    } else if (strcmp(cmd, "dfu") == 0) {
+      cmdDfu();
     } else {
       bleWrite("-err:unknown action");
     }
@@ -278,4 +281,41 @@ static void cmdReboot() {
   bleWrite("+ok");
   delay(100);  // Let the BLE response transmit
   NVIC_SystemReset();
+}
+
+// ----------------------------------------------------------------------------
+// SoftDevice-safe reboot into OTA DFU bootloader mode.
+// enterOTADfu() from wiring.h writes directly to NRF_POWER->GPREGRET, which
+// hard-faults when the SoftDevice is active (it owns that register).
+// We must use the sd_power_gpregret_*() SVCall API instead.
+// Shows a DFU screen on the OLED before resetting (bootloader doesn't drive
+// the display, so this framebuffer persists through the reboot).
+// ----------------------------------------------------------------------------
+void resetToDfu() {
+  if (displayInitialized) {
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+    display.setTextSize(2);
+    display.setCursor(16, 8);
+    display.print("OTA DFU");
+    display.setTextSize(1);
+    display.setCursor(10, 36);
+    display.print("Waiting for update");
+    display.setCursor(10, 50);
+    display.print("Power cycle to exit");
+    display.display();
+  }
+
+  sd_power_gpregret_clr(0, 0xFF);
+  sd_power_gpregret_set(0, 0xA8);  // DFU_MAGIC_OTA_RESET
+  NVIC_SystemReset();
+}
+
+// ----------------------------------------------------------------------------
+// !dfu — reboot into OTA DFU bootloader mode
+// ----------------------------------------------------------------------------
+static void cmdDfu() {
+  bleWrite("+ok:dfu");
+  delay(100);  // Let the BLE response transmit
+  resetToDfu();
 }

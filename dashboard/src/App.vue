@@ -14,7 +14,7 @@ import DeviceSection from './components/DeviceSection.vue'
   <div class="app">
     <header>
       <h1>👻 Ghost Operator</h1>
-      <span class="version">v1.7.0</span>
+      <span class="version">v1.7.1</span>
     </header>
 
     <ConnectButton />
