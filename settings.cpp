@@ -21,6 +21,7 @@ void loadDefaults() {
   settings.saverBrightness = 20;               // 20%
   settings.displayBrightness = 80;             // 80%
   settings.mouseAmplitude = 1;                 // 1px per step (default)
+  settings.animStyle = 2;                      // Ghost (default)
   strncpy(settings.deviceName, DEVICE_NAME, 14);
   settings.deviceName[14] = '\0';
 }
@@ -80,6 +81,7 @@ void loadSettings() {
         if (settings.saverBrightness < 10 || settings.saverBrightness > 100 || settings.saverBrightness % 10 != 0) settings.saverBrightness = 20;
         if (settings.displayBrightness < 10 || settings.displayBrightness > 100 || settings.displayBrightness % 10 != 0) settings.displayBrightness = 80;
         if (settings.mouseAmplitude < 1 || settings.mouseAmplitude > 5) settings.mouseAmplitude = 1;
+        if (settings.animStyle >= ANIM_STYLE_COUNT) settings.animStyle = 0;
         // Validate device name: null-terminate, check printable ASCII
         settings.deviceName[14] = '\0';
         bool nameValid = (settings.deviceName[0] != '\0');
@@ -112,6 +114,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_DISPLAY_BRIGHT: return settings.displayBrightness;
     case SET_SAVER_BRIGHT:   return settings.saverBrightness;
     case SET_SAVER_TIMEOUT:  return settings.saverTimeout;
+    case SET_ANIMATION:      return settings.animStyle;
     case SET_VERSION:        return 0;  // read-only display
     default:                 return 0;
   }
@@ -137,6 +140,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_DISPLAY_BRIGHT: settings.displayBrightness = (uint8_t)value; break;
     case SET_SAVER_BRIGHT:   settings.saverBrightness = (uint8_t)value; break;
     case SET_SAVER_TIMEOUT:  settings.saverTimeout = (uint8_t)value; break;
+    case SET_ANIMATION:      settings.animStyle = (uint8_t)value; break;
   }
 }
 
@@ -148,6 +152,7 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
     case FMT_PERCENT_NEG:  return (val == 0) ? String("0%") : ("-" + String(val) + "%");
     case FMT_SAVER_NAME:   return String(SAVER_NAMES[val]);
     case FMT_PIXELS:       return String(val) + "px";
+    case FMT_ANIM_NAME:    return String(ANIM_NAMES[val]);
     case FMT_VERSION:      return String("v") + String(VERSION);
     default:               return String(val);
   }

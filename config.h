@@ -10,7 +10,7 @@
 #define VERSION "1.6.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F47  // "PROG" (bumped for key array reorder)
+#define SETTINGS_MAGIC 0x50524F48  // bumped: added animStyle field
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
 
@@ -72,6 +72,7 @@
 // Screensaver timeout options
 #define SAVER_TIMEOUT_COUNT   6
 #define DEFAULT_SAVER_IDX     5           // 30 min
+#define ANIM_STYLE_COUNT      6
 
 // BLE device name character set
 #define NAME_CHAR_COUNT  65   // printable characters
@@ -93,7 +94,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 
@@ -102,6 +103,7 @@ enum SettingId {
   SET_MOUSE_JIG, SET_MOUSE_IDLE, SET_MOUSE_AMP,
   SET_LAZY_PCT, SET_BUSY_PCT,
   SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
+  SET_ANIMATION,
   SET_DEVICE_NAME,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
@@ -127,7 +129,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 20
+#define MENU_ITEM_COUNT 21
 
 struct Settings {
   uint32_t magic;
@@ -142,6 +144,7 @@ struct Settings {
   uint8_t saverBrightness; // 10-100 in steps of 10, default 20
   uint8_t displayBrightness; // 10-100 in steps of 10, default 80
   uint8_t mouseAmplitude;  // 1-5, step 1, default 1 (pixels per movement step)
+  uint8_t animStyle;       // 0-6 index into ANIM_NAMES (default 0 = ECG)
   char    deviceName[15]; // 14 chars + null terminator (BLE device name)
   uint8_t checksum;       // must remain last
 };

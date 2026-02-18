@@ -13,5 +13,6 @@ extern const char* SAVER_NAMES[];
 extern const char NAME_CHARS[];
 extern const char* MODE_NAMES[];
 extern const char* PROFILE_NAMES[];
+extern const char* ANIM_NAMES[];
 
 #endif // GHOST_KEYS_H
