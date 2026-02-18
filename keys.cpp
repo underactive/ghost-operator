@@ -70,7 +70,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_ACTION,  "Reboot",        "Restart device (applies pending changes)", FMT_DURATION_MS, 0, 0, 0, SET_REBOOT },
   // About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
-  { MENU_VALUE,   "Version",       "(c) 2026 TARS Industries", FMT_VERSION, 0, 0, 0, SET_VERSION },
+  { MENU_VALUE,   "Version",       "(c) 2026 TARS Industrial Technical Solutions", FMT_VERSION, 0, 0, 0, SET_VERSION },
 };
 
 const int8_t MOUSE_DIRS[][2] = {
