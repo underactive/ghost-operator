@@ -286,17 +286,9 @@ static void drawNormalMode() {
     display.setCursor(102, 41);
     display.print("---");
   } else if (mouseState == MOUSE_RETURNING) {
-    // Knight Rider sweep: highlight segment bounces back and forth
-    const int barInner = 98;   // usable width inside border (1..99)
-    const int segW = 16;       // sweep segment width
-    unsigned long phase = (now / 8) % ((barInner - segW) * 2);  // ping-pong period
-    int segX;
-    if (phase < (unsigned long)(barInner - segW)) {
-      segX = (int)phase;
-    } else {
-      segX = (barInner - segW) * 2 - (int)phase;  // bounce back
-    }
-    display.fillRect(1 + segX, 42, segW, 5, SSD1306_WHITE);
+    // Empty bar during return (0%)
+    display.setCursor(102, 41);
+    display.print("0.0s");
   } else {
     unsigned long mouseElapsed = now - lastMouseStateChange;
     unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
@@ -422,17 +414,7 @@ static void drawScreensaver() {
   if (!deviceConnected) {
     // BLE disconnected -- no bar drawn
   } else if (mouseState == MOUSE_RETURNING) {
-    // Knight Rider sweep: 1px highlight segment bounces across full width
-    const int barW = 128;
-    const int segW = 20;
-    unsigned long phase = (now / 8) % ((barW - segW) * 2);
-    int segX;
-    if (phase < (unsigned long)(barW - segW)) {
-      segX = (int)phase;
-    } else {
-      segX = (barW - segW) * 2 - (int)phase;
-    }
-    display.drawFastHLine(segX, 42, segW, SSD1306_WHITE);
+    // Empty bar during return (0%)
   } else {
     unsigned long mouseElapsed = now - lastMouseStateChange;
     unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;

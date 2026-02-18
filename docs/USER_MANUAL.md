@@ -58,7 +58,7 @@
 **Mouse Section:**
 - `[MOV]` - Currently moving
 - `[IDL]` - Currently idle (paused)
-- `[RTN]` - Returning to original position (Knight Rider sweep animation on progress bar)
+- `[RTN]` - Returning to original position (progress bar at 0%)
 - `15s/30s` - Move duration / idle duration (profile-adjusted)
 - ↑ / ✕ - Mouse enabled or disabled
 - Progress bar counts up while idle (charging), counts down while moving (draining)
@@ -330,7 +330,7 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
   - The "Move size" setting controls the peak speed (1-5px per step)
 - **Idle phase:** Mouse stops for the set duration (adjusted by active profile)
 - ±20% randomness on both durations
-- Mouse returns to approximate starting position after each movement (display shows `[RTN]` with a Knight Rider sweep animation)
+- Mouse returns to approximate starting position after each movement (display shows `[RTN]` with progress bar at 0%)
 
 ---
 

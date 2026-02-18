@@ -342,7 +342,7 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.6.0** | **Modular codebase (15 module pairs), Knight Rider mouse return animation, configurable status animation (6 styles), Display/Device menu split** |
+| **1.6.0** | **Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split** |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial movement, reset defaults |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |

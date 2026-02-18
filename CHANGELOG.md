@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `serial_cmd.h/.cpp` — serial debug commands + status
   - `input.h/.cpp` — encoder dispatch, buttons, name editor
   - `display.h/.cpp` — all rendering (~800 lines, largest module)
-- **Mouse RETURNING progress bar**: Replaced filling progress bar with Knight Rider sweep animation (bouncing highlight segment) — filling bar implied "charging up" which was misleading for a return-to-origin phase
+- **Mouse RETURNING progress bar**: Shows empty bar (0%) during return-to-origin phase — no animation, just a static empty state
 - Removed redundant "RTN" text from mouse timer area during MOUSE_RETURNING state — `[RTN]` in the status label is sufficient
 - **Configurable status animation**: New "Animation" setting in the Display menu section with 6 styles
   - ECG (scrolling heartbeat trace), EQ (equalizer bars), Ghost (animated ghost character), Matrix (falling characters), Radar (rotating sweep), None (disabled)

@@ -150,7 +150,7 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - Tracks net displacement during movement
 - Non-blocking return to approximate origin via MOUSE_RETURNING state
 - JIGGLING uses sine ease-in-out velocity profile: `amp = mouseAmplitude * sin(π × progress)` where progress goes 0→1 over the jiggle duration. Movement ramps from zero → peak → zero. Steps with zero amplitude are skipped (natural pause at start/end). `pickNewDirection()` stores unit vectors (-1/0/+1); amplitude is applied per-step with easing.
-- Display shows `[RTN]` during MOUSE_RETURNING state; progress bar uses a Knight Rider sweep animation (bouncing highlight segment) instead of a filling bar
+- Display shows `[RTN]` during MOUSE_RETURNING state; progress bar stays at 0% (empty)
 
 #### 7. Power Management
 - `sd_power_system_off()` for deep sleep
@@ -197,7 +197,7 @@ MS [MOV]  17s/25s          ↑   ← effective durations
 BUSY                  ~^~_~^~  ← profile name (3s) or "Up: HH:MM:SS"; animation on right
 ```
 `KB [F15]` shows the pre-picked next key. Changes after each keypress.
-`[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (Knight Rider sweep on progress bar).
+`[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (progress bar at 0%).
 Footer shows profile name for 3 seconds after switching, then reverts to uptime. Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost).
 
 ### Menu Mode
@@ -270,7 +270,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
-| 1.6.0 | Modular codebase (15 module pairs), Knight Rider mouse return animation, configurable status animation (6 styles), Display/Device menu split |
+| 1.6.0 | Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split |
 
 ---
 
