@@ -47,6 +47,7 @@ jobs:
 
       - name: Install board package and libraries
         run: |
+          pip install adafruit-nrfutil
           arduino-cli config init --overwrite
           arduino-cli config add board_manager.additional_urls \
             "https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json"
