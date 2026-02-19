@@ -1,16 +1,15 @@
 <script setup>
 import { connectionState, connectDevice, disconnectDevice } from '../lib/store.js'
-import { isWebBluetoothAvailable } from '../lib/ble.js'
+import { isWebSerialAvailable } from '../lib/serial.js'
 
-const webBleAvailable = isWebBluetoothAvailable()
+const webSerialAvailable = isWebSerialAvailable()
 </script>
 
 <template>
   <div class="connect-section">
-    <template v-if="!webBleAvailable">
+    <template v-if="!webSerialAvailable">
       <div class="warning">
-        Web Bluetooth is not available in this browser.
-        Use Chrome, Edge, or Opera on desktop, or Chrome on Android.
+        Web Serial is not available. Use Chrome or Edge on desktop.
       </div>
     </template>
     <template v-else>
@@ -20,7 +19,7 @@ const webBleAvailable = isWebBluetoothAvailable()
         :disabled="connectionState.connecting"
         @click="connectDevice"
       >
-        {{ connectionState.connecting ? 'Connecting...' : 'Connect Device' }}
+        {{ connectionState.connecting ? 'Connecting...' : 'Connect USB' }}
       </button>
       <button
         v-else

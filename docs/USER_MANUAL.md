@@ -112,7 +112,7 @@
 | | Saver bright | Screensaver dimmed brightness (10-100%, default 20%) |
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
 | | Animation | Status animation style (ECG / EQ / Ghost / Matrix / Radar / None, default Ghost) |
-| **Device** | Device name | BLE device name editor (press encoder to enter) |
+| **Device** | Device name | Device name editor (press encoder to enter) |
 | | Reset defaults | Restore all settings to factory defaults (confirmation required) |
 | | Reboot | Restart the device (confirmation required) |
 | **About** | Version | Firmware version (read-only) |
@@ -143,7 +143,7 @@
 
 ---
 
-### Name Mode (BLE Device Name Editor)
+### Name Mode (Device Name Editor)
 
 ```
 ┌────────────────────────────────┐
@@ -269,7 +269,7 @@ If you want to restore all settings to their original factory values:
 
 ### Reboot Device
 
-To restart the device from the menu (useful for applying a pending BLE name change):
+To restart the device from the menu (useful for applying a pending device name change):
 
 1. Open the **menu** (short press function button)
 2. Scroll to **"Reboot"** under the **Device** heading and **press encoder**
@@ -441,15 +441,15 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 
 **Steps:**
 
-1. Connect to your device via BLE in the web dashboard
+1. Connect to your device via USB in the web dashboard (click **Connect USB**)
 2. Expand the **Firmware Update** section at the bottom
 3. Select the `.zip` DFU package file
 4. Click **Start Firmware Update**, then **Confirm Update**
-5. The device reboots into USB DFU mode (BLE disconnects — this is normal)
+5. The device reboots into USB DFU mode (serial disconnects — this is normal)
 6. When prompted, click **Select Serial Port** and pick the DFU serial port from the Chrome dialog
 7. The firmware transfer begins — watch the progress bar
 8. On completion, the device reboots with the new firmware
-9. Reconnect via BLE to verify the new version
+9. Reconnect via USB to verify the new version
 
 **If something goes wrong:**
 - If the device is stuck in DFU mode, power cycle it (unplug USB and battery, then replug)

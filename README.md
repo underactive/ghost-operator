@@ -14,7 +14,7 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 - **OLED Display** - Real-time countdown bars and uptime
 - **USB-C Charging** - Charge while operating
 - **~60+ hours runtime** on 1000mAh battery
-- **Web Dashboard** - Configure wirelessly via Chrome Web Bluetooth (BLE UART)
+- **Web Dashboard** - Configure via USB serial in Chrome (Web Serial API)
 - **Web Serial DFU** - Update firmware from the web dashboard via USB serial
 - **OTA DFU Mode** - Update firmware over Bluetooth via nRF Connect mobile app
 
@@ -89,7 +89,7 @@ Four modes, accessed via function button:
 | **NORMAL** | Live status display; encoder switches profile, button cycles KB/MS combos |
 | **MENU** | Scrollable settings menu; encoder navigates/edits, button selects/confirms |
 | **SLOTS** | 8-key slot editor; encoder cycles key, button advances slot |
-| **NAME** | BLE device name editor; encoder cycles character, button advances position |
+| **NAME** | Device name editor; encoder cycles character, button advances position |
 
 ### Control Actions
 
@@ -333,6 +333,8 @@ Connect via USB at 115200 baud:
 | `serial_cmd.h/.cpp` | Serial debug commands + status |
 | `input.h/.cpp` | Encoder dispatch, buttons, name editor |
 | `display.h/.cpp` | All rendering (~800 lines) |
+| `ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `dashboard/` | Vue 3 web dashboard (USB serial config + Web Serial DFU) |
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | Technical documentation (this file) |
@@ -349,7 +351,7 @@ Connect via USB at 115200 baud:
 |---------|---------|
 | **1.7.2** | **Web Serial DFU — browser-based firmware updates via USB** |
 | 1.7.1 | OTA DFU mode via nRF Connect mobile app |
-| 1.7.0 | BLE UART wireless config, Vue 3 web dashboard |
+| 1.7.0 | BLE UART config protocol, Vue 3 web dashboard (USB serial) |
 | 1.6.0 | Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial movement, reset defaults |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
