@@ -29,6 +29,16 @@ void sendMouseMove(int8_t dx, int8_t dy) {
   }
 }
 
+void sendMouseScroll(int8_t scroll) {
+  if (!rfCalOk()) return;
+  if (deviceConnected) {
+    blehid.mouseScroll(scroll);
+  }
+  if (TinyUSBDevice.mounted() && usb_hid.ready()) {
+    usb_hid.mouseReport(RID_MOUSE, 0, 0, 0, scroll, 0);
+  }
+}
+
 bool hasPopulatedSlot() {
   for (int i = 0; i < NUM_SLOTS; i++) {
     if (AVAILABLE_KEYS[settings.keySlots[i]].keycode != 0) return true;

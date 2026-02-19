@@ -61,6 +61,17 @@ function formatMs(ms) {
         Bezier mode uses random sweep radius
       </span>
     </div>
+    <div class="field">
+      <label>Scroll</label>
+      <select
+        :value="settings.scroll"
+        @change="setSetting('scroll', Number($event.target.value))"
+      >
+        <option :value="0">Off</option>
+        <option :value="1">On</option>
+      </select>
+      <span class="field-help">Random scroll wheel during mouse movement</span>
+    </div>
   </section>
 </template>
 

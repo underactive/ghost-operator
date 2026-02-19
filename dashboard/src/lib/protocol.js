@@ -92,6 +92,7 @@ export function parseSettings(data) {
     animStyle: parseInt(data.animStyle ?? '2'),
     name: data.name || 'GhostOperator',
     btWhileUsb: parseInt(data.btWhileUsb) || 0,
+    scroll: parseInt(data.scroll) || 0,
     slots: (data.slots || '2,28,28,28,28,28,28,28').split(',').map(Number),
   }
 }
