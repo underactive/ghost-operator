@@ -1,0 +1,69 @@
+name: Build & Release DFU
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract and validate version
+        id: version
+        run: |
+          # Version from git tag
+          TAG_VER="${GITHUB_REF_NAME#v}"
+          echo "version=$TAG_VER" >> "$GITHUB_OUTPUT"
+
+          # Version from config.h
+          CODE_VER=$(grep -E '^#define VERSION "' config.h | sed 's/.*"\(.*\)".*/\1/')
+
+          echo "Tag version:  $TAG_VER"
+          echo "Code version: $CODE_VER"
+
+          if [[ "$TAG_VER" != "$CODE_VER" ]]; then
+            echo "ERROR: Tag version ($TAG_VER) does not match config.h ($CODE_VER)"
+            exit 1
+          fi
+
+      - name: Install arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install board package and libraries
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls \
+            "https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json"
+          arduino-cli core update-index
+          arduino-cli core install Seeeduino:nrf52
+          arduino-cli lib install "Adafruit GFX Library"
+          arduino-cli lib install "Adafruit SSD1306"
+          arduino-cli lib install "Adafruit BusIO"
+
+      - name: Compile firmware
+        run: |
+          arduino-cli compile \
+            --fqbn Seeeduino:nrf52:xiaonRF52840 \
+            --build-path build/Seeeduino.nrf52.xiaonRF52840 \
+            . \
+            --warnings default
+
+      - name: Prepare release artifact
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p releases
+          cp build/Seeeduino.nrf52.xiaonRF52840/ghost_operator.ino.zip \
+             "releases/ghost_operator_dfu-v${VERSION}.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: releases/ghost_operator_dfu-*.zip
+          generate_release_notes: true

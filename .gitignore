@@ -16,6 +16,8 @@ build/
 
 # DFU packages
 ghost_operator_dfu-*.zip
+ghost_operator_dfu-v*.zip
+releases/
 
 # Dashboard
 dashboard/node_modules/
