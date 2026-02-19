@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.8.1
+**Current Version:** 1.8.2
 **Status:** Production-ready
 
 ---
@@ -324,6 +324,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
+| 1.8.2 | Mute indicator on progress bars, custom name in header, narrower screensaver bars with end caps |
 | 1.8.1 | Pac-Man easter egg redesign: power pellet narrative with tunnel transition |
 | 1.8.0 | Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation |
 | 1.7.2 | Web Serial DFU, dashboard switched from BLE to USB serial |
@@ -346,6 +347,11 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 ---
 
 ## Common Modifications
+
+### Version bumps
+Version appears in 7 files: `config.h`, `ghost_operator.ino`, `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `App.vue`, `USER_MANUAL.md` (x2), plus `dashboard/package.json`.
+
+**Dashboard versioning is independent.** Only bump `App.vue` and `dashboard/package.json` when the dashboard itself changes (new UI, protocol changes, bug fixes in web code). Firmware-only changes (display, HID, menu, timing, etc.) should NOT bump the dashboard version.
 
 ### Add a new keystroke option
 1. Add entry to `AVAILABLE_KEYS[]` array in `keys.cpp`

@@ -5,6 +5,14 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-02-19
+
+### Changed
+
+- **Mute indicator**: Show "mute" instead of countdown time next to KB/mouse progress bars when respective output is disabled
+- **Custom device name in header**: Normal mode header shows custom device name instead of "GHOST Operator" when name differs from default
+- **Screensaver progress bars**: Narrowed to 65% width (83px centered) with 3px tall end caps as visual bookends; reduces lit pixels for burn-in prevention
+
 ## [1.8.1] - 2026-02-18
 
 ### Changed
