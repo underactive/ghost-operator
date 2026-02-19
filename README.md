@@ -1,22 +1,24 @@
 # Ghost Operator - BLE HID Device
 
-## Version 1.8.3
+## Version 1.9.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
 
 ## Features
 
-- **BLE HID Keyboard + Mouse** - Works with any Bluetooth device
+- **BLE + USB HID Keyboard + Mouse** - Works over Bluetooth and wired USB simultaneously
 - **Encoder Menu System** - Adjust all settings with single rotary encoder
 - **Flash Storage** - Settings survive sleep and power off (1MB onboard)
 - **Software Power Control** - Deep sleep mode (~3µA)
 - **OLED Display** - Real-time countdown bars and uptime
 - **USB-C Charging** - Charge while operating
 - **~60+ hours runtime** on 1000mAh battery
+- **Scroll Wheel** - Optional random scroll events during mouse jiggle
 - **Web Dashboard** - Configure via USB serial in Chrome (Web Serial API)
 - **Web Serial DFU** - Update firmware from the web dashboard via USB serial
 - **OTA DFU Mode** - Update firmware over Bluetooth via nRF Connect mobile app
+- **Build Automation** - Local build/flash via Makefile, GitHub Actions CI/CD for releases
 
 ---
 
@@ -114,6 +116,7 @@ Settings organized under headings in the scrollable menu:
 | | Idle duration | 0.5s - 90s (0.5s steps) |
 | | Move style | Bezier / Brownian |
 | | Move size | 1px - 5px (1px steps, Brownian only) |
+| | Scroll | Off / On (random scroll wheel during jiggle) |
 | **Profiles** | Lazy adjust | -50% to 0% (5% steps) |
 | | Busy adjust | 0% to 50% (5% steps) |
 | **Display** | Brightness | 10% - 100% (10% steps) |
@@ -121,6 +124,7 @@ Settings organized under headings in the scrollable menu:
 | | Saver time | Never / 1 / 5 / 10 / 15 / 30 min |
 | | Animation | ECG / EQ / Ghost / Matrix / Radar / None |
 | **Device** | Device name | → opens NAME mode (14 char max) |
+| | BT while USB | Off / On (keep BLE active when USB plugged in) |
 | | Reset defaults | → confirmation prompt (restores factory settings) |
 | | Reboot | → confirmation prompt (restarts device) |
 | **About** | Version | Read-only firmware version |
@@ -167,7 +171,7 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 
 - **KB [key]**: Shows the pre-picked next key that will fire when the countdown reaches zero
 - **2.0-6.5s**: Profile-adjusted key interval range (MIN-MAX)
-- **Bluetooth icon** (solid) = Connected, (flashing) = Scanning
+- **Bluetooth icon** (solid) = BLE connected, (flashing) = Scanning; **USB icon** shown when wired
 - ↑ = enabled, ✕ = disabled; mouse idle bar counts up, move bar counts down
 - **[MOV]** = Mouse moving, **[IDL]** = Mouse idle, **[RTN]** = Returning to origin
 - Each keystroke cycle randomly picks from populated (non-NONE) slots
@@ -299,6 +303,7 @@ Connect via USB at 115200 baud:
 | z | Enter sleep mode |
 | p | PNG screenshot (base64-encoded) |
 | v | Activate screensaver |
+| e | Easter egg animation |
 | f | Enter OTA DFU mode (BLE) |
 | u | Enter Serial DFU mode (USB) |
 
@@ -318,7 +323,7 @@ Connect via USB at 115200 baud:
 
 | File | Description |
 |------|-------------|
-| `ghost_operator.ino` | Main entry point: setup(), loop(), BLE callbacks |
+| `ghost_operator.ino` | Main entry point: setup(), loop(), BLE + USB HID callbacks |
 | `config.h` | Constants, enums, structs (header-only) |
 | `keys.h/.cpp` | Const data tables (keys, menu items, names) |
 | `icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, arrows) |
@@ -342,6 +347,9 @@ Connect via USB at 115200 baud:
 | `docs/USER_MANUAL.md` | End-user guide |
 | `CHANGELOG.md` | Version history (semver) |
 | `CLAUDE.md` | Project context for AI assistants |
+| `build.sh` | Build automation: compile, setup, release, flash |
+| `Makefile` | Convenience targets wrapping build.sh |
+| `.github/workflows/release.yml` | CI/CD: build + GitHub Release on `v*` tag push |
 | `ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit) |
 
 ---
@@ -350,7 +358,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.8.2** | **Mute indicator on progress bars, custom name in header, narrower screensaver bars** |
+| **1.9.0** | **USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard** |
+| 1.8.2 | Mute indicator on progress bars, custom name in header, narrower screensaver bars |
 | 1.8.1 | Pac-Man easter egg redesign: power pellet narrative with tunnel transition |
 | 1.8.0 | Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation |
 | 1.7.2 | Web Serial DFU — browser-based firmware updates via USB |

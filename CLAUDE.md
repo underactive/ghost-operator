@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.8.3
+**Current Version:** 1.9.0
 **Status:** Production-ready
 
 ---
@@ -50,16 +50,16 @@
 ### Core Files
 Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
 
-- `ghost_operator.ino` - Entry point: setup(), loop(), BLE setup/callbacks (~297 lines)
+- `ghost_operator.ino` - Entry point: setup(), loop(), BLE + USB HID setup/callbacks
 - `config.h` - All `#define` constants, enums, structs (header-only)
 - `keys.h/.cpp` - Const data tables (AVAILABLE_KEYS, MENU_ITEMS, names)
-- `icons.h/.cpp` - PROGMEM bitmaps (splash, BT icon, arrows)
+- `icons.h/.cpp` - PROGMEM bitmaps (splash, BT icon, USB icon, arrows)
 - `state.h/.cpp` - All ~60 mutable globals as `extern` declarations
 - `settings.h/.cpp` - Flash persistence + value accessors
 - `timing.h/.cpp` - Profiles, scheduling, formatting
 - `encoder.h/.cpp` - ISR + polling quadrature decode
 - `battery.h/.cpp` - ADC battery reading
-- `hid.h/.cpp` - Keystroke sending + key selection
+- `hid.h/.cpp` - Keystroke + mouse + scroll sending (BLE + USB dual-transport)
 - `mouse.h/.cpp` - Mouse state machine with sine easing
 - `sleep.h/.cpp` - Deep sleep sequence
 - `screenshot.h/.cpp` - PNG encoder + base64 serial output
@@ -76,10 +76,15 @@ Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 ### Key Subsystems
 
-#### 1. BLE HID
-- Presents as composite keyboard + mouse device
-- Device name: "GhostOperator"
-- Auto-reconnects to last paired host
+#### 1. HID (BLE + USB)
+- Presents as composite keyboard + mouse device over both BLE and USB
+- BLE: Adafruit Bluefruit HID; USB: TinyUSB composite HID (`setupUSBHID()` registers descriptor before USB stack starts)
+- `dualKeyboardReport()` sends to both transports; `sendMouseMove()` and `sendMouseScroll()` likewise
+- Device name: "GhostOperator" (customizable)
+- Auto-reconnects to last paired BLE host
+- "BT while USB" setting (default Off): when Off, BLE stops when USB is connected; when On, both transports active simultaneously
+- Display shows USB trident icon when wired, BLE icon when wireless
+- Jiggler runs when either BLE or USB is connected
 
 #### 2. UI Modes
 ```cpp
@@ -93,10 +98,10 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (23 entries: 6 headings + 17 items):
+Data-driven architecture using `MenuItem` struct array (25 entries: 6 headings + 19 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
 - `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, `ANIM_NAMES[]`, or `MOUSE_STYLE_NAMES[]`
@@ -108,7 +113,7 @@ enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F49 (bumped for mouseStyle)
+  uint32_t magic;              // 0x50524F4B (bumped for scrollEnabled)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -123,11 +128,13 @@ struct Settings {
   uint8_t mouseStyle;          // 0=Bezier, 1=Brownian (default 0)
   uint8_t animStyle;           // 0-5 index into ANIM_NAMES[] (default 2 = Ghost)
   char    deviceName[15];      // 14 chars + null terminator (BLE device name)
+  uint8_t btWhileUsb;          // 0=Off (default), 1=On — keep BLE active when USB connected
+  uint8_t scrollEnabled;       // 0=Off (default), 1=On — random scroll wheel during mouse jiggle
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator".
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off.
 
 #### 4. Timing Profiles
 ```cpp
@@ -157,6 +164,7 @@ enum MouseStyle { MOUSE_BEZIER, MOUSE_BROWNIAN, MOUSE_STYLE_COUNT };
 - Non-blocking return to approximate origin via MOUSE_RETURNING state
 - Brownian JIGGLING uses sine ease-in-out velocity profile: `amp = mouseAmplitude * sin(π × progress)` where progress goes 0→1 over the jiggle duration. Movement ramps from zero → peak → zero. Steps with zero amplitude are skipped (natural pause at start/end). `pickNewDirection()` stores unit vectors (-1/0/+1); amplitude is applied per-step with easing.
 - Display shows `[RTN]` during MOUSE_RETURNING state; progress bar stays at 0% (empty)
+- **Scroll wheel** (optional): When `scrollEnabled`, random ±1 scroll ticks injected at 2-5s intervals during MOUSE_JIGGLING (both Bezier and Brownian). Uses `sendMouseScroll()` which sends to both BLE and USB.
 
 #### 7. Power Management
 - `sd_power_system_off()` for deep sleep
@@ -185,6 +193,9 @@ WEB → DEVICE                    DEVICE → WEB
 =keyMin:2000                →   +ok
 =slots:2,28,28,28,28,28,28,28 → +ok
 =mouseStyle:1               →   +ok
+=btWhileUsb:1               →   +ok
+=scroll:1                   →   +ok
+=statusPush:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok
 !defaults                   →   +ok
@@ -198,6 +209,7 @@ WEB → DEVICE                    DEVICE → WEB
 - Settings changes apply to in-memory struct immediately (like encoder); flash save on `!save`
 - BLE path: 20-byte chunked writes via `bleWrite()` for default MTU compatibility
 - Serial path: `serialWrite()` in `serial_cmd.cpp` — line-buffered, dispatches `?/=/!` prefixed lines to `processCommand()`
+- `pushSerialStatus()` proactively sends `?status` response on state changes (key sent, profile/mode toggle, mouse transition) — guarded by `serialStatusPush` flag (default OFF; dashboard enables via `=statusPush:1` on connect; serial `t` command toggles manually)
 - NUS not added to advertising packet (would overflow 31 bytes); discovered via `optionalServices`
 - Web dashboard (Vue 3 + Vite) in `dashboard/` connects via Chrome Web Serial API (USB)
 
@@ -315,6 +327,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 
 | Ver | Changes |
 |-----|---------|
+| 1.9.0 | USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard |
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
 | 1.1.0 | Display overhaul, BT icon, HID keycode fix |
 | 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
@@ -398,16 +411,16 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 
 | File | Purpose |
 |------|---------|
-| `ghost_operator.ino` | Entry point: setup(), loop(), BLE setup/callbacks |
+| `ghost_operator.ino` | Entry point: setup(), loop(), BLE + USB HID setup/callbacks |
 | `config.h` | Constants, enums, structs (header-only) |
 | `keys.h/.cpp` | Const data tables (keys, menu items, names) |
-| `icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, arrows) |
+| `icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, USB icon, arrows) |
 | `state.h/.cpp` | All mutable globals (extern declarations) |
 | `settings.h/.cpp` | Flash persistence + value accessors |
 | `timing.h/.cpp` | Profiles, scheduling, formatting |
 | `encoder.h/.cpp` | ISR + polling quadrature decode |
 | `battery.h/.cpp` | ADC battery reading |
-| `hid.h/.cpp` | Keystroke sending + key selection |
+| `hid.h/.cpp` | Keystroke + mouse + scroll sending (BLE + USB dual-transport) |
 | `mouse.h/.cpp` | Mouse state machine with sine easing |
 | `sleep.h/.cpp` | Deep sleep sequence |
 | `screenshot.h/.cpp` | PNG encoder + base64 serial output |
@@ -425,6 +438,9 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `CHANGELOG.md` | Version history (semver) |
 | `CLAUDE.md` | This file |
 | `docs/images/` | OLED screenshot PNGs for README |
+| `build.sh` | Build automation: compile, setup, release (DFU ZIP), flash |
+| `Makefile` | Convenience targets wrapping build.sh |
+| `.github/workflows/release.yml` | CI/CD: build + GitHub Release on `v*` tag push |
 | `ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit raw) |
 
 ---
@@ -438,9 +454,12 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 4. Select board: Seeed nRF52 Boards → Seeed XIAO nRF52840
 5. Select port and upload
 
-### PlatformIO
+### Command Line (build.sh / Makefile)
 ```bash
-pio run -t upload
+make setup    # Install arduino-cli, Seeed nRF52 board, required libraries
+make build    # Compile firmware
+make flash    # Compile + flash via USB serial DFU
+make release  # Compile + create versioned DFU ZIP in releases/
 ```
 
 ### Troubleshooting Build
@@ -590,6 +609,8 @@ At 115200 baud:
 | z | Sleep |
 | p | PNG screenshot (base64-encoded between `--- PNG START ---` / `--- PNG END ---` markers) |
 | v | Screensaver (activate instantly, forces NORMAL mode first) |
+| t | Toggle status push (real-time `!status` lines on state changes, default OFF) |
+| e | Easter egg (trigger animation immediately) |
 | f | Enter OTA DFU bootloader mode (writes 0xA8 to GPREGRET, resets) |
 | u | Enter Serial DFU bootloader mode (writes 0x4E to GPREGRET, resets — USB CDC) |
 

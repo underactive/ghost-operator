@@ -5,11 +5,40 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.3] - 2026-02-19
+## [1.9.0] - 2026-02-19
+
+### Added
+
+- **USB HID (wired)**: TinyUSB composite keyboard + mouse over USB alongside BLE
+  - Keystrokes and mouse movements sent to both USB and BLE transports simultaneously
+  - Display shows USB trident icon in header when wired; progress bars and jiggler run when either BLE or USB is connected
+  - LED blink rate reflects combined connection state (either transport counts as connected)
+- **"BT while USB" setting**: Control whether Bluetooth stays active when USB is plugged in (Off / On, default Off)
+  - When Off, BLE advertising stops and any active BLE connection is disconnected while USB is connected
+  - When On, both transports operate simultaneously
+  - New menu item in Device section; exposed in BLE UART protocol and dashboard
+- **Scroll wheel**: Optional random scroll wheel events during mouse jiggle (Off / On, default Off)
+  - When enabled, injects ±1 scroll ticks at random 2-5 second intervals during MOUSE_JIGGLING
+  - Works with both Bezier and Brownian movement styles
+  - New `sendMouseScroll()` sends to both BLE and USB transports
+  - New menu item "Scroll" in Mouse section; exposed in BLE UART protocol and dashboard
+- **Build automation**: Local build tooling and CI/CD for firmware releases
+  - `build.sh`: compile, setup (arduino-cli + board + libs), release (versioned DFU ZIP), flash (USB serial)
+  - `Makefile`: convenient targets wrapping build.sh (build, release, flash, setup, clean, help)
+  - `.github/workflows/release.yml`: GitHub Actions workflow — on `v*` tag push, validates version against `config.h`, builds firmware, creates GitHub Release with DFU ZIP attached
+- **Real-time serial status push**: `pushSerialStatus()` proactively sends `?status` response over USB serial on state changes (key sent, profile/mode/KB-MS toggles, mouse state transitions) — dashboard reflects device state without polling
+- **Serial `e` command**: Trigger easter egg animation immediately from serial debug interface
 
 ### Changed
 
-- (upcoming changes)
+- **Settings struct**: Added `btWhileUsb` and `scrollEnabled` fields; bumped `SETTINGS_MAGIC` to `0x50524F4B` (existing settings auto-reset to defaults on first boot)
+- **Menu**: 2 new items (Scroll, BT while USB) — `MENU_ITEM_COUNT` increased from 23 to 25; new `FMT_ON_OFF` value format
+- **Config protocol**: `?settings` response includes `btWhileUsb` and `scroll` fields; `?status` includes `usb` field; `=btWhileUsb:N` and `=scroll:N` set commands added
+- **Dashboard**: Status bar shows USB connection state; Mouse section has Scroll control; Device section has BT while USB control
+
+### Fixed
+
+- **Dashboard profile display**: LAZY profile (index 0) was silently displayed as NORMAL due to JavaScript `parseInt(0) || 1` falsy-value coercion — fixed with nullish coalescing (`??`). Same fix applied to `animStyle` (ECG → Ghost) and `saverTimeout` (Never → 30min)
 
 ## [1.8.2] - 2026-02-19
 
