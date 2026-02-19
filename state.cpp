@@ -89,6 +89,10 @@ int32_t mouseNetX = 0;
 int32_t mouseNetY = 0;
 int32_t mouseReturnTotal = 0;
 
+// Scroll state
+unsigned long lastScrollTime = 0;
+unsigned long nextScrollInterval = 3000;
+
 // Easter egg
 uint32_t mouseJiggleCount = 0;
 bool     easterEggActive  = false;

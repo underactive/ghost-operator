@@ -54,6 +54,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Idle duration", "Pause between mouse jiggles", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_IDLE },
   { MENU_VALUE,   "Move style", "Movement pattern (Bezier=sweep, Brownian=jiggle)", FMT_MOUSE_STYLE, 0, 1, 1, SET_MOUSE_STYLE },
   { MENU_VALUE,   "Move size",  "Mouse movement step size in pixels", FMT_PIXELS, 1, 5, 1, SET_MOUSE_AMP },
+  { MENU_VALUE,   "Scroll",     "Random scroll wheel during mouse movement", FMT_ON_OFF, 0, 1, 1, SET_SCROLL },
   // Profile settings
   { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },

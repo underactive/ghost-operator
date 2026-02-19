@@ -45,6 +45,7 @@ export const settings = reactive({
   animStyle: 2,
   name: 'GhostOperator',
   btWhileUsb: 0,
+  scroll: 0,
   slots: [2, 28, 28, 28, 28, 28, 28, 28],
 })
 
