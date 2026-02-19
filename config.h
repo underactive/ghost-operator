@@ -81,7 +81,7 @@
 
 // Screensaver timeout options
 #define SAVER_TIMEOUT_COUNT   6
-#define DEFAULT_SAVER_IDX     5           // 30 min
+#define DEFAULT_SAVER_IDX     0           // Never
 #define ANIM_STYLE_COUNT      6
 #define EASTER_EGG_INTERVAL     80
 #define EASTER_EGG_TOTAL_FRAMES 53

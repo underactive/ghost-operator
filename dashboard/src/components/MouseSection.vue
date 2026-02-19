@@ -12,7 +12,7 @@ function formatMs(ms) {
     <h2>Mouse</h2>
     <div class="field">
       <label>
-        Jiggle Duration
+        Move Duration
         <span class="field-value">{{ formatMs(settings.mouseJig) }}</span>
       </label>
       <input

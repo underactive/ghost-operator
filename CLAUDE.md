@@ -127,7 +127,7 @@ struct Settings {
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 2), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator".
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator".
 
 #### 4. Timing Profiles
 ```cpp
@@ -242,7 +242,7 @@ WEB → DEVICE                    DEVICE → WEB
 ```
 GHOST Operator          ᛒ 85%
 ─────────────────────────────
-KB [F15] 1.7-5.5s        ↑     ← effective (profile-adjusted) range
+KB [F16] 1.7-5.5s        ↑     ← effective (profile-adjusted) range
 ████████████░░░░░░░░░░░  3.2s
 ─────────────────────────────
 MS [MOV]  17s/25s          ↑   ← effective durations
@@ -250,7 +250,7 @@ MS [MOV]  17s/25s          ↑   ← effective durations
 ─────────────────────────────
 BUSY                  ~^~_~^~  ← profile name (3s) or "Up: 2h 34m"; animation on right
 ```
-`KB [F15]` shows the pre-picked next key. Changes after each keypress.
+`KB [F16]` shows the pre-picked next key. Changes after each keypress.
 `[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (progress bar at 0%).
 Footer shows profile name for 3 seconds after switching, then reverts to uptime (compact format: `2h 34m`, `1d 5h`, `45s` — seconds hidden above 1 day). Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost). Animation speed is activity-aware: full speed when both KB and mouse are enabled, half speed when one is muted, frozen when both are muted.
 
@@ -299,7 +299,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 ```
                               (blank)
 
-             [F15]            ← next key label, centered
+             [F16]            ← next key label, centered
   ████████████████░░░░░░░░░░  ← 1px high KB progress bar (full width)
 
              [IDL]            ← mouse state, centered
@@ -542,7 +542,7 @@ pio run -t upload
 - [ ] Reset defaults: function button during confirmation → cancels (same as No)
 - [ ] Reset defaults: mode timeout (30s) during confirmation → cancels, returns to NORMAL
 - [ ] After restore: reopen menu → all values show defaults; serial `d` → default values
-- [ ] After restore: profile resets to NORMAL, next key updates to F15
+- [ ] After restore: profile resets to NORMAL, next key updates to F16
 - [ ] Menu: "Reboot" appears after "Reset defaults" in Device section with `>` indicator
 - [ ] Menu: help bar shows "Restart device (applies pending changes)" when "Reboot" selected
 - [ ] Menu: press encoder on "Reboot" → confirmation overlay with "No" highlighted by default
