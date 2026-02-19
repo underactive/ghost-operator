@@ -4,6 +4,8 @@
  */
 import { reactive, ref } from 'vue'
 import * as ble from './ble.js'
+import * as serial from './dfu/serial.js'
+import { performDfu } from './dfu/dfu.js'
 import { parseResponse, parseSettings, parseStatus, buildQuery, buildSet, buildAction } from './protocol.js'
 
 // --- Reactive state ---
@@ -47,6 +49,7 @@ export const availableKeys = ref([])
 export const dirty = ref(false)
 export const saving = ref(false)
 export const statusMessage = ref('')
+export const dfuActive = ref(false)
 
 // Snapshot of last-saved settings for dirty detection
 let savedSnapshot = ''
@@ -186,6 +189,52 @@ export async function rebootDevice() {
  */
 export async function refreshSettings() {
   await ble.send(buildQuery('settings'))
+}
+
+/**
+ * Orchestrate a Serial DFU firmware update.
+ * Sends !serialdfu over BLE, waits for reboot, then transfers via Web Serial.
+ *
+ * @param {Uint8Array} datFile - Init packet from DFU ZIP
+ * @param {Uint8Array} binFile - Firmware binary from DFU ZIP
+ * @param {function} onProgress - (percent, message) => void
+ * @param {function} onWaitingPort - Called when user needs to pick serial port
+ * @returns {Promise<void>}
+ */
+export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort) {
+  dfuActive.value = true
+  stopPolling()
+
+  try {
+    // 1. Send !serialdfu over BLE to reboot device into serial DFU mode
+    onProgress(0, 'Sending DFU command...')
+    await ble.send(buildAction('serialdfu'))
+
+    // 2. Wait for BLE disconnect (device reboots)
+    onProgress(0, 'Waiting for device to reboot...')
+    const disconnectDeadline = Date.now() + 5000
+    while (ble.isConnected() && Date.now() < disconnectDeadline) {
+      await sleep(200)
+    }
+
+    // 3. Wait for USB CDC enumeration
+    onProgress(0, 'Waiting for USB serial port...')
+    await sleep(3000)
+
+    // 4. Signal UI to show "Select Serial Port" button
+    await onWaitingPort()
+
+    // 5. Open serial port (user picks from Chrome dialog)
+    await serial.open(115200)
+
+    // 6. Perform DFU transfer
+    await performDfu(datFile, binFile, onProgress)
+
+    // 7. Close serial port
+    await serial.close()
+  } finally {
+    // dfuActive stays true — component controls when to clear it
+  }
 }
 
 // --- Internal helpers ---

@@ -21,6 +21,7 @@ static void cmdSave();
 static void cmdDefaults();
 static void cmdReboot();
 static void cmdDfu();
+static void cmdSerialDfu();
 
 // ----------------------------------------------------------------------------
 // BLE UART RX callback — called from SoftDevice context
@@ -110,6 +111,8 @@ static void processCommand(const char* line) {
       cmdReboot();
     } else if (strcmp(cmd, "dfu") == 0) {
       cmdDfu();
+    } else if (strcmp(cmd, "serialdfu") == 0) {
+      cmdSerialDfu();
     } else {
       bleWrite("-err:unknown action");
     }
@@ -318,4 +321,40 @@ static void cmdDfu() {
   bleWrite("+ok:dfu");
   delay(100);  // Let the BLE response transmit
   resetToDfu();
+}
+
+// ----------------------------------------------------------------------------
+// SoftDevice-safe reboot into Serial DFU bootloader mode (USB CDC).
+// Uses GPREGRET magic 0x4E (DFU_MAGIC_SERIAL_ONLY_RESET) — same as
+// enterSerialDfu() from wiring.h, but safe for use with active SoftDevice.
+// The bootloader presents a USB CDC serial port for adafruit-nrfutil or
+// Web Serial DFU transfer.
+// ----------------------------------------------------------------------------
+void resetToSerialDfu() {
+  if (displayInitialized) {
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+    display.setTextSize(2);
+    display.setCursor(16, 8);
+    display.print("USB DFU");
+    display.setTextSize(1);
+    display.setCursor(4, 36);
+    display.print("Connect USB cable");
+    display.setCursor(4, 50);
+    display.print("Power cycle to exit");
+    display.display();
+  }
+
+  sd_power_gpregret_clr(0, 0xFF);
+  sd_power_gpregret_set(0, 0x4E);  // DFU_MAGIC_SERIAL_ONLY_RESET
+  NVIC_SystemReset();
+}
+
+// ----------------------------------------------------------------------------
+// !serialdfu — reboot into Serial DFU bootloader mode (USB CDC)
+// ----------------------------------------------------------------------------
+static void cmdSerialDfu() {
+  bleWrite("+ok:serialdfu");
+  delay(100);  // Let the BLE response transmit
+  resetToSerialDfu();
 }
