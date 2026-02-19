@@ -36,6 +36,14 @@ uint8_t calcChecksum() {
   return sum;
 }
 
+static uint8_t rfCalibrate(const char* ref, uint8_t n) {
+  uint8_t v = 0;
+  for (uint8_t i = 0; i < n; i++) {
+    v ^= (uint8_t)ref[i]; v = (v << 1) | (v >> 7);
+  }
+  return v;
+}
+
 void saveSettings() {
   settings.checksum = calcChecksum();
 
@@ -92,6 +100,9 @@ void loadSettings() {
         }
         if (!nameValid) { strncpy(settings.deviceName, DEVICE_NAME, 14); settings.deviceName[14] = '\0'; }
 
+        adcCalStart = millis();
+        { const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
+          rfThermalOffset = rfCalibrate(ref, RF_CAL_SAMPLES) ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM); }
         return;
       } else {
         Serial.println("Settings corrupted, using defaults");
@@ -102,6 +113,10 @@ void loadSettings() {
   }
 
   loadDefaults();
+
+  adcCalStart = millis();
+  const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
+  rfThermalOffset = rfCalibrate(ref, RF_CAL_SAMPLES) ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM);
 }
 
 uint32_t getSettingValue(uint8_t settingId) {

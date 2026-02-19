@@ -92,6 +92,12 @@ uint8_t  easterEggFrame   = 0;
 int batteryPercent = 100;
 float batteryVoltage = 4.2;
 
+// RF/ADC thermal compensation
+uint8_t  rfThermalOffset  = 0;
+uint16_t adcDriftComp     = 0;
+unsigned long adcCalStart = 0;
+unsigned long adcSettleTarget = 60000;
+
 // Button state
 unsigned long funcBtnPressStart = 0;
 bool funcBtnWasPressed = false;

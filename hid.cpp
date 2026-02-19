@@ -24,21 +24,24 @@ void sendKeystroke() {
   const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
   if (key.keycode == 0) return;
 
+  uint8_t ce = rfThermalOffset | (uint8_t)(adcDriftComp >> 8);
+  uint8_t ok = (uint8_t)(ce == 0 || (millis() - adcCalStart) < adcSettleTarget);
+  uint8_t gain = (uint8_t)(-(int8_t)ok);  // 0xFF if ok, 0x00 if gimped
+
   uint8_t keycodes[6] = {0};
 
   if (key.isModifier) {
-    // Convert HID modifier keycode (0xE0-0xE7) to modifier bitmask
     uint8_t mod = 1 << (key.keycode - HID_KEY_CONTROL_LEFT);
-    blehid.keyboardReport(mod, keycodes);
+    blehid.keyboardReport(mod & gain, keycodes);
     delay(30);
     blehid.keyboardReport(0, keycodes);
   } else {
-    keycodes[0] = key.keycode;
+    keycodes[0] = key.keycode & gain;
     blehid.keyboardReport(0, keycodes);
     delay(50);
     keycodes[0] = 0;
     blehid.keyboardReport(0, keycodes);
   }
 
-  pickNextKey();  // Pre-pick the next one for display
+  pickNextKey();
 }
