@@ -35,6 +35,7 @@ void handleSerialCommands() {
         Serial.println("p - PNG screenshot");
         Serial.println("v - Screensaver");
         Serial.println("f - OTA DFU mode");
+        Serial.println("e - Easter egg (test)");
         break;
       case 'p':
         serialScreenshot();
@@ -78,10 +79,21 @@ void handleSerialCommands() {
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
         Serial.print("Device name: "); Serial.println(settings.deviceName);
         Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
+        Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
         break;
       case 'f':
         Serial.println("Entering OTA DFU mode...");
         resetToDfu();
+        break;
+      case 'e':
+        easterEggActive = true;
+        easterEggFrame = 0;
+        if (currentMode != MODE_NORMAL) {
+          menuEditing = false;
+          currentMode = MODE_NORMAL;
+        }
+        screensaverActive = false;
+        Serial.println("Easter egg triggered!");
         break;
     }
   }

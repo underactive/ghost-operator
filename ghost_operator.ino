@@ -76,6 +76,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   Serial.print("Disconnected, reason: 0x");
   Serial.println(reason, HEX);
   deviceConnected = false;
+  easterEggActive = false;
 }
 
 // ============================================================================
@@ -249,7 +250,7 @@ void loop() {
   }
 
   // Screensaver activation (only from NORMAL mode)
-  if (!screensaverActive && currentMode == MODE_NORMAL) {
+  if (!screensaverActive && currentMode == MODE_NORMAL && !easterEggActive) {
     unsigned long saverMs = saverTimeoutMs();
     if (saverMs > 0 && (now - lastModeActivity > saverMs)) {
       screensaverActive = true;

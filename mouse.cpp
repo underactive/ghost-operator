@@ -56,6 +56,12 @@ void handleMouseStateMachine(unsigned long now) {
         mouseState = MOUSE_IDLE;
         lastMouseStateChange = now;
         scheduleNextMouseState();
+        mouseJiggleCount++;
+        if (mouseJiggleCount % EASTER_EGG_INTERVAL == 0
+            && deviceConnected && currentMode == MODE_NORMAL && !screensaverActive) {
+          easterEggActive = true;
+          easterEggFrame = 0;
+        }
       } else if (now - lastMouseStep >= MOUSE_MOVE_STEP_MS) {
         int8_t dx = 0, dy = 0;
         if (mouseNetX > 0) { dx = -min((int32_t)5, mouseNetX); mouseNetX += dx; }
