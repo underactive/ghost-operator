@@ -97,6 +97,10 @@ extern int32_t mouseNetX;
 extern int32_t mouseNetY;
 extern int32_t mouseReturnTotal;
 
+// Scroll state
+extern unsigned long lastScrollTime;
+extern unsigned long nextScrollInterval;
+
 // Easter egg
 extern uint32_t mouseJiggleCount;
 extern bool     easterEggActive;
