@@ -25,10 +25,12 @@ static const char* slotName(uint8_t slotIdx) {
 // ANIMATIONS (footer corner, 20x10px region: x=108..127, y=54..63)
 // ============================================================================
 
+static bool animShouldAdvance = true;
+
 // ECG heartbeat trace (original animation)
 static void drawAnimECG() {
   static uint8_t beatPhase = 0;
-  beatPhase = (beatPhase + 1) % 20;
+  if (animShouldAdvance) beatPhase = (beatPhase + 1) % 20;
 
   static const int8_t ecg[] = {
     0, 0, 0, 0, 0,
@@ -76,7 +78,7 @@ static void drawAnimGhost() {
     0b01001010,
   };
   static uint8_t phase = 0;
-  phase = (phase + 1) % 40;
+  if (animShouldAdvance) phase = (phase + 1) % 40;
 
   // Vertical bob: 0 → -1 → 0 → +1 over 40 steps
   int bob = 0;
@@ -96,7 +98,7 @@ static void drawAnimGhost() {
 // Radar sweep with trailing lines
 static void drawAnimRadar() {
   static uint16_t angle = 0;
-  angle = (angle + 3) % 360;
+  if (animShouldAdvance) angle = (angle + 3) % 360;
 
   int cx = 118, cy = 58, r = 4;
   // Circle outline
@@ -119,7 +121,7 @@ static void drawAnimEQ() {
   static uint8_t heights[5] = {3, 5, 2, 6, 4};
   static uint8_t targets[5] = {3, 5, 2, 6, 4};
   static uint8_t frameCount = 0;
-  frameCount++;
+  if (animShouldAdvance) frameCount++;
 
   // Pick new random targets every 3 frames (~300ms)
   if (frameCount % 3 == 0) {
@@ -157,7 +159,7 @@ static void drawAnimMatrix() {
     initialized = true;
   }
 
-  frameCount++;
+  if (animShouldAdvance) frameCount++;
   if (frameCount % 2 == 0) {
     for (int i = 0; i < 7; i++) {
       dropY[i]++;
@@ -183,6 +185,17 @@ static void drawAnimMatrix() {
 
 // Animation dispatcher
 static void drawAnimation() {
+  uint8_t activeCount = (keyEnabled ? 1 : 0) + (mouseEnabled ? 1 : 0);
+
+  // Both muted: freeze on current frame; half speed when one muted
+  static uint8_t animFrameCounter = 0;
+  if (activeCount == 0) {
+    animShouldAdvance = false;
+  } else {
+    animFrameCounter++;
+    animShouldAdvance = (activeCount == 2) || (animFrameCounter % 2 == 0);
+  }
+
   switch (settings.animStyle) {
     case 0: drawAnimECG();     break;
     case 1: drawAnimEQ();      break;
