@@ -90,6 +90,11 @@ extern int32_t mouseNetX;
 extern int32_t mouseNetY;
 extern int32_t mouseReturnTotal;
 
+// Easter egg
+extern uint32_t mouseJiggleCount;
+extern bool     easterEggActive;
+extern uint8_t  easterEggFrame;
+
 // Battery
 extern int batteryPercent;
 extern float batteryVoltage;

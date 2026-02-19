@@ -194,6 +194,60 @@ static void drawAnimation() {
 }
 
 // ============================================================================
+// EASTER EGG: Pac-Man chases ghost across footer
+// ============================================================================
+
+static void drawEasterEgg() {
+  // Pac-Man open mouth facing right (8x10)
+  static const uint8_t pacOpen[] PROGMEM = {
+    0x3C, 0x7E, 0xFF, 0xFE, 0xF8, 0xF8, 0xFE, 0xFF, 0x7E, 0x3C
+  };
+  // Pac-Man closed mouth (8x10)
+  static const uint8_t pacClosed[] PROGMEM = {
+    0x3C, 0x7E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7E, 0x3C
+  };
+  // Ghost sprite (pupils looking left)
+  static const uint8_t ghost[] PROGMEM = {
+    0x3C, 0x7E, 0xFF, 0xB7, 0xFF, 0xFF, 0xFF, 0xFF, 0xB5, 0x4A
+  };
+  // Eyes only after being eaten (pupils looking left = fleeing)
+  static const uint8_t eyesOnly[] PROGMEM = {
+    0x00, 0x00, 0x00, 0x77, 0x33, 0x77, 0x00, 0x00, 0x00, 0x00
+  };
+
+  uint8_t f = easterEggFrame;
+
+  // Pac-Man: starts off-screen left, moves 4px/frame rightward
+  int pacX = -10 + (int)f * 4;
+  bool eaten = (f >= 28);
+
+  // Chomp: alternate open/closed every 2 frames
+  const uint8_t* pacSprite = ((f / 2) % 2 == 0) ? pacOpen : pacClosed;
+
+  // Draw Pac-Man while on screen (exits around frame 35)
+  if (pacX >= -8 && pacX < 128) {
+    display.drawBitmap(pacX, 54, pacSprite, 8, 10, SSD1306_WHITE);
+  }
+
+  // Draw ghost or floating eyes
+  if (!eaten) {
+    display.drawBitmap(110, 54, ghost, 8, 10, SSD1306_WHITE);
+  } else {
+    // Eyes drift left at 7px/frame from ghost position
+    int eyeX = 110 - (int)(f - 28) * 7;
+    if (eyeX >= -8) {
+      display.drawBitmap(eyeX, 54, eyesOnly, 8, 10, SSD1306_WHITE);
+    }
+  }
+
+  // Advance frame
+  easterEggFrame++;
+  if (easterEggFrame >= EASTER_EGG_TOTAL_FRAMES) {
+    easterEggActive = false;
+  }
+}
+
+// ============================================================================
 // NORMAL MODE
 // ============================================================================
 
@@ -314,20 +368,24 @@ static void drawNormalMode() {
   display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
 
   // === Footer (y=54) ===
-  if (millis() < profileDisplayUntil) {
-    // Show profile name left-justified
-    display.setCursor(0, 54);
-    display.print(PROFILE_NAMES[currentProfile]);
+  if (easterEggActive) {
+    drawEasterEgg();
   } else {
-    // Normal uptime display
-    display.setCursor(0, 54);
-    display.print("Up: ");
-    display.print(formatUptime(now - startTime));
-  }
+    if (millis() < profileDisplayUntil) {
+      // Show profile name left-justified
+      display.setCursor(0, 54);
+      display.print(PROFILE_NAMES[currentProfile]);
+    } else {
+      // Normal uptime display
+      display.setCursor(0, 54);
+      display.print("Up: ");
+      display.print(formatUptime(now - startTime));
+    }
 
-  // Status animation (lower-right corner)
-  if (deviceConnected) {
-    drawAnimation();
+    // Status animation (lower-right corner)
+    if (deviceConnected) {
+      drawAnimation();
+    }
   }
 }
 

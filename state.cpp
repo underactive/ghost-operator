@@ -83,6 +83,11 @@ int32_t mouseNetX = 0;
 int32_t mouseNetY = 0;
 int32_t mouseReturnTotal = 0;
 
+// Easter egg
+uint32_t mouseJiggleCount = 0;
+bool     easterEggActive  = false;
+uint8_t  easterEggFrame   = 0;
+
 // Battery
 int batteryPercent = 100;
 float batteryVoltage = 4.2;
