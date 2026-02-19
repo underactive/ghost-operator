@@ -161,7 +161,7 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 │ MS [MOV]  15s/30s            ↑ │
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │
 ├────────────────────────────────┤
-│ Up: 02:34:15           ~^~_~^~ │  ← or profile name for 3s
+│ Up: 2h 34m             ~^~_~^~ │  ← or profile name for 3s
 └────────────────────────────────┘
 ```
 
@@ -171,8 +171,8 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 - ↑ = enabled, ✕ = disabled; mouse idle bar counts up, move bar counts down
 - **[MOV]** = Mouse moving, **[IDL]** = Mouse idle, **[RTN]** = Returning to origin
 - Each keystroke cycle randomly picks from populated (non-NONE) slots
-- **Uptime line**: Shows profile name (LAZY/NORMAL/BUSY) for 3 seconds after switching, then reverts to uptime
-- **Status animation**: Configurable animation in the footer area (default: Ghost). Options: ECG, EQ, Ghost, Matrix, Radar, None — changeable via Display → Animation in the menu
+- **Uptime line**: Shows profile name (LAZY/NORMAL/BUSY) for 3 seconds after switching, then reverts to uptime (compact format: `2h 34m`, `1d 5h`, `45s`)
+- **Status animation**: Configurable animation in the footer area (default: Ghost). Options: ECG, EQ, Ghost, Matrix, Radar, None — changeable via Display → Animation in the menu. Animation speed is activity-aware: full speed with both KB/MS enabled, half speed with one muted, frozen with both muted.
 
 ### Menu Mode
 
@@ -350,7 +350,7 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.8.0** | **Mouse movement styles (Bezier/Brownian), dashboard Move Style** |
+| **1.8.0** | **Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation** |
 | 1.7.2 | Web Serial DFU — browser-based firmware updates via USB |
 | 1.7.1 | OTA DFU mode via nRF Connect mobile app |
 | 1.7.0 | BLE UART config protocol, Vue 3 web dashboard (USB serial) |

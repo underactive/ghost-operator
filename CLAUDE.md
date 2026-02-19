@@ -248,11 +248,11 @@ KB [F15] 1.7-5.5s        ↑     ← effective (profile-adjusted) range
 MS [MOV]  17s/25s          ↑   ← effective durations
 ██████░░░░░░░░░░░░░░░░░  8.5s
 ─────────────────────────────
-BUSY                  ~^~_~^~  ← profile name (3s) or "Up: HH:MM:SS"; animation on right
+BUSY                  ~^~_~^~  ← profile name (3s) or "Up: 2h 34m"; animation on right
 ```
 `KB [F15]` shows the pre-picked next key. Changes after each keypress.
 `[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (progress bar at 0%).
-Footer shows profile name for 3 seconds after switching, then reverts to uptime. Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost).
+Footer shows profile name for 3 seconds after switching, then reverts to uptime (compact format: `2h 34m`, `1d 5h`, `45s` — seconds hidden above 1 day). Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost). Animation speed is activity-aware: full speed when both KB and mouse are enabled, half speed when one is muted, frozen when both are muted.
 
 ### Menu Mode
 ```
@@ -324,7 +324,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
-| 1.8.0 | Mouse movement styles (Bezier/Brownian), dashboard Move Style control |
+| 1.8.0 | Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation |
 | 1.7.2 | Web Serial DFU, dashboard switched from BLE to USB serial |
 | 1.7.1 | OTA DFU mode (`!dfu` command, OLED DFU screen) — via nRF Connect mobile |
 | 1.7.0 | BLE UART config protocol (NUS), Vue 3 web dashboard (USB serial) |
@@ -513,6 +513,9 @@ pio run -t upload
 - [ ] Menu: "Animation" shows default "Ghost", editable with 6 options (ECG/EQ/Ghost/Matrix/Radar/None)
 - [ ] Animation setting persists after menu close → reopen, and after sleep/wake
 - [ ] Animation changes live in NORMAL mode footer area
+- [ ] Animation: full speed with both KB+MS enabled, half speed with one muted, frozen with both muted
+- [ ] Uptime footer: compact format (e.g. "45s", "2h 34m", "1d 5h" — seconds hidden above 1 day)
+- [ ] Dashboard uptime matches device compact format
 - [ ] Serial `d` → prints animation style name
 - [ ] Menu: "Device" heading visible with Device name/Reset defaults/Reboot items
 - [ ] Menu: help bar shows "Current: GhostOperator" when cursor on "Device name"
