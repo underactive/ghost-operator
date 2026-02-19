@@ -1,4 +1,4 @@
-# Ghost Operator v1.7.1 - User Manual
+# Ghost Operator v1.8.0 - User Manual
 
 ## Quick Start
 
@@ -36,7 +36,7 @@
 │ MS [MOV]  15s/30s            ↑ │  ← Mouse settings
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │  ← Countdown bar
 ├────────────────────────────────┤
-│ Up: 02:34:15      ~^~_~^~      │  ← Uptime (or profile name) + pulse
+│ Up: 2h 34m        ~^~_~^~      │  ← Uptime (or profile name) + pulse
 └────────────────────────────────┘
 ```
 
@@ -62,13 +62,13 @@
 - `15s/30s` - Move duration / idle duration (profile-adjusted)
 - ↑ / ✕ - Mouse enabled or disabled
 - Progress bar counts up while idle (charging), counts down while moving (draining)
-- During return phase, progress bar shows a bouncing highlight segment instead of filling
+- During return phase, progress bar stays at 0% (empty)
 - `8.5s` - Time remaining in current state
 
 **Footer:**
-- `Up: 02:34:15` - Uptime (hours:minutes:seconds)
+- `Up: 2h 34m` - Uptime in compact format (e.g., `45s`, `2h 34m`, `1d 5h` — seconds hidden above 1 day)
 - After changing profile, shows profile name (LAZY/NORMAL/BUSY) for 3 seconds, then reverts to uptime
-- Status animation in footer area (default: Ghost) — configurable via Display → Animation in the menu (ECG, EQ, Ghost, Matrix, Radar, None)
+- Status animation in footer area (default: Ghost) — configurable via Display → Animation in the menu (ECG, EQ, Ghost, Matrix, Radar, None). Animation is activity-aware: full speed with both KB/MS enabled, half speed with one muted, frozen with both muted.
 
 ---
 
@@ -105,14 +105,15 @@
 | | Key slots | Opens the slot editor (press encoder to enter) |
 | **Mouse** | Move duration | How long the mouse moves (0.5s-90s) |
 | | Idle duration | Pause between moves (0.5s-90s) |
-| | Move size | Mouse movement step size (1-5px, default 1px) |
+| | Move style | Movement pattern: Bezier (smooth curves) or Brownian (jiggle) |
+| | Move size | Mouse step size, Brownian only (1-5px, default 1px) |
 | **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
 | | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
 | **Display** | Brightness | OLED display brightness (10-100%, default 80%) |
 | | Saver bright | Screensaver dimmed brightness (10-100%, default 20%) |
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
 | | Animation | Status animation style (ECG / EQ / Ghost / Matrix / Radar / None, default Ghost) |
-| **Device** | Device name | BLE device name editor (press encoder to enter) |
+| **Device** | Device name | Device name editor (press encoder to enter) |
 | | Reset defaults | Restore all settings to factory defaults (confirmation required) |
 | | Reboot | Restart the device (confirmation required) |
 | **About** | Version | Firmware version (read-only) |
@@ -143,7 +144,7 @@
 
 ---
 
-### Name Mode (BLE Device Name Editor)
+### Name Mode (Device Name Editor)
 
 ```
 ┌────────────────────────────────┐
@@ -269,7 +270,7 @@ If you want to restore all settings to their original factory values:
 
 ### Reboot Device
 
-To restart the device from the menu (useful for applying a pending BLE name change):
+To restart the device from the menu (useful for applying a pending device name change):
 
 1. Open the **menu** (short press function button)
 2. Scroll to **"Reboot"** under the **Device** heading and **press encoder**
@@ -325,9 +326,12 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 - Example: MIN=2s, MAX=6s, slots=[F15, F14, F13] → F14 at 3.2s, F15 at 5.1s, F13 at 2.4s...
 
 ### Mouse
+- **Move style** selects the movement pattern:
+  - **Bezier** (default): Smooth curved sweeps with random radius — natural-looking arcs
+  - **Brownian**: Classic jiggle with inertial easing — movement ramps up, peaks, then ramps down
 - **Move phase:** Mouse moves randomly for the set duration (adjusted by active profile)
-  - Movement starts slow, accelerates to peak speed, then decelerates to a stop — like a human moving the mouse
-  - The "Move size" setting controls the peak speed (1-5px per step)
+  - In Brownian mode, the "Move size" setting controls the peak speed (1-5px per step)
+  - In Bezier mode, sweep radius is randomized; "Move size" has no effect (hidden in menu)
 - **Idle phase:** Mouse stops for the set duration (adjusted by active profile)
 - ±20% randomness on both durations
 - Mouse returns to approximate starting position after each movement (display shows `[RTN]` with progress bar at 0%)
@@ -389,6 +393,8 @@ Connect via USB and open Serial Monitor at 115200 baud.
 | `z` | Enter sleep mode |
 | `p` | Capture PNG screenshot of the OLED display |
 | `v` | Activate screensaver (forces NORMAL mode first) |
+| `f` | Enter OTA DFU mode (BLE firmware update) |
+| `u` | Enter Serial DFU mode (USB firmware update) |
 
 ### Taking a Screenshot
 
@@ -428,6 +434,34 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 
 ---
 
+## Firmware Updates
+
+Update your Ghost Operator firmware from the web dashboard using a USB cable.
+
+**Requirements:**
+- Chrome or Edge browser on desktop (Web Serial API required)
+- USB cable connected to the device
+- A DFU package file (`.zip`) containing the new firmware
+
+**Steps:**
+
+1. Connect to your device via USB in the web dashboard (click **Connect USB**)
+2. Expand the **Firmware Update** section at the bottom
+3. Select the `.zip` DFU package file
+4. Click **Start Firmware Update**, then **Confirm Update**
+5. The device reboots into USB DFU mode (serial disconnects — this is normal)
+6. When prompted, click **Select Serial Port** and pick the DFU serial port from the Chrome dialog
+7. The firmware transfer begins — watch the progress bar
+8. On completion, the device reboots with the new firmware
+9. Reconnect via USB to verify the new version
+
+**If something goes wrong:**
+- If the device is stuck in DFU mode, power cycle it (unplug USB and battery, then replug)
+- DFU mode has no timeout — the device stays in DFU mode until a transfer completes or it's power cycled
+- Your settings are preserved through firmware updates (stored in a separate flash region)
+
+---
+
 ## Troubleshooting
 
 | Problem | Solution |
@@ -439,6 +473,9 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 | Encoder does nothing | Check CLK/DT wiring to D0/D1 |
 | Settings not saving | Wait for auto-return to NORMAL, or press function button |
 | Battery reads wrong | Normal - reading is approximate |
+| Stuck in DFU mode | Power cycle: unplug USB and battery, then replug |
+| No serial port in picker | Make sure USB cable is connected before starting DFU |
+| Firmware update fails | Try again; ensure USB cable is data-capable (not charge-only) |
 
 ---
 
@@ -449,7 +486,8 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 | Key timing range | 0.5s - 30s |
 | Mouse timing range | 0.5s - 90s |
 | Timing step | 0.5s |
-| Mouse amplitude | 1-5px (1px steps, default 1px) |
+| Mouse styles | Bezier (default), Brownian |
+| Mouse amplitude | 1-5px (1px steps, default 1px, Brownian only) |
 | Mouse randomness | ±20% |
 | Sleep current | ~3µA |
 | Active current | ~15mA (with display) |
@@ -482,6 +520,6 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 
 ---
 
-*Ghost Operator v1.7.1 | TARS Industrial Technical Solutions*
+*Ghost Operator v1.8.0 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*

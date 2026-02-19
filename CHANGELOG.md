@@ -5,6 +5,52 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-02-18
+
+### Added
+
+- **Compact uptime format**: Footer uptime display uses compact `d/h/m/s` units instead of `HH:MM:SS` (e.g., "2h 34m", "1d 5h", "45s"); seconds hidden once uptime exceeds 1 day. Dashboard status bar matches the same format.
+- **Activity-aware animation**: Footer animation speed responds to KB/mouse enabled state
+  - Both enabled: full speed
+  - One muted: half speed
+  - Both muted: animation freezes on current frame
+- **Mouse movement styles**: New "Move style" setting with two movement algorithms
+  - **Bezier** (default): Smooth curved sweeps with random radius — natural-looking arcs
+  - **Brownian**: Classic jiggle with sine ease-in-out velocity profile
+  - "Move size" setting only applies to Brownian mode; hidden in OLED menu and disabled in dashboard when Bezier is active
+  - Settings struct: added `mouseStyle` field — bumped `SETTINGS_MAGIC` (existing settings auto-reset to defaults on first boot)
+  - Dashboard: "Move Style" dropdown in Mouse section, Move Size conditionally disabled in Bezier mode
+  - Serial `d` command prints mouse style name
+
+## [1.7.2] - 2026-02-18
+
+### Added
+
+- **Web Serial DFU**: Browser-based firmware updates via USB serial, integrated into the web dashboard
+  - New `!serialdfu` BLE UART command reboots device into USB CDC serial DFU bootloader mode
+  - New `u` serial command for entering Serial DFU mode during development/testing
+  - Dashboard "Firmware Update" section with full DFU workflow: select ZIP → confirm → USB reboot → Web Serial transfer → progress bar
+  - Uses GPREGRET magic `0x4E` (DFU_MAGIC_SERIAL_ONLY_RESET) via SoftDevice-safe API
+  - OLED shows "USB DFU / Connect USB cable" screen before reboot
+  - DFU library (`dashboard/src/lib/dfu/`): Nordic SDK 11 legacy HCI/SLIP serial DFU protocol
+    - SLIP byte-stuffing + HCI packet framing with sequence numbers and CRC16-CCITT
+    - 512-byte chunked transfer with flash page-write delays
+    - ZIP parser using `fflate` (~8KB tree-shaken) for `adafruit-nrfutil` packages
+  - `dfuActive` flag keeps dashboard UI visible during DFU transfer (after serial disconnects)
+  - Web Serial API with no VID filter (bootloader reuses Seeed's VID, not Adafruit's)
+  - **Requires Chrome/Edge on desktop** (Web Serial API not available in Firefox/Safari)
+
+### Changed
+
+- **Dashboard switched from BLE to USB serial**: Web dashboard now connects via Web Serial API instead of Web Bluetooth
+  - Eliminates the BLE pairing conflict (no more "forget device" workaround in OS Bluetooth settings)
+  - USB serial works alongside BLE HID without interference — device stays paired as keyboard/mouse
+  - Firmware `processCommand()` made transport-agnostic via `ResponseWriter` function pointer
+  - Serial command handler (`serial_cmd.cpp`) now buffers `?/=/!` protocol lines alongside single-char debug commands
+  - New `dashboard/src/lib/serial.js` — Web Serial config transport (same API as `ble.js`)
+  - DFU flow sends `!serialdfu` over USB serial (was: over BLE), then opens separate DFU serial port
+  - Device name populated from `?settings` response (serial doesn't provide it at connect time like BLE GATT did)
+
 ## [1.7.1] - 2026-02-18
 
 ### Added
@@ -30,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `!save` — persist to flash, `!defaults` — factory reset, `!reboot` — restart device
   - 20-byte chunked writes for default MTU compatibility
   - Does NOT modify BLE advertising (NUS discovered via `optionalServices` after connection)
-- **Web dashboard** (`dashboard/`): Vue 3 + Vite single-page app for wireless configuration via Chrome Web Bluetooth API
+- **Web dashboard** (`dashboard/`): Vue 3 + Vite single-page app for device configuration via Chrome Web Serial API (USB)
   - Connect/disconnect with auto-reconnect handling
   - Real-time status bar (battery, profile, mode, KB/MS state, uptime, next key)
   - Slider controls for all timing settings with cross-constraint enforcement

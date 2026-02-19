@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.7.1
+**Current Version:** 1.8.0
 **Status:** Production-ready
 
 ---
@@ -66,7 +66,7 @@ Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
 - `serial_cmd.h/.cpp` - Serial debug commands + status
 - `input.h/.cpp` - Encoder dispatch, buttons, name editor
 - `display.h/.cpp` - All rendering (~800 lines, largest module)
-- `ble_uart.h/.cpp` - BLE UART (NUS) wireless config protocol
+- `ble_uart.h/.cpp` - BLE UART (NUS) + transport-agnostic config protocol
 
 ### Dependencies
 - Adafruit Bluefruit (built into Seeed nRF52 core)
@@ -88,18 +88,18 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 - **NORMAL**: Live status; encoder switches profile, button cycles KB/MS combos
 - **MENU**: Scrollable settings menu; encoder navigates/edits, button selects/confirms
 - **SLOTS**: 8-key slot editor; encoder cycles key, button advances slot
-- **NAME**: BLE device name editor; encoder cycles character, button advances position
+- **NAME**: Device name editor; encoder cycles character, button advances position
 - Function button toggles NORMAL ↔ MENU; from SLOTS/NAME returns to MENU
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (22 entries: 6 headings + 16 items):
+Data-driven architecture using `MenuItem` struct array (23 entries: 6 headings + 17 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
-- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, or `ANIM_NAMES[]`
+- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, `ANIM_NAMES[]`, or `MOUSE_STYLE_NAMES[]`
 - `moveCursor(direction)` — skips headings, clamps at bounds, manages viewport scroll
 - `FMT_PERCENT_NEG` items: encoder direction and arrow bounds are inverted so displayed value direction matches encoder rotation
 
@@ -108,7 +108,7 @@ enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F48 (bumped for animStyle)
+  uint32_t magic;              // 0x50524F49 (bumped for mouseStyle)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -120,13 +120,14 @@ struct Settings {
   uint8_t saverBrightness;     // 10-100, step 10, default 20
   uint8_t displayBrightness;   // 10-100, step 10, default 80
   uint8_t mouseAmplitude;      // 1-5, step 1, default 1 (pixels per movement step)
+  uint8_t mouseStyle;          // 0=Bezier, 1=Brownian (default 0)
   uint8_t animStyle;           // 0-5 index into ANIM_NAMES[] (default 2 = Ghost)
   char    deviceName[15];      // 14 chars + null terminator (BLE device name)
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 2), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, animation = Ghost, device name = "GhostOperator".
+Default: slot 0 = F15 (index 2), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator".
 
 #### 4. Timing Profiles
 ```cpp
@@ -147,10 +148,14 @@ enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 #### 6. Mouse State Machine
 ```cpp
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
+enum MouseStyle { MOUSE_BEZIER, MOUSE_BROWNIAN, MOUSE_STYLE_COUNT };
 ```
+- Two movement styles selectable via "Move style" menu item:
+  - **Bezier** (default): Smooth curved sweeps with random radius; `mouseAmplitude` has no effect (firmware hides "Move size" in menu)
+  - **Brownian**: Classic jiggle with sine ease-in-out velocity profile; `mouseAmplitude` controls peak step size
 - Tracks net displacement during movement
 - Non-blocking return to approximate origin via MOUSE_RETURNING state
-- JIGGLING uses sine ease-in-out velocity profile: `amp = mouseAmplitude * sin(π × progress)` where progress goes 0→1 over the jiggle duration. Movement ramps from zero → peak → zero. Steps with zero amplitude are skipped (natural pause at start/end). `pickNewDirection()` stores unit vectors (-1/0/+1); amplitude is applied per-step with easing.
+- Brownian JIGGLING uses sine ease-in-out velocity profile: `amp = mouseAmplitude * sin(π × progress)` where progress goes 0→1 over the jiggle duration. Movement ramps from zero → peak → zero. Steps with zero amplitude are skipped (natural pause at start/end). `pickNewDirection()` stores unit vectors (-1/0/+1); amplitude is applied per-step with easing.
 - Display shows `[RTN]` during MOUSE_RETURNING state; progress bar stays at 0% (empty)
 
 #### 7. Power Management
@@ -170,7 +175,7 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 - Long-press sleep still works from screensaver (not consumed)
 - Timeout and brightness configurable via MENU items ("Saver time" and "Saver bright")
 
-#### 9. BLE UART Config
+#### 9. Config Protocol (BLE UART + USB Serial)
 ```
 WEB → DEVICE                    DEVICE → WEB
 ────────────────────────────────────────────────
@@ -179,28 +184,43 @@ WEB → DEVICE                    DEVICE → WEB
 ?keys                       →   !keys|F13|F14|F15|...|NONE
 =keyMin:2000                →   +ok
 =slots:2,28,28,28,28,28,28,28 → +ok
+=mouseStyle:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok
 !defaults                   →   +ok
 !reboot                     →   (device reboots)
-!dfu                        →   +ok:dfu (then reboots into DFU bootloader)
+!dfu                        →   +ok:dfu (then reboots into OTA DFU bootloader)
+!serialdfu                  →   +ok:serialdfu (then reboots into Serial DFU bootloader)
 ```
-- Nordic UART Service (NUS) via `BLEUart` — serial-over-BLE
+- Transport-agnostic `processCommand(line, writer)` — accepts `ResponseWriter` function pointer
+- Same text protocol works over BLE UART (NUS) and USB serial
 - Text protocol: `?` = query, `=` = set, `!` = action, pipe-delimited responses
 - Settings changes apply to in-memory struct immediately (like encoder); flash save on `!save`
-- 20-byte chunked writes for default MTU compatibility
+- BLE path: 20-byte chunked writes via `bleWrite()` for default MTU compatibility
+- Serial path: `serialWrite()` in `serial_cmd.cpp` — line-buffered, dispatches `?/=/!` prefixed lines to `processCommand()`
 - NUS not added to advertising packet (would overflow 31 bytes); discovered via `optionalServices`
-- Web dashboard (Vue 3 + Vite) in `dashboard/` connects via Chrome Web Bluetooth API
+- Web dashboard (Vue 3 + Vite) in `dashboard/` connects via Chrome Web Serial API (USB)
 
-#### 10. OTA DFU (Over-The-Air Firmware Updates)
-- `!dfu` BLE UART command writes `0xA8` to `GPREGRET` via SoftDevice API, calls `NVIC_SystemReset()`
+#### 10. DFU (Firmware Updates)
 - **IMPORTANT:** Must use `sd_power_gpregret_set()` (not `NRF_POWER->GPREGRET` directly) — SoftDevice owns the register; direct access causes a hard fault
-- Bootloader checks `GPREGRET` on boot — `0xA8` means "enter DFU mode"
-- Bootloader advertises as "AdaDFU" with legacy DFU service (`00001530-...`)
-- OLED shows "OTA DFU / Waiting for update" screen before reboot (framebuffer persists through reset)
+- Bootloader checks `GPREGRET` on boot — magic value determines DFU mode
 - Bootloader has NO timeout — stays in DFU mode until transfer completes or device is power cycled
-- Serial `f` command provides same DFU entry for development/testing
 - DFU packages generated by `adafruit-nrfutil dfu genpkg` (ZIP with manifest.json, .dat, .bin)
+
+**Serial DFU (USB) — preferred method:**
+- `!serialdfu` command (over BLE UART or USB serial) writes `0x4E` to `GPREGRET`, resets into USB CDC serial DFU mode
+- Web dashboard "Firmware Update" section orchestrates the full flow: USB serial command → reboot → Web Serial API transfer
+- Uses Nordic SDK 11 legacy HCI/SLIP serial DFU protocol (SLIP framing, 4-byte HCI header, CRC16-CCITT)
+- Dashboard DFU library: `dashboard/src/lib/dfu/` (slip.js, crc16.js, serial.js, dfu.js, zip.js)
+- OLED shows "USB DFU / Connect USB cable" screen before reboot
+- Serial `u` command provides same Serial DFU entry for development/testing
+- Also works via CLI: `adafruit-nrfutil dfu serial -pkg firmware.zip -p /dev/tty.usbmodem* -b 115200`
+
+**OTA DFU (BLE) — alternative method:**
+- `!dfu` BLE UART command writes `0xA8` to `GPREGRET`, resets into OTA BLE DFU mode
+- Bootloader advertises as "AdaDFU" with legacy DFU service (`00001530-...`)
+- OLED shows "OTA DFU / Waiting for update" screen before reboot
+- Serial `f` command provides same OTA DFU entry for development/testing
 - **Web Bluetooth not supported:** Chrome blocklists legacy DFU UUID — use nRF Connect mobile app or `adafruit-nrfutil dfu ble` instead
 
 ### Encoder Handling
@@ -228,11 +248,11 @@ KB [F15] 1.7-5.5s        ↑     ← effective (profile-adjusted) range
 MS [MOV]  17s/25s          ↑   ← effective durations
 ██████░░░░░░░░░░░░░░░░░  8.5s
 ─────────────────────────────
-BUSY                  ~^~_~^~  ← profile name (3s) or "Up: HH:MM:SS"; animation on right
+BUSY                  ~^~_~^~  ← profile name (3s) or "Up: 2h 34m"; animation on right
 ```
 `KB [F15]` shows the pre-picked next key. Changes after each keypress.
 `[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (progress bar at 0%).
-Footer shows profile name for 3 seconds after switching, then reverts to uptime. Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost).
+Footer shows profile name for 3 seconds after switching, then reverts to uptime (compact format: `2h 34m`, `1d 5h`, `45s` — seconds hidden above 1 day). Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost). Animation speed is activity-aware: full speed when both KB and mouse are enabled, half speed when one is muted, frozen when both are muted.
 
 ### Menu Mode
 ```
@@ -304,8 +324,10 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 | 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
+| 1.8.0 | Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation |
+| 1.7.2 | Web Serial DFU, dashboard switched from BLE to USB serial |
 | 1.7.1 | OTA DFU mode (`!dfu` command, OLED DFU screen) — via nRF Connect mobile |
-| 1.7.0 | BLE UART wireless config (NUS protocol), Vue 3 web dashboard |
+| 1.7.0 | BLE UART config protocol (NUS), Vue 3 web dashboard (USB serial) |
 | 1.6.0 | Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split |
 
 ---
@@ -347,7 +369,7 @@ In `config.h`:
 ```
 
 ### Change mouse amplitude range
-Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `keys.cpp` (minVal/maxVal currently 1–5). The JIGGLING case in `mouse.cpp` applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
+Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `keys.cpp` (minVal/maxVal currently 1–5). Only applies to Brownian mode — Bezier uses random sweep radius and ignores `mouseAmplitude`. The JIGGLING case in `mouse.cpp` applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
 
 ### Add new menu setting
 1. Add `SettingId` enum entry in `config.h`
@@ -357,7 +379,7 @@ Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `keys.cpp` (minVal/maxVal cur
 5. Add cases to `getSettingValue()` and `setSettingValue()` in `settings.cpp`
 6. `calcChecksum()` auto-adapts (loops `sizeof(Settings) - 1`)
 
-### Change BLE device name
+### Change device name
 Configurable via menu: Device → "Device name" action item opens a character editor (MODE_NAME). Max 14 characters, A-Z, a-z, 0-9, space, dash, underscore. Requires reboot to apply. The compile-time default is:
 ```cpp
 #define DEVICE_NAME "GhostOperator"
@@ -385,8 +407,10 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `serial_cmd.h/.cpp` | Serial debug commands + status |
 | `input.h/.cpp` | Encoder dispatch, buttons, name editor |
 | `display.h/.cpp` | All rendering (~800 lines, largest module) |
-| `ble_uart.h/.cpp` | BLE UART wireless config protocol |
-| `dashboard/` | Vue 3 web dashboard (Vite + Web Bluetooth) |
+| `ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `dashboard/` | Vue 3 web dashboard (Vite + Web Serial config + Web Serial DFU) |
+| `dashboard/src/lib/serial.js` | Web Serial config transport (same API as `ble.js`) |
+| `dashboard/src/lib/dfu/` | Web Serial DFU library (SLIP, CRC16, serial transport, protocol, ZIP parser) |
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | Technical documentation |
@@ -469,9 +493,17 @@ pio run -t upload
 - [ ] Mode timeout (30s): returns to NORMAL from MENU or SLOTS, resets menuEditing
 - [ ] Encoder responsive immediately after boot (hybrid ISR+polling, analogRead fix)
 - [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
-- [ ] Menu: "Move size" shows "1px" default, editable 1-5 with `< >` arrows
-- [ ] Mouse amplitude 1: subtle pauses at start/end of jiggle, 1px movement in middle
-- [ ] Mouse amplitude 5: smooth visible ramp-up and ramp-down, 5px peak movement
+- [ ] Menu: "Move style" shows "Bezier" default, editable with 2 options (Bezier/Brownian)
+- [ ] Menu: "Move style" set to Bezier → "Move size" hidden in menu
+- [ ] Menu: "Move style" set to Brownian → "Move size" visible and editable
+- [ ] Mouse style persists after menu close → reopen, and after sleep/wake
+- [ ] Serial `d` → prints mouse style name
+- [ ] Dashboard: "Move Style" dropdown shows Bezier/Brownian, sends `=mouseStyle:N`
+- [ ] Dashboard: Move Size slider disabled with `---` when Bezier selected
+- [ ] Dashboard: Move Size slider enabled with `Npx` when Brownian selected
+- [ ] Menu: "Move size" shows "1px" default, editable 1-5 with `< >` arrows (Brownian only)
+- [ ] Mouse amplitude 1: subtle pauses at start/end of jiggle, 1px movement in middle (Brownian only)
+- [ ] Mouse amplitude 5: smooth visible ramp-up and ramp-down, 5px peak movement (Brownian only)
 - [ ] Mouse amplitude persists after menu close → reopen, and after sleep/wake
 - [ ] Serial `d` → prints mouse amplitude value
 - [ ] Easing: mouse cursor visibly accelerates at start and decelerates at end of each jiggle
@@ -481,6 +513,9 @@ pio run -t upload
 - [ ] Menu: "Animation" shows default "Ghost", editable with 6 options (ECG/EQ/Ghost/Matrix/Radar/None)
 - [ ] Animation setting persists after menu close → reopen, and after sleep/wake
 - [ ] Animation changes live in NORMAL mode footer area
+- [ ] Animation: full speed with both KB+MS enabled, half speed with one muted, frozen with both muted
+- [ ] Uptime footer: compact format (e.g. "45s", "2h 34m", "1d 5h" — seconds hidden above 1 day)
+- [ ] Dashboard uptime matches device compact format
 - [ ] Serial `d` → prints animation style name
 - [ ] Menu: "Device" heading visible with Device name/Reset defaults/Reboot items
 - [ ] Menu: help bar shows "Current: GhostOperator" when cursor on "Device name"
@@ -529,7 +564,7 @@ pio run -t upload
 - [x] ~~Multiple profiles~~ → Implemented as timing profiles (LAZY/NORMAL/BUSY) in v1.2.0
 - [x] ~~Adjustable mouse movement amplitude~~ → Implemented as "Move size" setting (1-5px) in v1.5.0
 - [x] ~~Configurable BLE device name~~ → Implemented as "Device name" editor (MODE_NAME) in v1.5.0
-- [x] ~~OTA firmware updates~~ → Implemented as OTA DFU via Nordic Secure DFU + web dashboard in v1.7.1
+- [x] ~~OTA firmware updates~~ → OTA DFU in v1.7.1, Web Serial DFU with browser-based transfer in v1.7.2
 - [x] ~~Web-based configuration (BLE UART)~~ → Implemented as BLE UART protocol + Vue 3 web dashboard in v1.7.0
 - [ ] Scheduled on/off times
 - [ ] Activity logging to flash
@@ -549,6 +584,7 @@ At 115200 baud:
 | p | PNG screenshot (base64-encoded between `--- PNG START ---` / `--- PNG END ---` markers) |
 | v | Screensaver (activate instantly, forces NORMAL mode first) |
 | f | Enter OTA DFU bootloader mode (writes 0xA8 to GPREGRET, resets) |
+| u | Enter Serial DFU bootloader mode (writes 0x4E to GPREGRET, resets — USB CDC) |
 
 ---
 

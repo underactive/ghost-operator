@@ -14,6 +14,9 @@ build/
 .vscode/.browse.cxx.db*
 .clangd/
 
+# DFU packages
+ghost_operator_dfu-*.zip
+
 # Dashboard
 dashboard/node_modules/
 dashboard/dist/
