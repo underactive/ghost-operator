@@ -116,6 +116,9 @@ extern uint16_t adcDriftComp;
 extern unsigned long adcCalStart;
 extern unsigned long adcSettleTarget;
 
+// Serial status push (toggle with 't' command)
+extern bool serialStatusPush;
+
 // Button state
 extern unsigned long funcBtnPressStart;
 extern bool funcBtnWasPressed;

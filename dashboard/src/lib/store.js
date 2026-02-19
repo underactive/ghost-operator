@@ -113,6 +113,10 @@ export async function connectDevice() {
     connectionState.deviceName = name
     statusMessage.value = 'Connected'
 
+    // Enable real-time status push from device
+    await transport.send(buildSet('statusPush', 1))
+    await sleep(50)
+
     // Fetch initial data
     await transport.send(buildQuery('keys'))
     // Small delay to let keys response arrive before settings query

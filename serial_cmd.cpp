@@ -16,6 +16,7 @@ static void serialWrite(const String& msg) {
 }
 
 void pushSerialStatus() {
+  if (!serialStatusPush) return;
   processCommand("?status", serialWrite);
 }
 
@@ -76,6 +77,7 @@ void handleSerialCommands() {
         Serial.println("f - OTA DFU mode");
         Serial.println("u - Serial DFU mode (USB)");
         Serial.println("e - Easter egg (test)");
+        Serial.println("t - Toggle status push");
         break;
       case 'p':
         serialScreenshot();
@@ -132,6 +134,11 @@ void handleSerialCommands() {
       case 'u':
         Serial.println("Entering Serial DFU mode...");
         resetToSerialDfu();
+        break;
+      case 't':
+        serialStatusPush = !serialStatusPush;
+        Serial.print("Status push: ");
+        Serial.println(serialStatusPush ? "ON" : "OFF");
         break;
       case 'e':
         easterEggActive = true;

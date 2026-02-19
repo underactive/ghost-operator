@@ -250,6 +250,10 @@ static void cmdSetValue(const char* body) {
     // Device name — up to 14 chars
     strncpy(settings.deviceName, valStr, NAME_MAX_LEN);
     settings.deviceName[NAME_MAX_LEN] = '\0';
+  } else if (strcmp(key, "statusPush") == 0) {
+    serialStatusPush = atoi(valStr) != 0;
+    currentWriter("+ok");
+    return;
   } else if (strcmp(key, "slots") == 0) {
     // Comma-separated slot indices: "2,28,28,28,28,28,28,28"
     int slot = 0;
