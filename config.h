@@ -7,7 +7,7 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.8.0"
+#define VERSION "1.8.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F49  // bumped: added mouseStyle field
@@ -84,7 +84,7 @@
 #define DEFAULT_SAVER_IDX     5           // 30 min
 #define ANIM_STYLE_COUNT      6
 #define EASTER_EGG_INTERVAL     80
-#define EASTER_EGG_TOTAL_FRAMES 45
+#define EASTER_EGG_TOTAL_FRAMES 53
 
 // BLE device name character set
 #define NAME_CHAR_COUNT  65   // printable characters

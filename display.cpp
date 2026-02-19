@@ -26,6 +26,7 @@ static const char* slotName(uint8_t slotIdx) {
 // ============================================================================
 
 static bool animShouldAdvance = true;
+static uint8_t ghostAnimPhase = 0;  // file-scope for easter egg sync
 
 // ECG heartbeat trace (original animation)
 static void drawAnimECG() {
@@ -77,21 +78,20 @@ static void drawAnimGhost() {
     0b10110101,
     0b01001010,
   };
-  static uint8_t phase = 0;
-  if (animShouldAdvance) phase = (phase + 1) % 40;
+  if (animShouldAdvance) ghostAnimPhase = (ghostAnimPhase + 1) % 40;
 
   // Vertical bob: 0 → -1 → 0 → +1 over 40 steps
   int bob = 0;
-  if (phase >= 5 && phase < 15) bob = -1;
-  else if (phase >= 25 && phase < 35) bob = 1;
+  if (ghostAnimPhase >= 5 && ghostAnimPhase < 15) bob = -1;
+  else if (ghostAnimPhase >= 25 && ghostAnimPhase < 35) bob = 1;
 
   // Horizontal drift: sway across 108..120 (12px range for 8px-wide sprite)
   // Phase 0..19 drifts right, 20..39 drifts left
   int drift;
-  if (phase < 20) drift = (int)phase * 12 / 20;
-  else drift = 12 - (int)(phase - 20) * 12 / 20;
+  if (ghostAnimPhase < 20) drift = (int)ghostAnimPhase * 12 / 20;
+  else drift = 12 - (int)(ghostAnimPhase - 20) * 12 / 20;
 
-  const uint8_t* sprite = (phase < 20) ? ghostRight : ghostLeft;
+  const uint8_t* sprite = (ghostAnimPhase < 20) ? ghostRight : ghostLeft;
   display.drawBitmap(108 + drift, 54 + bob, sprite, 8, 10, SSD1306_WHITE);
 }
 
@@ -211,46 +211,125 @@ static void drawAnimation() {
 // ============================================================================
 
 static void drawEasterEgg() {
-  // Pac-Man open mouth facing right (8x10)
-  static const uint8_t pacOpen[] PROGMEM = {
+  // Sprites (all 8x10 PROGMEM)
+  static const uint8_t pacOpenR[] PROGMEM = {
     0x3C, 0x7E, 0xFF, 0xFE, 0xF8, 0xF8, 0xFE, 0xFF, 0x7E, 0x3C
   };
-  // Pac-Man closed mouth (8x10)
+  static const uint8_t pacOpenL[] PROGMEM = {
+    0x3C, 0x7E, 0xFF, 0x7F, 0x1F, 0x1F, 0x7F, 0xFF, 0x7E, 0x3C
+  };
   static const uint8_t pacClosed[] PROGMEM = {
     0x3C, 0x7E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7E, 0x3C
   };
-  // Ghost sprite (pupils looking left)
-  static const uint8_t ghost[] PROGMEM = {
-    0x3C, 0x7E, 0xFF, 0xB7, 0xFF, 0xFF, 0xFF, 0xFF, 0xB5, 0x4A
+  static const uint8_t ghostR[] PROGMEM = {
+    0x3C, 0x7E, 0xFF, 0xED, 0xFF, 0xFF, 0xFF, 0xFF, 0xB5, 0x4A
   };
-  // Eyes only after being eaten (pupils looking left = fleeing)
+  static const uint8_t ghostFright[] PROGMEM = {
+    0x3C, 0x7E, 0xFF, 0xDB, 0xFF, 0xFF, 0xA5, 0x5A, 0xB5, 0x4A
+  };
   static const uint8_t eyesOnly[] PROGMEM = {
     0x00, 0x00, 0x00, 0x77, 0x33, 0x77, 0x00, 0x00, 0x00, 0x00
   };
 
-  uint8_t f = easterEggFrame;
+  // Dot positions (y=58 for small, y=56 for energizer)
+  static const int8_t dotX[] = { 10, 22, 34, 46, 78, 90, 102, 114 };
+  static const uint8_t NUM_DOTS = 8;
+  static const int8_t energizerX = 62;
 
-  // Pac-Man: starts off-screen left, moves 4px/frame rightward
-  int pacX = -10 + (int)f * 4;
-  bool eaten = (f >= 28);
+  uint8_t f = easterEggFrame - 1;  // 0-indexed (frame 0 was sync wait)
 
-  // Chomp: alternate open/closed every 2 frames
-  const uint8_t* pacSprite = ((f / 2) % 2 == 0) ? pacOpen : pacClosed;
+  // --- Compute positions and state ---
+  int pacX = -20, ghostX = -20;
+  const uint8_t* pacSprite = pacClosed;
+  const uint8_t* ghostSprite = ghostR;
+  bool showPac = false, showGhost = false, showEyes = false;
+  bool energizerEaten = false;
+  int eyeX = -20;
 
-  // Draw Pac-Man while on screen (exits around frame 35)
-  if (pacX >= -8 && pacX < 128) {
-    display.drawBitmap(pacX, 54, pacSprite, 8, 10, SSD1306_WHITE);
+  if (f <= 2) {
+    // Phase 1: Dots only (f 0-2)
+  } else if (f <= 21) {
+    // Phase 2: Chase right
+    pacX = -10 + (int)(f - 3) * 4;
+    showPac = true;
+    pacSprite = ((f / 2) % 2 == 0) ? pacOpenR : pacClosed;
+    if (f >= 7) {
+      ghostX = -10 + (int)(f - 7) * 4;
+      showGhost = true;
+    }
+  } else if (f <= 24) {
+    // Phase 3: Power-up
+    pacX = 66;
+    showPac = true;
+    pacSprite = pacClosed;  // mouth closed = "eating"
+    energizerEaten = true;
+    ghostX = 50;
+    showGhost = true;
+    ghostSprite = (f == 22) ? ghostR : ghostFright;
+  } else if (f <= 32) {
+    // Phase 4: Hunt left
+    energizerEaten = true;
+    ghostX = 50 - (int)(f - 25) * 4;
+    showGhost = true;
+    ghostSprite = ghostFright;
+    pacX = 66 - (int)(f - 25) * 6;
+    showPac = true;
+    pacSprite = ((f / 2) % 2 == 0) ? pacOpenL : pacClosed;
+  } else {
+    // Phase 5: Eat ghost + eyes exit + eat remaining dots (f 33-51)
+    energizerEaten = true;
+    if (f <= 34) {
+      // Pac paused, eyes appear
+      pacX = 24;
+      showPac = true;
+      pacSprite = pacClosed;
+      eyeX = 22;
+      showEyes = true;
+    } else {
+      // Eyes drift left at 5px/frame (unchanged)
+      eyeX = 22 - (int)(f - 35) * 5;
+      showEyes = (eyeX >= -8);
+      // Pac-Man turns right, eats remaining dots at 7px/frame
+      pacX = 24 + (int)(f - 35) * 7;
+      showPac = (pacX < 136);
+      pacSprite = ((f / 2) % 2 == 0) ? pacOpenR : pacClosed;
+    }
   }
 
-  // Draw ghost or floating eyes
-  if (!eaten) {
-    display.drawBitmap(110, 54, ghost, 8, 10, SSD1306_WHITE);
-  } else {
-    // Eyes drift left at 7px/frame from ghost position
-    int eyeX = 110 - (int)(f - 28) * 7;
-    if (eyeX >= -8) {
-      display.drawBitmap(eyeX, 54, eyesOnly, 8, 10, SSD1306_WHITE);
+  // --- Render: dots → energizer → ghost/eyes → Pac-Man ---
+
+  // Small dots (2x2) — disappear as Pac-Man passes over them
+  for (uint8_t i = 0; i < NUM_DOTS; i++) {
+    bool eaten;
+    if (dotX[i] < energizerX) {
+      // Left-side dots: eaten during Phase 2 rightward chase
+      // All consumed by f=21; remain eaten for rest of animation
+      eaten = (f > 21) || (showPac && pacX + 4 >= dotX[i]);
+    } else {
+      // Right-side dots: eaten during Phase 5 rightward pass
+      eaten = (showPac && f >= 35 && pacX + 4 >= dotX[i]);
     }
+    if (!eaten) {
+      display.fillRect(dotX[i], 58, 2, 2, SSD1306_WHITE);
+    }
+  }
+
+  // Energizer (4x4)
+  if (!energizerEaten) {
+    display.fillRect(energizerX, 56, 4, 4, SSD1306_WHITE);
+  }
+
+  // Ghost or eyes
+  if (showGhost) {
+    display.drawBitmap(ghostX, 54, ghostSprite, 8, 10, SSD1306_WHITE);
+  }
+  if (showEyes) {
+    display.drawBitmap(eyeX, 54, eyesOnly, 8, 10, SSD1306_WHITE);
+  }
+
+  // Pac-Man (drawn last = visually on top)
+  if (showPac && pacX >= -8 && pacX < 128) {
+    display.drawBitmap(pacX, 54, pacSprite, 8, 10, SSD1306_WHITE);
   }
 
   // Advance frame
@@ -381,7 +460,7 @@ static void drawNormalMode() {
   display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
 
   // === Footer (y=54) ===
-  if (easterEggActive) {
+  if (easterEggActive && easterEggFrame > 0) {
     drawEasterEgg();
   } else {
     if (millis() < profileDisplayUntil) {
@@ -398,6 +477,21 @@ static void drawNormalMode() {
     // Status animation (lower-right corner)
     if (deviceConnected) {
       drawAnimation();
+    }
+
+    // Easter egg sync: wait for corner ghost to reach right edge before starting
+    if (easterEggActive && easterEggFrame == 0) {
+      static uint8_t syncWaitFrames = 0;
+      bool ghostAtEdge = (ghostAnimPhase >= 18 && ghostAnimPhase <= 20);
+      bool bypass = (settings.animStyle != 2) ||
+                    (!keyEnabled && !mouseEnabled) ||
+                    (syncWaitFrames >= 40);
+      if (ghostAtEdge || bypass) {
+        easterEggFrame = 1;
+        syncWaitFrames = 0;
+      } else {
+        syncWaitFrames++;
+      }
     }
   }
 }
