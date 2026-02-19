@@ -815,6 +815,12 @@ static void drawMenuMode() {
       uint32_t curVal = getSettingValue(item.settingId);
       bool atMin = (curVal <= item.minVal);
       bool atMax = (curVal >= item.maxVal);
+      // Hide Move size value when Bezier mode is active (radius is auto-randomized)
+      if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) {
+        valStr = "---";
+        atMin = true;
+        atMax = true;
+      }
       // Negative-display: displayed range is inverted (raw max = displayed min)
       if (item.format == FMT_PERCENT_NEG) { bool tmp = atMin; atMin = atMax; atMax = tmp; }
 

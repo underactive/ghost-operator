@@ -107,6 +107,7 @@ void handleSerialCommands() {
         Serial.print("Effective KB: "); Serial.print(effectiveKeyMin()); Serial.print("-"); Serial.println(effectiveKeyMax());
         Serial.print("Effective Mouse: "); Serial.print(effectiveMouseJiggle()); Serial.print("/"); Serial.println(effectiveMouseIdle());
         Serial.print("Mouse amplitude: "); Serial.print(settings.mouseAmplitude); Serial.println("px");
+        Serial.print("Mouse style: "); Serial.println(MOUSE_STYLE_NAMES[settings.mouseStyle]);
         Serial.print("Display brightness: "); Serial.print(settings.displayBrightness); Serial.println("%");
         Serial.print("Screensaver: "); Serial.print(SAVER_NAMES[settings.saverTimeout]);
         Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");

@@ -93,13 +93,13 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (22 entries: 6 headings + 16 items):
+Data-driven architecture using `MenuItem` struct array (23 entries: 6 headings + 17 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
-- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, or `ANIM_NAMES[]`
+- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, `ANIM_NAMES[]`, or `MOUSE_STYLE_NAMES[]`
 - `moveCursor(direction)` — skips headings, clamps at bounds, manages viewport scroll
 - `FMT_PERCENT_NEG` items: encoder direction and arrow bounds are inverted so displayed value direction matches encoder rotation
 
@@ -108,7 +108,7 @@ enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F48 (bumped for animStyle)
+  uint32_t magic;              // 0x50524F49 (bumped for mouseStyle)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -120,13 +120,14 @@ struct Settings {
   uint8_t saverBrightness;     // 10-100, step 10, default 20
   uint8_t displayBrightness;   // 10-100, step 10, default 80
   uint8_t mouseAmplitude;      // 1-5, step 1, default 1 (pixels per movement step)
+  uint8_t mouseStyle;          // 0=Bezier, 1=Brownian (default 0)
   uint8_t animStyle;           // 0-5 index into ANIM_NAMES[] (default 2 = Ghost)
   char    deviceName[15];      // 14 chars + null terminator (BLE device name)
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F15 (index 2), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, animation = Ghost, device name = "GhostOperator".
+Default: slot 0 = F15 (index 2), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = 30 min, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator".
 
 #### 4. Timing Profiles
 ```cpp
@@ -147,10 +148,14 @@ enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 #### 6. Mouse State Machine
 ```cpp
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
+enum MouseStyle { MOUSE_BEZIER, MOUSE_BROWNIAN, MOUSE_STYLE_COUNT };
 ```
+- Two movement styles selectable via "Move style" menu item:
+  - **Bezier** (default): Smooth curved sweeps with random radius; `mouseAmplitude` has no effect (firmware hides "Move size" in menu)
+  - **Brownian**: Classic jiggle with sine ease-in-out velocity profile; `mouseAmplitude` controls peak step size
 - Tracks net displacement during movement
 - Non-blocking return to approximate origin via MOUSE_RETURNING state
-- JIGGLING uses sine ease-in-out velocity profile: `amp = mouseAmplitude * sin(π × progress)` where progress goes 0→1 over the jiggle duration. Movement ramps from zero → peak → zero. Steps with zero amplitude are skipped (natural pause at start/end). `pickNewDirection()` stores unit vectors (-1/0/+1); amplitude is applied per-step with easing.
+- Brownian JIGGLING uses sine ease-in-out velocity profile: `amp = mouseAmplitude * sin(π × progress)` where progress goes 0→1 over the jiggle duration. Movement ramps from zero → peak → zero. Steps with zero amplitude are skipped (natural pause at start/end). `pickNewDirection()` stores unit vectors (-1/0/+1); amplitude is applied per-step with easing.
 - Display shows `[RTN]` during MOUSE_RETURNING state; progress bar stays at 0% (empty)
 
 #### 7. Power Management
@@ -179,6 +184,7 @@ WEB → DEVICE                    DEVICE → WEB
 ?keys                       →   !keys|F13|F14|F15|...|NONE
 =keyMin:2000                →   +ok
 =slots:2,28,28,28,28,28,28,28 → +ok
+=mouseStyle:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok
 !defaults                   →   +ok
@@ -362,7 +368,7 @@ In `config.h`:
 ```
 
 ### Change mouse amplitude range
-Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `keys.cpp` (minVal/maxVal currently 1–5). The JIGGLING case in `mouse.cpp` applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
+Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `keys.cpp` (minVal/maxVal currently 1–5). Only applies to Brownian mode — Bezier uses random sweep radius and ignores `mouseAmplitude`. The JIGGLING case in `mouse.cpp` applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
 
 ### Add new menu setting
 1. Add `SettingId` enum entry in `config.h`
@@ -486,9 +492,17 @@ pio run -t upload
 - [ ] Mode timeout (30s): returns to NORMAL from MENU or SLOTS, resets menuEditing
 - [ ] Encoder responsive immediately after boot (hybrid ISR+polling, analogRead fix)
 - [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
-- [ ] Menu: "Move size" shows "1px" default, editable 1-5 with `< >` arrows
-- [ ] Mouse amplitude 1: subtle pauses at start/end of jiggle, 1px movement in middle
-- [ ] Mouse amplitude 5: smooth visible ramp-up and ramp-down, 5px peak movement
+- [ ] Menu: "Move style" shows "Bezier" default, editable with 2 options (Bezier/Brownian)
+- [ ] Menu: "Move style" set to Bezier → "Move size" hidden in menu
+- [ ] Menu: "Move style" set to Brownian → "Move size" visible and editable
+- [ ] Mouse style persists after menu close → reopen, and after sleep/wake
+- [ ] Serial `d` → prints mouse style name
+- [ ] Dashboard: "Move Style" dropdown shows Bezier/Brownian, sends `=mouseStyle:N`
+- [ ] Dashboard: Move Size slider disabled with `---` when Bezier selected
+- [ ] Dashboard: Move Size slider enabled with `Npx` when Brownian selected
+- [ ] Menu: "Move size" shows "1px" default, editable 1-5 with `< >` arrows (Brownian only)
+- [ ] Mouse amplitude 1: subtle pauses at start/end of jiggle, 1px movement in middle (Brownian only)
+- [ ] Mouse amplitude 5: smooth visible ramp-up and ramp-down, 5px peak movement (Brownian only)
 - [ ] Mouse amplitude persists after menu close → reopen, and after sleep/wake
 - [ ] Serial `d` → prints mouse amplitude value
 - [ ] Easing: mouse cursor visibly accelerates at start and decelerates at end of each jiggle

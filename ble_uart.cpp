@@ -161,6 +161,7 @@ static void cmdQuerySettings() {
   resp += "|mouseJig=";     resp += String(settings.mouseJiggleDuration);
   resp += "|mouseIdle=";    resp += String(settings.mouseIdleDuration);
   resp += "|mouseAmp=";     resp += String(settings.mouseAmplitude);
+  resp += "|mouseStyle=";   resp += String(settings.mouseStyle);
   resp += "|lazyPct=";      resp += String(settings.lazyPercent);
   resp += "|busyPct=";      resp += String(settings.busyPercent);
   resp += "|dispBright=";   resp += String(settings.displayBrightness);
@@ -224,6 +225,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_MOUSE_IDLE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "mouseAmp") == 0) {
     setSettingValue(SET_MOUSE_AMP, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "mouseStyle") == 0) {
+    setSettingValue(SET_MOUSE_STYLE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "lazyPct") == 0) {
     setSettingValue(SET_LAZY_PCT, (uint32_t)atol(valStr));
   } else if (strcmp(key, "busyPct") == 0) {

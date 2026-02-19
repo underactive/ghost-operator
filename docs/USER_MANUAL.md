@@ -105,7 +105,8 @@
 | | Key slots | Opens the slot editor (press encoder to enter) |
 | **Mouse** | Move duration | How long the mouse moves (0.5s-90s) |
 | | Idle duration | Pause between moves (0.5s-90s) |
-| | Move size | Mouse movement step size (1-5px, default 1px) |
+| | Move style | Movement pattern: Bezier (smooth curves) or Brownian (jiggle) |
+| | Move size | Mouse step size, Brownian only (1-5px, default 1px) |
 | **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
 | | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
 | **Display** | Brightness | OLED display brightness (10-100%, default 80%) |
@@ -325,9 +326,12 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 - Example: MIN=2s, MAX=6s, slots=[F15, F14, F13] → F14 at 3.2s, F15 at 5.1s, F13 at 2.4s...
 
 ### Mouse
+- **Move style** selects the movement pattern:
+  - **Bezier** (default): Smooth curved sweeps with random radius — natural-looking arcs
+  - **Brownian**: Classic jiggle with inertial easing — movement ramps up, peaks, then ramps down
 - **Move phase:** Mouse moves randomly for the set duration (adjusted by active profile)
-  - Movement starts slow, accelerates to peak speed, then decelerates to a stop — like a human moving the mouse
-  - The "Move size" setting controls the peak speed (1-5px per step)
+  - In Brownian mode, the "Move size" setting controls the peak speed (1-5px per step)
+  - In Bezier mode, sweep radius is randomized; "Move size" has no effect (hidden in menu)
 - **Idle phase:** Mouse stops for the set duration (adjusted by active profile)
 - ±20% randomness on both durations
 - Mouse returns to approximate starting position after each movement (display shows `[RTN]` with progress bar at 0%)
@@ -482,7 +486,8 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 | Key timing range | 0.5s - 30s |
 | Mouse timing range | 0.5s - 90s |
 | Timing step | 0.5s |
-| Mouse amplitude | 1-5px (1px steps, default 1px) |
+| Mouse styles | Bezier (default), Brownian |
+| Mouse amplitude | 1-5px (1px steps, default 1px, Brownian only) |
 | Mouse randomness | ±20% |
 | Sleep current | ~3µA |
 | Active current | ~15mA (with display) |
