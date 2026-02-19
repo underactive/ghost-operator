@@ -349,7 +349,11 @@ static void drawNormalMode() {
   // === Header (y=0) ===
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.print("GHOST Operator");
+  if (strcmp(settings.deviceName, DEVICE_NAME) == 0) {
+    display.print("GHOST Operator");
+  } else {
+    display.print(settings.deviceName);
+  }
 
   // Right side: BT icon + battery, right aligned
   String batStr = String(batteryPercent) + "%";
