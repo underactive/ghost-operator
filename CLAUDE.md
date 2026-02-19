@@ -351,7 +351,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 ### Version bumps
 Version appears in 7 files: `config.h`, `ghost_operator.ino`, `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `App.vue`, `USER_MANUAL.md` (x2), plus `dashboard/package.json`.
 
-**Dashboard versioning is independent.** Only bump `App.vue` and `dashboard/package.json` when the dashboard itself changes (new UI, protocol changes, bug fixes in web code). Firmware-only changes (display, HID, menu, timing, etc.) should NOT bump the dashboard version.
+**Dashboard version is kept in sync with the firmware version.** Always bump `App.vue` and `dashboard/package.json` alongside the other version files during any version bump.
 
 ### Add a new keystroke option
 1. Add entry to `AVAILABLE_KEYS[]` array in `keys.cpp`
