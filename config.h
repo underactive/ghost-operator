@@ -10,7 +10,7 @@
 #define VERSION "1.8.3"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F4A  // bumped: added btWhileUsb field
+#define SETTINGS_MAGIC 0x50524F4B  // bumped: added scrollEnabled field
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
 
@@ -62,6 +62,8 @@
 
 #define MOUSE_MOVE_STEP_MS    20
 #define MOUSE_STYLE_COUNT     2       // Bezier, Brownian
+#define SCROLL_INTERVAL_MIN_MS  2000
+#define SCROLL_INTERVAL_MAX_MS  5000
 
 // Bezier sweep constants
 #define SWEEP_PAUSE_MIN_MS    200
@@ -132,6 +134,7 @@ enum SettingId {
   SET_ANIMATION,
   SET_DEVICE_NAME,
   SET_BT_WHILE_USB,
+  SET_SCROLL,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
   SET_VERSION
@@ -156,7 +159,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 24
+#define MENU_ITEM_COUNT 25
 
 struct Settings {
   uint32_t magic;
@@ -175,6 +178,7 @@ struct Settings {
   uint8_t animStyle;       // 0-5 index into ANIM_NAMES[] (default 2 = Ghost)
   char    deviceName[15]; // 14 chars + null terminator (BLE device name)
   uint8_t btWhileUsb;     // 0=Off (default), 1=On — keep BLE active when USB connected
+  uint8_t scrollEnabled;  // 0=Off (default), 1=On — random scroll wheel during mouse jiggle
   uint8_t checksum;       // must remain last
 };
 

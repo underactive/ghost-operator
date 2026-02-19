@@ -173,6 +173,8 @@ void handleMouseStateMachine(unsigned long now) {
         lastMouseStep = now;
         mouseNetX = 0;
         mouseNetY = 0;
+        lastScrollTime = now;
+        nextScrollInterval = random(SCROLL_INTERVAL_MIN_MS, SCROLL_INTERVAL_MAX_MS + 1);
         sweepPhase = SWEEP_PLANNING;  // Bezier starts fresh
         pickNewDirection();            // Brownian needs initial direction
         scheduleNextMouseState();
@@ -181,6 +183,12 @@ void handleMouseStateMachine(unsigned long now) {
       break;
 
     case MOUSE_JIGGLING:
+      // Random scroll injection (applies to both Bezier and Brownian)
+      if (settings.scrollEnabled && (now - lastScrollTime >= nextScrollInterval)) {
+        sendMouseScroll(random(2) ? 1 : -1);
+        lastScrollTime = now;
+        nextScrollInterval = random(SCROLL_INTERVAL_MIN_MS, SCROLL_INTERVAL_MAX_MS + 1);
+      }
       if (elapsed >= currentMouseJiggle) {
         mouseState = MOUSE_RETURNING;
         mouseReturnTotal = abs(mouseNetX) + abs(mouseNetY);

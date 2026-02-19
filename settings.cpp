@@ -26,6 +26,7 @@ void loadDefaults() {
   strncpy(settings.deviceName, DEVICE_NAME, 14);
   settings.deviceName[14] = '\0';
   settings.btWhileUsb = 0;
+  settings.scrollEnabled = 0;
 }
 
 uint8_t calcChecksum() {
@@ -107,6 +108,7 @@ void loadSettings() {
         }
         if (!nameValid) { strncpy(settings.deviceName, DEVICE_NAME, 14); settings.deviceName[14] = '\0'; }
         if (settings.btWhileUsb > 1) settings.btWhileUsb = 0;
+        if (settings.scrollEnabled > 1) settings.scrollEnabled = 0;
 
         adcCalStart = millis();
         { const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
@@ -144,6 +146,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_SAVER_TIMEOUT:  return settings.saverTimeout;
     case SET_ANIMATION:      return settings.animStyle;
     case SET_BT_WHILE_USB:   return settings.btWhileUsb;
+    case SET_SCROLL:         return settings.scrollEnabled;
     case SET_VERSION:        return 0;  // read-only display
     default:                 return 0;
   }
@@ -172,6 +175,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_SAVER_TIMEOUT:  settings.saverTimeout = (uint8_t)value; break;
     case SET_ANIMATION:      settings.animStyle = (uint8_t)value; break;
     case SET_BT_WHILE_USB:   settings.btWhileUsb = (uint8_t)value; break;
+    case SET_SCROLL:         settings.scrollEnabled = (uint8_t)value; break;
   }
 }
 
