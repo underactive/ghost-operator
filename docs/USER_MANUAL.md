@@ -1,4 +1,4 @@
-# Ghost Operator v1.7.1 - User Manual
+# Ghost Operator v1.7.2 - User Manual
 
 ## Quick Start
 
@@ -389,6 +389,8 @@ Connect via USB and open Serial Monitor at 115200 baud.
 | `z` | Enter sleep mode |
 | `p` | Capture PNG screenshot of the OLED display |
 | `v` | Activate screensaver (forces NORMAL mode first) |
+| `f` | Enter OTA DFU mode (BLE firmware update) |
+| `u` | Enter Serial DFU mode (USB firmware update) |
 
 ### Taking a Screenshot
 
@@ -428,6 +430,34 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 
 ---
 
+## Firmware Updates
+
+Update your Ghost Operator firmware from the web dashboard using a USB cable.
+
+**Requirements:**
+- Chrome or Edge browser on desktop (Web Serial API required)
+- USB cable connected to the device
+- A DFU package file (`.zip`) containing the new firmware
+
+**Steps:**
+
+1. Connect to your device via BLE in the web dashboard
+2. Expand the **Firmware Update** section at the bottom
+3. Select the `.zip` DFU package file
+4. Click **Start Firmware Update**, then **Confirm Update**
+5. The device reboots into USB DFU mode (BLE disconnects — this is normal)
+6. When prompted, click **Select Serial Port** and pick the DFU serial port from the Chrome dialog
+7. The firmware transfer begins — watch the progress bar
+8. On completion, the device reboots with the new firmware
+9. Reconnect via BLE to verify the new version
+
+**If something goes wrong:**
+- If the device is stuck in DFU mode, power cycle it (unplug USB and battery, then replug)
+- DFU mode has no timeout — the device stays in DFU mode until a transfer completes or it's power cycled
+- Your settings are preserved through firmware updates (stored in a separate flash region)
+
+---
+
 ## Troubleshooting
 
 | Problem | Solution |
@@ -439,6 +469,9 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 | Encoder does nothing | Check CLK/DT wiring to D0/D1 |
 | Settings not saving | Wait for auto-return to NORMAL, or press function button |
 | Battery reads wrong | Normal - reading is approximate |
+| Stuck in DFU mode | Power cycle: unplug USB and battery, then replug |
+| No serial port in picker | Make sure USB cable is connected before starting DFU |
+| Firmware update fails | Try again; ensure USB cable is data-capable (not charge-only) |
 
 ---
 
@@ -482,6 +515,6 @@ The resulting file is a 128x64 1-bit grayscale PNG matching exactly what's shown
 
 ---
 
-*Ghost Operator v1.7.1 | TARS Industrial Technical Solutions*
+*Ghost Operator v1.7.2 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*

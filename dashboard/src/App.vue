@@ -1,5 +1,5 @@
 <script setup>
-import { connectionState, dirty, saving, saveToFlash, statusMessage } from './lib/store.js'
+import { connectionState, dirty, saving, saveToFlash, statusMessage, dfuActive } from './lib/store.js'
 import ConnectButton from './components/ConnectButton.vue'
 import StatusBar from './components/StatusBar.vue'
 import TimingSection from './components/TimingSection.vue'
@@ -8,30 +8,34 @@ import MouseSection from './components/MouseSection.vue'
 import ProfileSection from './components/ProfileSection.vue'
 import DisplaySection from './components/DisplaySection.vue'
 import DeviceSection from './components/DeviceSection.vue'
+import FirmwareUpdate from './components/FirmwareUpdate.vue'
 </script>
 
 <template>
   <div class="app">
     <header>
       <h1>👻 Ghost Operator</h1>
-      <span class="version">v1.7.1</span>
+      <span class="version">v1.7.2</span>
     </header>
 
-    <ConnectButton />
+    <ConnectButton v-if="!dfuActive || connectionState.connected" />
 
-    <template v-if="connectionState.connected">
-      <StatusBar />
+    <template v-if="connectionState.connected || dfuActive">
+      <StatusBar v-if="connectionState.connected" />
 
       <div class="settings-grid">
-        <TimingSection />
-        <MouseSection />
-        <KeySlotEditor />
-        <ProfileSection />
-        <DisplaySection />
-        <DeviceSection />
+        <template v-if="connectionState.connected">
+          <TimingSection />
+          <MouseSection />
+          <KeySlotEditor />
+          <ProfileSection />
+          <DisplaySection />
+          <DeviceSection />
+        </template>
+        <FirmwareUpdate />
       </div>
 
-      <footer class="save-bar">
+      <footer v-if="connectionState.connected" class="save-bar">
         <span class="save-status" :class="{ dirty: dirty }">
           {{ statusMessage || (dirty ? 'Unsaved changes' : 'All saved') }}
         </span>
@@ -45,7 +49,7 @@ import DeviceSection from './components/DeviceSection.vue'
       </footer>
     </template>
 
-    <div v-else class="placeholder">
+    <div v-if="!connectionState.connected && !dfuActive" class="placeholder">
       <p>Connect to a Ghost Operator device to manage settings wirelessly.</p>
     </div>
   </div>

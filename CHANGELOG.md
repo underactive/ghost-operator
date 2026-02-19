@@ -5,6 +5,24 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-02-18
+
+### Added
+
+- **Web Serial DFU**: Browser-based firmware updates via USB serial, integrated into the web dashboard
+  - New `!serialdfu` BLE UART command reboots device into USB CDC serial DFU bootloader mode
+  - New `u` serial command for entering Serial DFU mode during development/testing
+  - Dashboard "Firmware Update" section with full DFU workflow: select ZIP → confirm → BLE reboot → Web Serial transfer → progress bar
+  - Uses GPREGRET magic `0x4E` (DFU_MAGIC_SERIAL_ONLY_RESET) via SoftDevice-safe API
+  - OLED shows "USB DFU / Connect USB cable" screen before reboot
+  - DFU library (`dashboard/src/lib/dfu/`): Nordic SDK 11 legacy HCI/SLIP serial DFU protocol
+    - SLIP byte-stuffing + HCI packet framing with sequence numbers and CRC16-CCITT
+    - 512-byte chunked transfer with flash page-write delays
+    - ZIP parser using `fflate` (~8KB tree-shaken) for `adafruit-nrfutil` packages
+  - `dfuActive` flag keeps dashboard UI visible during DFU transfer (after BLE disconnects)
+  - Web Serial API with no VID filter (bootloader reuses Seeed's VID, not Adafruit's)
+  - **Requires Chrome/Edge on desktop** (Web Serial API not available in Firefox/Safari)
+
 ## [1.7.1] - 2026-02-18
 
 ### Added

@@ -35,6 +35,7 @@ void handleSerialCommands() {
         Serial.println("p - PNG screenshot");
         Serial.println("v - Screensaver");
         Serial.println("f - OTA DFU mode");
+        Serial.println("u - Serial DFU mode (USB)");
         break;
       case 'p':
         serialScreenshot();
@@ -82,6 +83,10 @@ void handleSerialCommands() {
       case 'f':
         Serial.println("Entering OTA DFU mode...");
         resetToDfu();
+        break;
+      case 'u':
+        Serial.println("Entering Serial DFU mode...");
+        resetToSerialDfu();
         break;
     }
   }
