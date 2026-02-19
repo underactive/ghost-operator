@@ -562,25 +562,32 @@ static void drawScreensaver() {
   unsigned long now = millis();
   display.setTextSize(1);
 
+  // Bar geometry: 65% width, centered, with 3px tall end caps
+  const int barW = 83;
+  const int barX = (128 - barW) / 2;  // 22
+  const int barEndX = barX + barW - 1; // 104
+  const int innerW = barW - 2;         // 81 (fill area between caps)
+
   // === KB label centered (y=11) ===
   String kbLabel = "[" + String(AVAILABLE_KEYS[nextKeyIndex].name) + "]";
   int kbWidth = kbLabel.length() * 6;
   display.setCursor((128 - kbWidth) / 2, 11);
   display.print(kbLabel);
 
-  // === KB progress bar 1px high (y=21), full width ===
+  // === KB progress bar 1px high (y=21), 65% width with end caps ===
+  display.drawFastVLine(barX, 20, 3, SSD1306_WHITE);
+  display.drawFastVLine(barEndX, 20, 3, SSD1306_WHITE);
   if (deviceConnected) {
     unsigned long keyElapsed = now - lastKeyTime;
     int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
-    int kbBarWidth = 0;
+    int kbFill = 0;
     if (currentKeyInterval > 0) {
-      kbBarWidth = map(keyRemaining, 0, currentKeyInterval, 0, 128);
+      kbFill = map(keyRemaining, 0, currentKeyInterval, 0, innerW);
     }
-    if (kbBarWidth > 0) {
-      display.drawFastHLine(0, 21, kbBarWidth, SSD1306_WHITE);
+    if (kbFill > 0) {
+      display.drawFastHLine(barX + 1, 21, kbFill, SSD1306_WHITE);
     }
   }
-  // When disconnected: no bar drawn (empty = visual hint)
 
   // === MS label centered (y=32) ===
   const char* msTag = (mouseState == MOUSE_IDLE) ? "[IDL]" :
@@ -589,25 +596,27 @@ static void drawScreensaver() {
   display.setCursor((128 - msWidth) / 2, 32);
   display.print(msTag);
 
-  // === MS progress bar 1px high (y=42), full width ===
+  // === MS progress bar 1px high (y=42), 65% width with end caps ===
+  display.drawFastVLine(barX, 41, 3, SSD1306_WHITE);
+  display.drawFastVLine(barEndX, 41, 3, SSD1306_WHITE);
   if (!deviceConnected) {
-    // BLE disconnected -- no bar drawn
+    // BLE disconnected -- no fill drawn
   } else if (mouseState == MOUSE_RETURNING) {
     // Empty bar during return (0%)
   } else {
     unsigned long mouseElapsed = now - lastMouseStateChange;
     unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
-    int msBarWidth = 0;
+    int msFill = 0;
     if (mouseDuration > 0) {
       if (mouseState == MOUSE_IDLE) {
-        msBarWidth = map(min(mouseElapsed, mouseDuration), 0, mouseDuration, 0, 128);
+        msFill = map(min(mouseElapsed, mouseDuration), 0, mouseDuration, 0, innerW);
       } else {
         int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
-        msBarWidth = map(mouseRemaining, 0, mouseDuration, 0, 128);
+        msFill = map(mouseRemaining, 0, mouseDuration, 0, innerW);
       }
     }
-    if (msBarWidth > 0) {
-      display.drawFastHLine(0, 42, msBarWidth, SSD1306_WHITE);
+    if (msFill > 0) {
+      display.drawFastHLine(barX + 1, 42, msFill, SSD1306_WHITE);
     }
   }
 

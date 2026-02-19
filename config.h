@@ -7,7 +7,7 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.8.1"
+#define VERSION "1.8.2"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F49  // bumped: added mouseStyle field
