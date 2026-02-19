@@ -5,6 +5,16 @@
 #include "timing.h"
 #include "screenshot.h"
 
+// Line buffer for protocol commands (?/=/!) arriving over USB serial
+#define SERIAL_BUF_SIZE 128
+static char serialBuf[SERIAL_BUF_SIZE];
+static uint8_t serialBufPos = 0;
+
+// Serial response writer — plain println, no chunking needed for USB
+static void serialWrite(const String& msg) {
+  Serial.println(msg);
+}
+
 void printStatus() {
   Serial.println("\n=== Status ===");
   Serial.print("Mode: "); Serial.println(MODE_NAMES[currentMode]);
@@ -24,8 +34,32 @@ void printStatus() {
 }
 
 void handleSerialCommands() {
-  if (Serial.available()) {
+  while (Serial.available()) {
     char c = Serial.read();
+
+    // If we're accumulating a protocol command, keep buffering
+    if (serialBufPos > 0) {
+      if (c == '\n' || c == '\r') {
+        serialBuf[serialBufPos] = '\0';
+        processCommand(serialBuf, serialWrite);
+        serialBufPos = 0;
+      } else if (serialBufPos < SERIAL_BUF_SIZE - 1) {
+        serialBuf[serialBufPos++] = c;
+      }
+      continue;
+    }
+
+    // First character — decide: protocol command or single-char debug?
+    if (c == '?' || c == '=' || c == '!') {
+      serialBuf[0] = c;
+      serialBufPos = 1;
+      continue;
+    }
+
+    // Skip bare newlines/carriage returns
+    if (c == '\n' || c == '\r') continue;
+
+    // Single-char debug commands (unchanged)
     switch (c) {
       case 'h':
         Serial.println("\n=== Commands ===");

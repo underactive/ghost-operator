@@ -1,12 +1,12 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { connectionState, startSerialDfu, dfuActive } from '../lib/store.js'
-import { isWebSerialAvailable } from '../lib/dfu/serial.js'
+import { isWebSerialAvailable } from '../lib/serial.js'
 import { parseDfuZip, getDfuPackageInfo } from '../lib/dfu/zip.js'
 
 const expanded = ref(false)
 
-// Auto-expand when DFU is active (BLE disconnected, serial transfer in progress)
+// Auto-expand when DFU is active (serial disconnected, DFU transfer in progress)
 watch(dfuActive, (active) => { if (active) expanded.value = true })
 const webSerialOk = computed(() => isWebSerialAvailable())
 
@@ -144,7 +144,7 @@ function cancel() {
         <!-- confirm: final confirmation -->
         <div v-else-if="state === 'confirm'" class="dfu-step">
           <p class="dfu-confirm-msg">
-            This will reboot the device into USB DFU mode. BLE will disconnect.
+            This will reboot the device into USB DFU mode. The serial connection will close.
             Make sure the USB cable is connected.
           </p>
           <p class="dfu-confirm-warning">
@@ -184,7 +184,7 @@ function cancel() {
         <!-- complete: success -->
         <div v-else-if="state === 'complete'" class="dfu-step dfu-success">
           <p>Firmware update complete! The device is rebooting with the new firmware.</p>
-          <p class="help-text">Reconnect via BLE to verify the new version.</p>
+          <p class="help-text">Reconnect via USB to verify the new version.</p>
           <button class="btn" @click="reset">Done</button>
         </div>
 

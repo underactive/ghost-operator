@@ -50,7 +50,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
     </template>
 
     <div v-if="!connectionState.connected && !dfuActive" class="placeholder">
-      <p>Connect to a Ghost Operator device to manage settings wirelessly.</p>
+      <p>Connect to a Ghost Operator device via USB to manage settings.</p>
     </div>
   </div>
 </template>
