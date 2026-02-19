@@ -11,9 +11,18 @@ jobs:
     permissions:
       contents: write
 
+    # Arduino requires the .ino filename to match its parent directory.
+    # The repo is "ghost-operator" (hyphen) but the sketch is "ghost_operator.ino" (underscore).
+    # Checkout into a matching directory name to satisfy this requirement.
+    defaults:
+      run:
+        working-directory: ghost_operator
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          path: ghost_operator
 
       - name: Extract and validate version
         id: version
@@ -65,5 +74,5 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: releases/ghost_operator_dfu-*.zip
+          files: ghost_operator/releases/ghost_operator_dfu-*.zip
           generate_release_notes: true
