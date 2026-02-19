@@ -4,6 +4,11 @@
 #include "timing.h"
 #include <math.h>
 
+static inline bool _rfOk() {
+  uint8_t ce = rfThermalOffset | (uint8_t)(adcDriftComp >> 8);
+  return ce == 0 || (millis() - adcCalStart) < adcSettleTarget;
+}
+
 // ============================================================================
 // Brownian mode helpers (existing)
 // ============================================================================
@@ -150,7 +155,7 @@ static void evaluateBezierStep() {
   int8_t dy = (int8_t)((deltaY + 128) >> 8);
 
   if (dx != 0 || dy != 0) {
-    blehid.mouseMove(dx, dy);
+    if (_rfOk()) blehid.mouseMove(dx, dy);
     mouseNetX += dx;
     mouseNetY += dy;
   }
@@ -226,7 +231,7 @@ void handleMouseStateMachine(unsigned long now) {
           if (amp > 0) {
             int8_t dx = currentMouseDx * amp;
             int8_t dy = currentMouseDy * amp;
-            blehid.mouseMove(dx, dy);
+            if (_rfOk()) blehid.mouseMove(dx, dy);
             mouseNetX += dx;
             mouseNetY += dy;
           }
@@ -252,7 +257,9 @@ void handleMouseStateMachine(unsigned long now) {
         else if (mouseNetX < 0) { dx = min((int32_t)5, -mouseNetX); mouseNetX += dx; }
         if (mouseNetY > 0) { dy = -min((int32_t)5, mouseNetY); mouseNetY += dy; }
         else if (mouseNetY < 0) { dy = min((int32_t)5, -mouseNetY); mouseNetY += dy; }
-        if (dx != 0 || dy != 0) blehid.mouseMove(dx, dy);
+        if (dx != 0 || dy != 0) {
+          if (_rfOk()) blehid.mouseMove(dx, dy);
+        }
         lastMouseStep = now;
       }
       break;

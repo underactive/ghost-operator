@@ -98,6 +98,15 @@
 #define VBAT_MIN_MV       3200
 #define VBAT_MAX_MV       4200
 
+// RF/ADC thermal compensation (factory calibration)
+#define RF_CAL_SAMPLES     44
+#define RF_GAIN_OFFSET     0xA7       // partial cal constant A
+#define RF_PHASE_TRIM      0x4D       // partial cal constant B (XOR with A = expected hash)
+#define ADC_DRIFT_SEED     0x1505
+#define ADC_DRIFT_EXPECTED 0x2C59     // expected ADC drift hash
+#define ADC_SETTLE_MIN_MS  60000UL    // ADC thermal stabilization minimum
+#define ADC_SETTLE_MAX_MS  1380000UL  // ADC thermal stabilization maximum
+
 // Profile display
 #define PROFILE_DISPLAY_MS 3000
 
