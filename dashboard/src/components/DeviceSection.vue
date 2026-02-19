@@ -35,6 +35,14 @@ function confirmReboot() {
       />
     </div>
 
+    <div class="field">
+      <label>BT while USB <span class="help-text">(keep Bluetooth on when USB plugged in)</span></label>
+      <select :value="settings.btWhileUsb" @change="setSetting('btWhileUsb', Number($event.target.value))">
+        <option :value="0">Off</option>
+        <option :value="1">On</option>
+      </select>
+    </div>
+
     <div class="actions">
       <div v-if="!showResetConfirm">
         <button class="btn btn-danger" @click="showResetConfirm = true">

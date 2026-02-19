@@ -25,6 +25,7 @@ void loadDefaults() {
   settings.animStyle = 2;                      // Ghost (default)
   strncpy(settings.deviceName, DEVICE_NAME, 14);
   settings.deviceName[14] = '\0';
+  settings.btWhileUsb = 0;
 }
 
 uint8_t calcChecksum() {
@@ -91,6 +92,7 @@ void loadSettings() {
           if (settings.deviceName[i] < 0x20 || settings.deviceName[i] > 0x7E) nameValid = false;
         }
         if (!nameValid) { strncpy(settings.deviceName, DEVICE_NAME, 14); settings.deviceName[14] = '\0'; }
+        if (settings.btWhileUsb > 1) settings.btWhileUsb = 0;
 
         return;
       } else {
@@ -118,6 +120,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_SAVER_BRIGHT:   return settings.saverBrightness;
     case SET_SAVER_TIMEOUT:  return settings.saverTimeout;
     case SET_ANIMATION:      return settings.animStyle;
+    case SET_BT_WHILE_USB:   return settings.btWhileUsb;
     case SET_VERSION:        return 0;  // read-only display
     default:                 return 0;
   }
@@ -145,6 +148,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_SAVER_BRIGHT:   settings.saverBrightness = (uint8_t)value; break;
     case SET_SAVER_TIMEOUT:  settings.saverTimeout = (uint8_t)value; break;
     case SET_ANIMATION:      settings.animStyle = (uint8_t)value; break;
+    case SET_BT_WHILE_USB:   settings.btWhileUsb = (uint8_t)value; break;
   }
 }
 
@@ -158,6 +162,7 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
     case FMT_PIXELS:       return String(val) + "px";
     case FMT_ANIM_NAME:    return String(ANIM_NAMES[val]);
     case FMT_MOUSE_STYLE:  return String(MOUSE_STYLE_NAMES[val]);
+    case FMT_ON_OFF:       return String(ON_OFF_NAMES[val]);
     case FMT_VERSION:      return String("v") + String(VERSION);
     default:               return String(val);
   }

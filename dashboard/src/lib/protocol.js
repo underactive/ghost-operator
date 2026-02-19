@@ -91,6 +91,7 @@ export function parseSettings(data) {
     saverTimeout: parseInt(data.saverTimeout) || 5,
     animStyle: parseInt(data.animStyle) || 2,
     name: data.name || 'GhostOperator',
+    btWhileUsb: parseInt(data.btWhileUsb) || 0,
     slots: (data.slots || '2,28,28,28,28,28,28,28').split(',').map(Number),
   }
 }
@@ -101,6 +102,7 @@ export function parseSettings(data) {
 export function parseStatus(data) {
   return {
     connected: data.connected === '1',
+    usb: data.usb === '1',
     kb: data.kb === '1',
     ms: data.ms === '1',
     bat: parseInt(data.bat) || 0,

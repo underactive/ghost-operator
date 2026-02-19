@@ -6,5 +6,6 @@
 void sendKeystroke();
 void pickNextKey();
 bool hasPopulatedSlot();
+void sendMouseMove(int8_t dx, int8_t dy);
 
 #endif // GHOST_HID_H

@@ -7,6 +7,7 @@
 extern const uint8_t PROGMEM iconOn[];
 extern const uint8_t PROGMEM iconOff[];
 extern const uint8_t PROGMEM btIcon[];
+extern const uint8_t PROGMEM usbIcon[];
 extern const uint8_t PROGMEM splashBitmap[];
 
 #endif // GHOST_ICONS_H

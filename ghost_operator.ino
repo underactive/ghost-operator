@@ -55,6 +55,7 @@ void connect_callback(uint16_t conn_handle) {
   conn->getPeerName(central_name, sizeof(central_name));
   Serial.print("Connected to: ");
   Serial.println(central_name);
+  bleConnHandle = conn_handle;
   deviceConnected = true;
 
   // Reset timers so progress bars start fresh (not stale from pre-connection)
@@ -75,6 +76,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   (void)conn_handle;
   Serial.print("Disconnected, reason: 0x");
   Serial.println(reason, HEX);
+  bleConnHandle = BLE_CONN_HANDLE_INVALID;
   deviceConnected = false;
   easterEggActive = false;
 }
@@ -165,10 +167,27 @@ void startAdvertising() {
 }
 
 // ============================================================================
+// USB HID
+// ============================================================================
+
+// USB HID composite descriptor: keyboard + mouse
+uint8_t const desc_hid_report[] = {
+  TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(RID_KEYBOARD)),
+  TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(RID_MOUSE))
+};
+
+void setupUSBHID() {
+  usb_hid.setPollInterval(2);
+  usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
+  usb_hid.begin();
+}
+
+// ============================================================================
 // SETUP
 // ============================================================================
 
 void setup() {
+  setupUSBHID();  // Must be before Serial.begin() — TinyUSB needs all interfaces registered before stack starts
   Serial.begin(115200);
 
   uint32_t t = millis();
@@ -264,8 +283,39 @@ void loop() {
     lastBatteryRead = now;
   }
 
+  // Update USB connection state
+  bool wasUsbConnected = usbConnected;
+  usbConnected = TinyUSBDevice.mounted();
+
+  // USB mount edge — reset timers (mirrors BLE connect_callback)
+  if (usbConnected && !wasUsbConnected) {
+    lastKeyTime = now;
+    lastMouseStateChange = now;
+    mouseState = MOUSE_IDLE;
+    mouseNetX = 0;
+    mouseNetY = 0;
+    mouseReturnTotal = 0;
+    scheduleNextKey();
+    scheduleNextMouseState();
+  }
+
+  // BLE disable/enable based on USB state and setting
+  if (usbConnected && !settings.btWhileUsb && !bleDisabledForUsb) {
+    Bluefruit.Advertising.restartOnDisconnect(false);
+    Bluefruit.Advertising.stop();
+    if (deviceConnected && bleConnHandle != BLE_CONN_HANDLE_INVALID) {
+      Bluefruit.disconnect(bleConnHandle);
+    }
+    bleDisabledForUsb = true;
+  }
+  if ((!usbConnected || settings.btWhileUsb) && bleDisabledForUsb) {
+    Bluefruit.Advertising.restartOnDisconnect(true);
+    Bluefruit.Advertising.start(0);
+    bleDisabledForUsb = false;
+  }
+
   // Jiggler logic runs in background regardless of mode
-  if (deviceConnected) {
+  if (deviceConnected || usbConnected) {
     // Keystroke logic
     if (keyEnabled && hasPopulatedSlot()) {
       if (now - lastKeyTime >= currentKeyInterval) {
@@ -293,10 +343,10 @@ void loop() {
 
   // LED blink
   static unsigned long lastBlink = 0;
-  if (deviceConnected && (now - lastBlink >= 1000)) {
+  if ((deviceConnected || usbConnected) && (now - lastBlink >= 1000)) {
     digitalWrite(PIN_LED, !digitalRead(PIN_LED));
     lastBlink = now;
-  } else if (!deviceConnected && (now - lastBlink >= 200)) {
+  } else if (!deviceConnected && !usbConnected && (now - lastBlink >= 200)) {
     digitalWrite(PIN_LED, !digitalRead(PIN_LED));
     lastBlink = now;
   }

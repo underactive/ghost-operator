@@ -360,7 +360,9 @@ static void drawNormalMode() {
   int batWidth = batStr.length() * 6;
   int batX = 128 - batWidth;
   int btX = batX - 5 - 3;  // icon width + gap
-  if (deviceConnected) {
+  if (usbConnected) {
+    display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
+  } else if (deviceConnected) {
     display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
   } else {
     bool btVisible = (now / 500) % 2 == 0;
@@ -387,7 +389,7 @@ static void drawNormalMode() {
 
   // Key progress bar (y=21)
   display.drawRect(0, 21, 100, 7, SSD1306_WHITE);
-  if (!deviceConnected) {
+  if (!deviceConnected && !usbConnected) {
     // BLE disconnected -- show empty bar and "---"
     display.setCursor(102, 21);
     display.print("---");
@@ -434,8 +436,8 @@ static void drawNormalMode() {
 
   // Mouse progress bar (y=41)
   display.drawRect(0, 41, 100, 7, SSD1306_WHITE);
-  if (!deviceConnected) {
-    // BLE disconnected -- show empty bar and "---"
+  if (!deviceConnected && !usbConnected) {
+    // Disconnected -- show empty bar and "---"
     display.setCursor(102, 41);
     display.print("---");
   } else if (mouseState == MOUSE_RETURNING) {
@@ -489,7 +491,7 @@ static void drawNormalMode() {
     }
 
     // Status animation (lower-right corner)
-    if (deviceConnected) {
+    if (deviceConnected || usbConnected) {
       drawAnimation();
     }
 
@@ -577,7 +579,7 @@ static void drawScreensaver() {
   // === KB progress bar 1px high (y=21), 65% width with end caps ===
   display.drawFastVLine(barX, 20, 3, SSD1306_WHITE);
   display.drawFastVLine(barEndX, 20, 3, SSD1306_WHITE);
-  if (deviceConnected) {
+  if (deviceConnected || usbConnected) {
     unsigned long keyElapsed = now - lastKeyTime;
     int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
     int kbFill = 0;
@@ -599,8 +601,8 @@ static void drawScreensaver() {
   // === MS progress bar 1px high (y=42), 65% width with end caps ===
   display.drawFastVLine(barX, 41, 3, SSD1306_WHITE);
   display.drawFastVLine(barEndX, 41, 3, SSD1306_WHITE);
-  if (!deviceConnected) {
-    // BLE disconnected -- no fill drawn
+  if (!deviceConnected && !usbConnected) {
+    // Disconnected -- no fill drawn
   } else if (mouseState == MOUSE_RETURNING) {
     // Empty bar during return (0%)
   } else {
@@ -952,12 +954,14 @@ static void drawMenuMode() {
     display.print("MENU");
   }
 
-  // BT icon + battery right-aligned in header
+  // BT/USB icon + battery right-aligned in header
   String batStr = String(batteryPercent) + "%";
   int batWidth = batStr.length() * 6;
   int batX = 128 - batWidth;
   int btX = batX - 5 - 3;
-  if (deviceConnected) {
+  if (usbConnected) {
+    display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
+  } else if (deviceConnected) {
     display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
   } else {
     if ((millis() / 500) % 2 == 0)

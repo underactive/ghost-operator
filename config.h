@@ -10,7 +10,7 @@
 #define VERSION "1.8.2"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F49  // bumped: added mouseStyle field
+#define SETTINGS_MAGIC 0x50524F4A  // bumped: added btWhileUsb field
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
 
@@ -106,9 +106,12 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
+
+// USB HID report IDs (for composite keyboard + mouse descriptor)
+enum USBReportId { RID_KEYBOARD = 1, RID_MOUSE };
 
 enum SettingId {
   SET_KEY_MIN, SET_KEY_MAX, SET_KEY_SLOTS,
@@ -117,6 +120,7 @@ enum SettingId {
   SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
   SET_ANIMATION,
   SET_DEVICE_NAME,
+  SET_BT_WHILE_USB,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
   SET_VERSION
@@ -141,7 +145,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 23
+#define MENU_ITEM_COUNT 24
 
 struct Settings {
   uint32_t magic;
@@ -159,6 +163,7 @@ struct Settings {
   uint8_t mouseStyle;      // 0=Bezier, 1=Brownian (default 0)
   uint8_t animStyle;       // 0-5 index into ANIM_NAMES[] (default 2 = Ghost)
   char    deviceName[15]; // 14 chars + null terminator (BLE device name)
+  uint8_t btWhileUsb;     // 0=Off (default), 1=On — keep BLE active when USB connected
   uint8_t checksum;       // must remain last
 };
 
