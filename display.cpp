@@ -398,9 +398,12 @@ static void drawNormalMode() {
     if (keyBarWidth > 0) {
       display.fillRect(1, 22, keyBarWidth, 5, SSD1306_WHITE);
     }
-    String keyTimeStr = formatDuration(keyRemaining);
     display.setCursor(102, 21);
-    display.print(keyTimeStr);
+    if (keyEnabled) {
+      display.print(formatDuration(keyRemaining));
+    } else {
+      display.print("mute");
+    }
   }
 
   display.drawFastHLine(0, 29, 128, SSD1306_WHITE);
@@ -434,7 +437,11 @@ static void drawNormalMode() {
   } else if (mouseState == MOUSE_RETURNING) {
     // Empty bar during return (0%)
     display.setCursor(102, 41);
-    display.print("0.0s");
+    if (mouseEnabled) {
+      display.print("0.0s");
+    } else {
+      display.print("mute");
+    }
   } else {
     unsigned long mouseElapsed = now - lastMouseStateChange;
     unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
@@ -452,9 +459,12 @@ static void drawNormalMode() {
     if (mouseBarWidth > 0) {
       display.fillRect(1, 42, mouseBarWidth, 5, SSD1306_WHITE);
     }
-    String mouseTimeStr = formatDuration(mouseRemaining);
     display.setCursor(102, 41);
-    display.print(mouseTimeStr);
+    if (mouseEnabled) {
+      display.print(formatDuration(mouseRemaining));
+    } else {
+      display.print("mute");
+    }
   }
 
   display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
