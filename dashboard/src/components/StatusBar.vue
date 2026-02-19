@@ -3,11 +3,17 @@ import { status } from '../lib/store.js'
 import { PROFILE_NAMES, MODE_NAMES, MOUSE_STATE_NAMES } from '../lib/protocol.js'
 
 function formatUptime(ms) {
-  const secs = Math.floor(ms / 1000)
-  const h = Math.floor(secs / 3600)
-  const m = Math.floor((secs % 3600) / 60)
-  const s = secs % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  const totalSecs = Math.floor(ms / 1000)
+  const d = Math.floor(totalSecs / 86400)
+  const h = Math.floor((totalSecs % 86400) / 3600)
+  const m = Math.floor((totalSecs % 3600) / 60)
+  const s = totalSecs % 60
+  const parts = []
+  if (d > 0) parts.push(`${d}d`)
+  if (h > 0) parts.push(`${h}h`)
+  if (m > 0) parts.push(`${m}m`)
+  if (d === 0 && s > 0) parts.push(`${s}s`)
+  return parts.length ? parts.join(' ') : '0s'
 }
 </script>
 

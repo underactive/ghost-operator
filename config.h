@@ -7,10 +7,10 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.7.1"
+#define VERSION "1.8.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F48  // bumped: added animStyle field
+#define SETTINGS_MAGIC 0x50524F49  // bumped: added mouseStyle field
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
 
@@ -61,6 +61,16 @@
 #define MIN_CLAMP_MS          500UL
 
 #define MOUSE_MOVE_STEP_MS    20
+#define MOUSE_STYLE_COUNT     2       // Bezier, Brownian
+
+// Bezier sweep constants
+#define SWEEP_PAUSE_MIN_MS    200
+#define SWEEP_PAUSE_MAX_MS    1500
+#define SWEEP_LONG_PAUSE_MS   3000
+#define SWEEP_LONG_PAUSE_PCT  10
+#define SWEEP_SPEED_MIN       80      // px/sec
+#define SWEEP_SPEED_MAX       200     // px/sec
+#define SWEEP_DRIFT_FACTOR    3
 #define DISPLAY_UPDATE_MS     100         // Faster for smooth countdown
 #define BATTERY_READ_MS       60000UL
 #define SLEEP_CONFIRM_THRESHOLD_MS  500   // Hold before showing confirmation
@@ -96,13 +106,13 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 
 enum SettingId {
   SET_KEY_MIN, SET_KEY_MAX, SET_KEY_SLOTS,
-  SET_MOUSE_JIG, SET_MOUSE_IDLE, SET_MOUSE_AMP,
+  SET_MOUSE_JIG, SET_MOUSE_IDLE, SET_MOUSE_AMP, SET_MOUSE_STYLE,
   SET_LAZY_PCT, SET_BUSY_PCT,
   SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
   SET_ANIMATION,
@@ -131,7 +141,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 22
+#define MENU_ITEM_COUNT 23
 
 struct Settings {
   uint32_t magic;
@@ -146,6 +156,7 @@ struct Settings {
   uint8_t saverBrightness; // 10-100 in steps of 10, default 20
   uint8_t displayBrightness; // 10-100 in steps of 10, default 80
   uint8_t mouseAmplitude;  // 1-5, step 1, default 1 (pixels per movement step)
+  uint8_t mouseStyle;      // 0=Bezier, 1=Brownian (default 0)
   uint8_t animStyle;       // 0-5 index into ANIM_NAMES[] (default 2 = Ghost)
   char    deviceName[15]; // 14 chars + null terminator (BLE device name)
   uint8_t checksum;       // must remain last

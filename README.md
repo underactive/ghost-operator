@@ -1,6 +1,6 @@
 # Ghost Operator - BLE HID Device
 
-## Version 1.7.1
+## Version 1.8.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -14,7 +14,8 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 - **OLED Display** - Real-time countdown bars and uptime
 - **USB-C Charging** - Charge while operating
 - **~60+ hours runtime** on 1000mAh battery
-- **Web Dashboard** - Configure wirelessly via Chrome Web Bluetooth (BLE UART)
+- **Web Dashboard** - Configure via USB serial in Chrome (Web Serial API)
+- **Web Serial DFU** - Update firmware from the web dashboard via USB serial
 - **OTA DFU Mode** - Update firmware over Bluetooth via nRF Connect mobile app
 
 ---
@@ -88,7 +89,7 @@ Four modes, accessed via function button:
 | **NORMAL** | Live status display; encoder switches profile, button cycles KB/MS combos |
 | **MENU** | Scrollable settings menu; encoder navigates/edits, button selects/confirms |
 | **SLOTS** | 8-key slot editor; encoder cycles key, button advances slot |
-| **NAME** | BLE device name editor; encoder cycles character, button advances position |
+| **NAME** | Device name editor; encoder cycles character, button advances position |
 
 ### Control Actions
 
@@ -111,7 +112,8 @@ Settings organized under headings in the scrollable menu:
 | | Key slots | → opens SLOTS mode |
 | **Mouse** | Move duration | 0.5s - 90s (0.5s steps) |
 | | Idle duration | 0.5s - 90s (0.5s steps) |
-| | Move size | 1px - 5px (1px steps) |
+| | Move style | Bezier / Brownian |
+| | Move size | 1px - 5px (1px steps, Brownian only) |
 | **Profiles** | Lazy adjust | -50% to 0% (5% steps) |
 | | Busy adjust | 0% to 50% (5% steps) |
 | **Display** | Brightness | 10% - 100% (10% steps) |
@@ -159,7 +161,7 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 │ MS [MOV]  15s/30s            ↑ │
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │
 ├────────────────────────────────┤
-│ Up: 02:34:15           ~^~_~^~ │  ← or profile name for 3s
+│ Up: 2h 34m             ~^~_~^~ │  ← or profile name for 3s
 └────────────────────────────────┘
 ```
 
@@ -169,8 +171,8 @@ Encoder rotation is clamped: turning left past LAZY stays at LAZY, turning right
 - ↑ = enabled, ✕ = disabled; mouse idle bar counts up, move bar counts down
 - **[MOV]** = Mouse moving, **[IDL]** = Mouse idle, **[RTN]** = Returning to origin
 - Each keystroke cycle randomly picks from populated (non-NONE) slots
-- **Uptime line**: Shows profile name (LAZY/NORMAL/BUSY) for 3 seconds after switching, then reverts to uptime
-- **Status animation**: Configurable animation in the footer area (default: Ghost). Options: ECG, EQ, Ghost, Matrix, Radar, None — changeable via Display → Animation in the menu
+- **Uptime line**: Shows profile name (LAZY/NORMAL/BUSY) for 3 seconds after switching, then reverts to uptime (compact format: `2h 34m`, `1d 5h`, `45s`)
+- **Status animation**: Configurable animation in the footer area (default: Ghost). Options: ECG, EQ, Ghost, Matrix, Radar, None — changeable via Display → Animation in the menu. Animation speed is activity-aware: full speed with both KB/MS enabled, half speed with one muted, frozen with both muted.
 
 ### Menu Mode
 
@@ -297,7 +299,8 @@ Connect via USB at 115200 baud:
 | z | Enter sleep mode |
 | p | PNG screenshot (base64-encoded) |
 | v | Activate screensaver |
-| f | Enter OTA DFU mode |
+| f | Enter OTA DFU mode (BLE) |
+| u | Enter Serial DFU mode (USB) |
 
 ---
 
@@ -331,6 +334,8 @@ Connect via USB at 115200 baud:
 | `serial_cmd.h/.cpp` | Serial debug commands + status |
 | `input.h/.cpp` | Encoder dispatch, buttons, name editor |
 | `display.h/.cpp` | All rendering (~800 lines) |
+| `ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `dashboard/` | Vue 3 web dashboard (USB serial config + Web Serial DFU) |
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
 | `README.md` | Technical documentation (this file) |
@@ -345,8 +350,10 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.7.1** | **OTA DFU mode via nRF Connect mobile app** |
-| 1.7.0 | BLE UART wireless config, Vue 3 web dashboard |
+| **1.8.0** | **Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation** |
+| 1.7.2 | Web Serial DFU — browser-based firmware updates via USB |
+| 1.7.1 | OTA DFU mode via nRF Connect mobile app |
+| 1.7.0 | BLE UART config protocol, Vue 3 web dashboard (USB serial) |
 | 1.6.0 | Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split |
 | 1.5.0 | Adjustable mouse amplitude (1-5px), inertial movement, reset defaults |
 | 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |

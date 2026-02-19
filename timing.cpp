@@ -66,14 +66,18 @@ unsigned long saverTimeoutMs() {
 }
 
 String formatUptime(unsigned long ms) {
-  unsigned long secs = ms / 1000;
-  unsigned long mins = secs / 60;
-  unsigned long hrs = mins / 60;
+  unsigned long totalSecs = ms / 1000;
+  unsigned long d = totalSecs / 86400;
+  unsigned long h = (totalSecs % 86400) / 3600;
+  unsigned long m = (totalSecs % 3600) / 60;
+  unsigned long s = totalSecs % 60;
 
-  secs %= 60;
-  mins %= 60;
-
-  char buf[12];
-  sprintf(buf, "%02lu:%02lu:%02lu", hrs, mins, secs);
-  return String(buf);
+  String result;
+  if (d > 0) result += String(d) + "d ";
+  if (h > 0) result += String(h) + "h ";
+  if (m > 0) result += String(m) + "m ";
+  if (d == 0 && s > 0) result += String(s) + "s ";
+  if (result.length() == 0) result = "0s ";
+  result.trim();
+  return result;
 }

@@ -11,8 +11,11 @@
 static char uartBuf[UART_BUF_SIZE];
 static uint8_t uartBufPos = 0;
 
+// File-scoped writer pointer — set by processCommand(), used by cmd*() helpers
+static ResponseWriter currentWriter = nullptr;
+
 // Forward declarations
-static void processCommand(const char* line);
+static void bleWrite(const String& msg);
 static void cmdQueryStatus();
 static void cmdQuerySettings();
 static void cmdQueryKeys();
@@ -21,6 +24,7 @@ static void cmdSave();
 static void cmdDefaults();
 static void cmdReboot();
 static void cmdDfu();
+static void cmdSerialDfu();
 
 // ----------------------------------------------------------------------------
 // BLE UART RX callback — called from SoftDevice context
@@ -51,7 +55,7 @@ void handleBleUart() {
     if (c == '\n' || c == '\r') {
       if (uartBufPos > 0) {
         uartBuf[uartBufPos] = '\0';
-        processCommand(uartBuf);
+        processCommand(uartBuf, bleWrite);
         uartBufPos = 0;
       }
     } else if (uartBufPos < UART_BUF_SIZE - 1) {
@@ -79,10 +83,16 @@ static void bleWrite(const String& msg) {
 // ----------------------------------------------------------------------------
 // Command dispatcher
 // Protocol: ? = query, = = set, ! = action
+// writer: function to send response strings (BLE chunked or serial println)
 // ----------------------------------------------------------------------------
-static void processCommand(const char* line) {
-  Serial.print("[UART] RX: ");
-  Serial.println(line);
+void processCommand(const char* line, ResponseWriter writer) {
+  currentWriter = writer;
+
+  // Echo BLE commands to serial for debugging (skip for serial source to avoid echo loop)
+  if (writer == bleWrite) {
+    Serial.print("[UART] RX: ");
+    Serial.println(line);
+  }
 
   if (line[0] == '?') {
     // Query commands
@@ -94,7 +104,7 @@ static void processCommand(const char* line) {
     } else if (strcmp(cmd, "keys") == 0) {
       cmdQueryKeys();
     } else {
-      bleWrite("-err:unknown query");
+      currentWriter("-err:unknown query");
     }
   } else if (line[0] == '=') {
     // Set commands: =key:value
@@ -110,11 +120,13 @@ static void processCommand(const char* line) {
       cmdReboot();
     } else if (strcmp(cmd, "dfu") == 0) {
       cmdDfu();
+    } else if (strcmp(cmd, "serialdfu") == 0) {
+      cmdSerialDfu();
     } else {
-      bleWrite("-err:unknown action");
+      currentWriter("-err:unknown action");
     }
   } else {
-    bleWrite("-err:invalid prefix");
+    currentWriter("-err:invalid prefix");
   }
 }
 
@@ -136,7 +148,7 @@ static void cmdQueryStatus() {
   resp += "|uptime=";      resp += String(uptime);
   resp += "|kbNext=";      resp += String(AVAILABLE_KEYS[nextKeyIndex].name);
 
-  bleWrite(resp);
+  currentWriter(resp);
 }
 
 // ----------------------------------------------------------------------------
@@ -149,6 +161,7 @@ static void cmdQuerySettings() {
   resp += "|mouseJig=";     resp += String(settings.mouseJiggleDuration);
   resp += "|mouseIdle=";    resp += String(settings.mouseIdleDuration);
   resp += "|mouseAmp=";     resp += String(settings.mouseAmplitude);
+  resp += "|mouseStyle=";   resp += String(settings.mouseStyle);
   resp += "|lazyPct=";      resp += String(settings.lazyPercent);
   resp += "|busyPct=";      resp += String(settings.busyPercent);
   resp += "|dispBright=";   resp += String(settings.displayBrightness);
@@ -164,7 +177,7 @@ static void cmdQuerySettings() {
     resp += String(settings.keySlots[i]);
   }
 
-  bleWrite(resp);
+  currentWriter(resp);
 }
 
 // ----------------------------------------------------------------------------
@@ -176,7 +189,7 @@ static void cmdQueryKeys() {
     resp += "|";
     resp += AVAILABLE_KEYS[i].name;
   }
-  bleWrite(resp);
+  currentWriter(resp);
 }
 
 // ----------------------------------------------------------------------------
@@ -188,7 +201,7 @@ static void cmdSetValue(const char* body) {
   // Find the colon separator
   const char* colon = strchr(body, ':');
   if (!colon) {
-    bleWrite("-err:missing colon");
+    currentWriter("-err:missing colon");
     return;
   }
 
@@ -212,6 +225,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_MOUSE_IDLE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "mouseAmp") == 0) {
     setSettingValue(SET_MOUSE_AMP, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "mouseStyle") == 0) {
+    setSettingValue(SET_MOUSE_STYLE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "lazyPct") == 0) {
     setSettingValue(SET_LAZY_PCT, (uint32_t)atol(valStr));
   } else if (strcmp(key, "busyPct") == 0) {
@@ -243,7 +258,7 @@ static void cmdSetValue(const char* body) {
       if (*p == ',') p++;
     }
   } else {
-    bleWrite("-err:unknown key");
+    currentWriter("-err:unknown key");
     return;
   }
 
@@ -251,7 +266,7 @@ static void cmdSetValue(const char* body) {
   scheduleNextKey();
   scheduleNextMouseState();
 
-  bleWrite("+ok");
+  currentWriter("+ok");
 }
 
 // ----------------------------------------------------------------------------
@@ -259,7 +274,7 @@ static void cmdSetValue(const char* body) {
 // ----------------------------------------------------------------------------
 static void cmdSave() {
   saveSettings();
-  bleWrite("+ok");
+  currentWriter("+ok");
 }
 
 // ----------------------------------------------------------------------------
@@ -271,15 +286,16 @@ static void cmdDefaults() {
   scheduleNextMouseState();
   pickNextKey();
   currentProfile = PROFILE_NORMAL;
-  bleWrite("+ok");
+  currentWriter("+ok");
 }
 
 // ----------------------------------------------------------------------------
 // !reboot — restart the device
 // ----------------------------------------------------------------------------
 static void cmdReboot() {
-  bleWrite("+ok");
-  delay(100);  // Let the BLE response transmit
+  currentWriter("+ok");
+  Serial.flush();
+  delay(100);  // Let the response transmit
   NVIC_SystemReset();
 }
 
@@ -315,7 +331,45 @@ void resetToDfu() {
 // !dfu — reboot into OTA DFU bootloader mode
 // ----------------------------------------------------------------------------
 static void cmdDfu() {
-  bleWrite("+ok:dfu");
-  delay(100);  // Let the BLE response transmit
+  currentWriter("+ok:dfu");
+  Serial.flush();
+  delay(100);  // Let the response transmit
   resetToDfu();
+}
+
+// ----------------------------------------------------------------------------
+// SoftDevice-safe reboot into Serial DFU bootloader mode (USB CDC).
+// Uses GPREGRET magic 0x4E (DFU_MAGIC_SERIAL_ONLY_RESET) — same as
+// enterSerialDfu() from wiring.h, but safe for use with active SoftDevice.
+// The bootloader presents a USB CDC serial port for adafruit-nrfutil or
+// Web Serial DFU transfer.
+// ----------------------------------------------------------------------------
+void resetToSerialDfu() {
+  if (displayInitialized) {
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+    display.setTextSize(2);
+    display.setCursor(16, 8);
+    display.print("USB DFU");
+    display.setTextSize(1);
+    display.setCursor(4, 36);
+    display.print("Connect USB cable");
+    display.setCursor(4, 50);
+    display.print("Power cycle to exit");
+    display.display();
+  }
+
+  sd_power_gpregret_clr(0, 0xFF);
+  sd_power_gpregret_set(0, 0x4E);  // DFU_MAGIC_SERIAL_ONLY_RESET
+  NVIC_SystemReset();
+}
+
+// ----------------------------------------------------------------------------
+// !serialdfu — reboot into Serial DFU bootloader mode (USB CDC)
+// ----------------------------------------------------------------------------
+static void cmdSerialDfu() {
+  currentWriter("+ok:serialdfu");
+  Serial.flush();
+  delay(100);  // Let the response transmit
+  resetToSerialDfu();
 }
