@@ -34,6 +34,18 @@ const uint8_t PROGMEM btIcon[] = {
   0x20   // ..#..
 };
 
+// USB trident icon (5x8 pixels)
+const uint8_t PROGMEM usbIcon[] = {
+  0x20,  // ..#..  arrow tip
+  0x70,  // .###.  arrowhead
+  0x20,  // ..#..  stem
+  0xA8,  // #.#.#  prongs spread
+  0xA8,  // #.#.#  terminals
+  0x70,  // .###.  prongs merge
+  0x20,  // ..#..  stem
+  0x70   // .###.  base
+};
+
 // Splash screen bitmap (128x64, 1024 bytes) -- from ghost_operator_splash.bin
 const uint8_t PROGMEM splashBitmap[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

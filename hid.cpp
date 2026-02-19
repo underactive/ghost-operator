@@ -1,6 +1,26 @@
 #include "hid.h"
 #include "state.h"
 #include "keys.h"
+#include <Adafruit_TinyUSB.h>
+
+// Helper: send keyboard report to both BLE and USB transports
+static void dualKeyboardReport(uint8_t modifier, uint8_t keycodes[6]) {
+  if (deviceConnected) {
+    blehid.keyboardReport(modifier, keycodes);
+  }
+  if (TinyUSBDevice.mounted() && usb_hid.ready()) {
+    usb_hid.keyboardReport(RID_KEYBOARD, modifier, keycodes);
+  }
+}
+
+void sendMouseMove(int8_t dx, int8_t dy) {
+  if (deviceConnected) {
+    blehid.mouseMove(dx, dy);
+  }
+  if (TinyUSBDevice.mounted() && usb_hid.ready()) {
+    usb_hid.mouseReport(RID_MOUSE, 0, dx, dy, 0, 0);
+  }
+}
 
 bool hasPopulatedSlot() {
   for (int i = 0; i < NUM_SLOTS; i++) {
@@ -29,15 +49,15 @@ void sendKeystroke() {
   if (key.isModifier) {
     // Convert HID modifier keycode (0xE0-0xE7) to modifier bitmask
     uint8_t mod = 1 << (key.keycode - HID_KEY_CONTROL_LEFT);
-    blehid.keyboardReport(mod, keycodes);
+    dualKeyboardReport(mod, keycodes);
     delay(30);
-    blehid.keyboardReport(0, keycodes);
+    dualKeyboardReport(0, keycodes);
   } else {
     keycodes[0] = key.keycode;
-    blehid.keyboardReport(0, keycodes);
+    dualKeyboardReport(0, keycodes);
     delay(50);
     keycodes[0] = 0;
-    blehid.keyboardReport(0, keycodes);
+    dualKeyboardReport(0, keycodes);
   }
 
   pickNextKey();  // Pre-pick the next one for display

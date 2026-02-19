@@ -19,6 +19,7 @@ export const connectionState = reactive({
 
 export const status = reactive({
   connected: false,
+  usb: false,
   kb: true,
   ms: true,
   bat: 100,
@@ -43,6 +44,7 @@ export const settings = reactive({
   saverTimeout: 5,
   animStyle: 2,
   name: 'GhostOperator',
+  btWhileUsb: 0,
   slots: [2, 28, 28, 28, 28, 28, 28, 28],
 })
 

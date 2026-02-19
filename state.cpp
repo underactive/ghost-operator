@@ -14,6 +14,9 @@ BLEDis bledis;
 BLEHidAdafruit blehid;
 BLEUart bleuart;
 
+// USB HID
+Adafruit_USBD_HID usb_hid;
+
 // Settings
 Settings settings;
 
@@ -29,6 +32,9 @@ int8_t  lastEncoderDir  = 0;
 
 // Connection & enables
 bool deviceConnected = false;
+bool usbConnected = false;
+uint16_t bleConnHandle = BLE_CONN_HANDLE_INVALID;
+bool bleDisabledForUsb = false;
 bool keyEnabled = true;
 bool mouseEnabled = true;
 uint8_t activeSlot = 0;

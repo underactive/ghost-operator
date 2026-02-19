@@ -2,6 +2,7 @@
 #include "state.h"
 #include "keys.h"
 #include "timing.h"
+#include "hid.h"
 #include <math.h>
 
 // ============================================================================
@@ -150,7 +151,7 @@ static void evaluateBezierStep() {
   int8_t dy = (int8_t)((deltaY + 128) >> 8);
 
   if (dx != 0 || dy != 0) {
-    blehid.mouseMove(dx, dy);
+    sendMouseMove(dx, dy);
     mouseNetX += dx;
     mouseNetY += dy;
   }
@@ -226,7 +227,7 @@ void handleMouseStateMachine(unsigned long now) {
           if (amp > 0) {
             int8_t dx = currentMouseDx * amp;
             int8_t dy = currentMouseDy * amp;
-            blehid.mouseMove(dx, dy);
+            sendMouseMove(dx, dy);
             mouseNetX += dx;
             mouseNetY += dy;
           }
@@ -242,7 +243,7 @@ void handleMouseStateMachine(unsigned long now) {
         scheduleNextMouseState();
         mouseJiggleCount++;
         if (mouseJiggleCount % EASTER_EGG_INTERVAL == 0
-            && deviceConnected && currentMode == MODE_NORMAL && !screensaverActive) {
+            && (deviceConnected || usbConnected) && currentMode == MODE_NORMAL && !screensaverActive) {
           easterEggActive = true;
           easterEggFrame = 0;
         }
@@ -252,7 +253,7 @@ void handleMouseStateMachine(unsigned long now) {
         else if (mouseNetX < 0) { dx = min((int32_t)5, -mouseNetX); mouseNetX += dx; }
         if (mouseNetY > 0) { dy = -min((int32_t)5, mouseNetY); mouseNetY += dy; }
         else if (mouseNetY < 0) { dy = min((int32_t)5, -mouseNetY); mouseNetY += dy; }
-        if (dx != 0 || dy != 0) blehid.mouseMove(dx, dy);
+        if (dx != 0 || dy != 0) sendMouseMove(dx, dy);
         lastMouseStep = now;
       }
       break;

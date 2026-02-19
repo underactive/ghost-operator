@@ -20,6 +20,14 @@ function formatUptime(ms) {
 <template>
   <div class="status-bar">
     <div class="status-item">
+      <span class="status-label">BLE</span>
+      <span class="status-value" :class="status.connected ? 'on' : 'off'">{{ status.connected ? 'Connected' : 'Off' }}</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">USB</span>
+      <span class="status-value" :class="status.usb ? 'on' : 'off'">{{ status.usb ? 'Connected' : 'Off' }}</span>
+    </div>
+    <div class="status-item">
       <span class="status-label">Battery</span>
       <span class="status-value" :class="{ 'low-bat': status.bat < 15 }">{{ status.bat }}%</span>
     </div>

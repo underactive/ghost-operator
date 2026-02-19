@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include <bluefruit.h>
+#include <Adafruit_TinyUSB.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -21,6 +22,9 @@ extern BLEDis bledis;
 extern BLEHidAdafruit blehid;
 extern BLEUart bleuart;
 
+// USB HID
+extern Adafruit_USBD_HID usb_hid;
+
 // Settings
 extern Settings settings;
 
@@ -36,6 +40,9 @@ extern int8_t lastEncoderDir;
 
 // Connection & enables
 extern bool deviceConnected;
+extern bool usbConnected;
+extern uint16_t bleConnHandle;
+extern bool bleDisabledForUsb;
 extern bool keyEnabled;
 extern bool mouseEnabled;
 extern uint8_t activeSlot;

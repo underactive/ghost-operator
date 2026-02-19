@@ -19,6 +19,7 @@ void printStatus() {
   Serial.println("\n=== Status ===");
   Serial.print("Mode: "); Serial.println(MODE_NAMES[currentMode]);
   Serial.print("Connected: "); Serial.println(deviceConnected ? "YES" : "NO");
+  Serial.print("USB: "); Serial.println(usbConnected ? "YES" : "NO");
   Serial.print("Keys ("); Serial.print(keyEnabled ? "ON" : "OFF"); Serial.print("): ");
   for (int i = 0; i < NUM_SLOTS; i++) {
     if (i > 0) Serial.print(" ");
@@ -114,6 +115,8 @@ void handleSerialCommands() {
         Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
         Serial.print("Device name: "); Serial.println(settings.deviceName);
+        Serial.print("BT while USB: "); Serial.println(settings.btWhileUsb ? "On" : "Off");
+        Serial.print("BLE disabled for USB: "); Serial.println(bleDisabledForUsb ? "YES" : "NO");
         Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
         break;

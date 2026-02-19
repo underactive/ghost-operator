@@ -139,6 +139,7 @@ static void cmdQueryStatus() {
 
   String resp = "!status";
   resp += "|connected=";  resp += deviceConnected ? "1" : "0";
+  resp += "|usb=";         resp += usbConnected ? "1" : "0";
   resp += "|kb=";          resp += keyEnabled ? "1" : "0";
   resp += "|ms=";          resp += mouseEnabled ? "1" : "0";
   resp += "|bat=";         resp += String(batteryPercent);
@@ -169,6 +170,7 @@ static void cmdQuerySettings() {
   resp += "|saverTimeout="; resp += String(settings.saverTimeout);
   resp += "|animStyle=";    resp += String(settings.animStyle);
   resp += "|name=";         resp += String(settings.deviceName);
+  resp += "|btWhileUsb=";  resp += String(settings.btWhileUsb);
 
   // Slots as comma-separated indices
   resp += "|slots=";
@@ -239,6 +241,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SAVER_TIMEOUT, (uint32_t)atol(valStr));
   } else if (strcmp(key, "animStyle") == 0) {
     setSettingValue(SET_ANIMATION, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "btWhileUsb") == 0) {
+    setSettingValue(SET_BT_WHILE_USB, (uint32_t)atol(valStr));
   } else if (strcmp(key, "name") == 0) {
     // Device name — up to 14 chars
     strncpy(settings.deviceName, valStr, NAME_MAX_LEN);
