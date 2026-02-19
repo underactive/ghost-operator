@@ -36,7 +36,7 @@
 │ MS [MOV]  15s/30s            ↑ │  ← Mouse settings
 │ ██████░░░░░░░░░░░░░░░░░░  8.5s │  ← Countdown bar
 ├────────────────────────────────┤
-│ Up: 02:34:15      ~^~_~^~      │  ← Uptime (or profile name) + pulse
+│ Up: 2h 34m        ~^~_~^~      │  ← Uptime (or profile name) + pulse
 └────────────────────────────────┘
 ```
 
@@ -62,13 +62,13 @@
 - `15s/30s` - Move duration / idle duration (profile-adjusted)
 - ↑ / ✕ - Mouse enabled or disabled
 - Progress bar counts up while idle (charging), counts down while moving (draining)
-- During return phase, progress bar shows a bouncing highlight segment instead of filling
+- During return phase, progress bar stays at 0% (empty)
 - `8.5s` - Time remaining in current state
 
 **Footer:**
-- `Up: 02:34:15` - Uptime (hours:minutes:seconds)
+- `Up: 2h 34m` - Uptime in compact format (e.g., `45s`, `2h 34m`, `1d 5h` — seconds hidden above 1 day)
 - After changing profile, shows profile name (LAZY/NORMAL/BUSY) for 3 seconds, then reverts to uptime
-- Status animation in footer area (default: Ghost) — configurable via Display → Animation in the menu (ECG, EQ, Ghost, Matrix, Radar, None)
+- Status animation in footer area (default: Ghost) — configurable via Display → Animation in the menu (ECG, EQ, Ghost, Matrix, Radar, None). Animation is activity-aware: full speed with both KB/MS enabled, half speed with one muted, frozen with both muted.
 
 ---
 

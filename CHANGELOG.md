@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Compact uptime format**: Footer uptime display uses compact `d/h/m/s` units instead of `HH:MM:SS` (e.g., "2h 34m", "1d 5h", "45s"); seconds hidden once uptime exceeds 1 day. Dashboard status bar matches the same format.
+- **Activity-aware animation**: Footer animation speed responds to KB/mouse enabled state
+  - Both enabled: full speed
+  - One muted: half speed
+  - Both muted: animation freezes on current frame
 - **Mouse movement styles**: New "Move style" setting with two movement algorithms
   - **Bezier** (default): Smooth curved sweeps with random radius — natural-looking arcs
   - **Brownian**: Classic jiggle with sine ease-in-out velocity profile
