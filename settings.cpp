@@ -11,13 +11,13 @@ void loadDefaults() {
   settings.keyIntervalMax = 6500;      // 6.5 seconds
   settings.mouseJiggleDuration = 15000; // 15 seconds
   settings.mouseIdleDuration = 30000;   // 30 seconds
-  settings.keySlots[0] = 2;            // F15
+  settings.keySlots[0] = 3;            // F16
   for (int i = 1; i < NUM_SLOTS; i++) {
     settings.keySlots[i] = NUM_KEYS - 1;  // NONE
   }
   settings.lazyPercent = 15;
   settings.busyPercent = 15;
-  settings.saverTimeout = DEFAULT_SAVER_IDX;  // 30 minutes
+  settings.saverTimeout = DEFAULT_SAVER_IDX;  // Never
   settings.saverBrightness = 20;               // 20%
   settings.displayBrightness = 80;             // 80%
   settings.mouseAmplitude = 1;                 // 1px per step (default)

@@ -30,7 +30,7 @@
 ┌────────────────────────────────┐
 │ GHOST Operator          ᛒ 85%  │  ← Status bar
 ├────────────────────────────────┤
-│ KB [F15] 2.0-6.5s          ↑   │  ← Next key + interval
+│ KB [F16] 2.0-6.5s          ↑   │  ← Next key + interval
 │ ████████████░░░░░░░░░░░░  3.2s │  ← Countdown bar
 ├────────────────────────────────┤
 │ MS [MOV]  15s/30s            ↑ │  ← Mouse settings
@@ -47,7 +47,7 @@
 - `85%` - Battery level
 
 **Key Section:**
-- `KB [F15]` - Shows the pre-picked next key (changes after each keypress)
+- `KB [F16]` - Shows the pre-picked next key (changes after each keypress)
 - `2.0-6.5s` - Key interval range (profile-adjusted MIN-MAX)
 - ↑ / ✕ - Keys enabled or disabled
 - Press encoder to cycle KB/MS enable combos
@@ -177,7 +177,7 @@
 ```
 ┌────────────────────────────────┐
 │                                │
-│            [F15]               │  ← Next key, centered
+│            [F16]               │  ← Next key, centered
 │ ████████████████░░░░░░░░░░░░░  │  ← 1px KB progress bar
 │                                │
 │            [IDL]               │  ← Mouse state, centered
@@ -187,7 +187,7 @@
 └────────────────────────────────┘
 ```
 
-- Activates after the configured timeout of no user interaction (default: 30 minutes)
+- Activates after the configured timeout of no user interaction (default: Never)
 - Only activates in NORMAL mode — settings modes auto-return first
 - Minimal pixel display to prevent OLED burn-in and save power
 - OLED brightness dimmed to configured level (default 20%) — adjust "Saver bright" in menu
@@ -499,10 +499,9 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 
 | Key | Notes |
 |-----|-------|
-| F15 | **Recommended** - no effect on most systems |
-| F14 | Invisible on most systems |
-| F13 | Invisible on most systems |
-| F16-F24 | Invisible on most systems |
+| F16 | **Recommended** - no effect on most systems (default) |
+| F13-F15 | Invisible on most systems |
+| F17-F24 | Invisible on most systems |
 | ScrLk | May toggle scroll lock LED |
 | Pause | Usually ignored |
 | NumLk | May toggle numlock |
