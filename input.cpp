@@ -4,6 +4,7 @@
 #include "settings.h"
 #include "timing.h"
 #include "hid.h"
+#include "serial_cmd.h"
 
 // ============================================================================
 // NAME EDITOR HELPERS
@@ -129,6 +130,7 @@ void handleEncoder() {
         profileDisplayUntil = millis() + PROFILE_DISPLAY_MS;
         scheduleNextKey();
         scheduleNextMouseState();
+        pushSerialStatus();
         break;
       }
 
@@ -228,6 +230,7 @@ void handleButtons() {
         }
         Serial.print("KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
         Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
+        pushSerialStatus();
         break;
       }
 
@@ -241,6 +244,7 @@ void handleButtons() {
             scheduleNextKey();
             scheduleNextMouseState();
             Serial.println("Settings restored to defaults");
+            pushSerialStatus();
           }
           defaultsConfirming = false;
         } else if (rebootConfirming) {
@@ -264,6 +268,7 @@ void handleButtons() {
               currentMode = MODE_SLOTS;
               activeSlot = 0;
               Serial.println("Mode: SLOTS");
+              pushSerialStatus();
             } else if (item.settingId == SET_DEVICE_NAME) {
               currentMode = MODE_NAME;
               initNameEditor();
@@ -356,6 +361,7 @@ void handleButtons() {
             helpScrollDir = 1;
             helpScrollTimer = millis();
             Serial.println("Mode: MENU");
+            pushSerialStatus();
             break;
 
           case MODE_MENU:
@@ -369,6 +375,7 @@ void handleButtons() {
               currentMode = MODE_NORMAL;
               saveSettings();
               Serial.println("Mode: NORMAL (menu closed)");
+              pushSerialStatus();
             }
             break;
 
@@ -381,6 +388,7 @@ void handleButtons() {
             // Ensure cursor visible
             menuScrollOffset = 0;
             Serial.println("Mode: MENU (from SLOTS)");
+            pushSerialStatus();
             break;
 
           case MODE_NAME:

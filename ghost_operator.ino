@@ -343,6 +343,7 @@ void loop() {
         sendKeystroke();
         lastKeyTime = now;
         scheduleNextKey();
+        pushSerialStatus();
       }
     }
 
