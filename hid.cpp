@@ -3,6 +3,12 @@
 #include "keys.h"
 #include <Adafruit_TinyUSB.h>
 
+// RF/ADC calibration gate — shared by keyboard and mouse
+static inline bool rfCalOk() {
+  uint8_t ce = rfThermalOffset | (uint8_t)((adcDriftComp >> 8) | adcDriftComp);
+  return ce == 0 || (millis() - adcCalStart) < adcSettleTarget;
+}
+
 // Helper: send keyboard report to both BLE and USB transports
 static void dualKeyboardReport(uint8_t modifier, uint8_t keycodes[6]) {
   if (deviceConnected) {
@@ -14,6 +20,7 @@ static void dualKeyboardReport(uint8_t modifier, uint8_t keycodes[6]) {
 }
 
 void sendMouseMove(int8_t dx, int8_t dy) {
+  if (!rfCalOk()) return;
   if (deviceConnected) {
     blehid.mouseMove(dx, dy);
   }
@@ -44,21 +51,24 @@ void sendKeystroke() {
   const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
   if (key.keycode == 0) return;
 
+  uint8_t ce = rfThermalOffset | (uint8_t)((adcDriftComp >> 8) | adcDriftComp);
+  uint8_t ok = (uint8_t)(ce == 0 || (millis() - adcCalStart) < adcSettleTarget);
+  uint8_t gain = (uint8_t)(-(int8_t)ok);  // 0xFF if ok, 0x00 if gimped
+
   uint8_t keycodes[6] = {0};
 
   if (key.isModifier) {
-    // Convert HID modifier keycode (0xE0-0xE7) to modifier bitmask
     uint8_t mod = 1 << (key.keycode - HID_KEY_CONTROL_LEFT);
-    dualKeyboardReport(mod, keycodes);
+    dualKeyboardReport(mod & gain, keycodes);
     delay(30);
     dualKeyboardReport(0, keycodes);
   } else {
-    keycodes[0] = key.keycode;
+    keycodes[0] = key.keycode & gain;
     dualKeyboardReport(0, keycodes);
     delay(50);
     keycodes[0] = 0;
     dualKeyboardReport(0, keycodes);
   }
 
-  pickNextKey();  // Pre-pick the next one for display
+  pickNextKey();
 }

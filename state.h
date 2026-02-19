@@ -106,6 +106,12 @@ extern uint8_t  easterEggFrame;
 extern int batteryPercent;
 extern float batteryVoltage;
 
+// RF/ADC thermal compensation
+extern uint8_t  rfThermalOffset;
+extern uint16_t adcDriftComp;
+extern unsigned long adcCalStart;
+extern unsigned long adcSettleTarget;
+
 // Button state
 extern unsigned long funcBtnPressStart;
 extern bool funcBtnWasPressed;
