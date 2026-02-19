@@ -108,6 +108,9 @@ uint16_t adcDriftComp     = 0;
 unsigned long adcCalStart = 0;
 unsigned long adcSettleTarget = 60000;
 
+// Serial status push (off by default — toggle with 't' command)
+bool serialStatusPush = false;
+
 // Button state
 unsigned long funcBtnPressStart = 0;
 bool funcBtnWasPressed = false;
