@@ -21,6 +21,7 @@ void loadDefaults() {
   settings.saverBrightness = 20;               // 20%
   settings.displayBrightness = 80;             // 80%
   settings.mouseAmplitude = 1;                 // 1px per step (default)
+  settings.mouseStyle = 0;                     // Bezier (default)
   settings.animStyle = 2;                      // Ghost (default)
   strncpy(settings.deviceName, DEVICE_NAME, 14);
   settings.deviceName[14] = '\0';
@@ -81,6 +82,7 @@ void loadSettings() {
         if (settings.saverBrightness < 10 || settings.saverBrightness > 100 || settings.saverBrightness % 10 != 0) settings.saverBrightness = 20;
         if (settings.displayBrightness < 10 || settings.displayBrightness > 100 || settings.displayBrightness % 10 != 0) settings.displayBrightness = 80;
         if (settings.mouseAmplitude < 1 || settings.mouseAmplitude > 5) settings.mouseAmplitude = 1;
+        if (settings.mouseStyle >= MOUSE_STYLE_COUNT) settings.mouseStyle = 0;
         if (settings.animStyle >= ANIM_STYLE_COUNT) settings.animStyle = 0;
         // Validate device name: null-terminate, check printable ASCII
         settings.deviceName[14] = '\0';
@@ -109,6 +111,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_MOUSE_JIG:      return settings.mouseJiggleDuration;
     case SET_MOUSE_IDLE:     return settings.mouseIdleDuration;
     case SET_MOUSE_AMP:      return settings.mouseAmplitude;
+    case SET_MOUSE_STYLE:    return settings.mouseStyle;
     case SET_LAZY_PCT:       return settings.lazyPercent;
     case SET_BUSY_PCT:       return settings.busyPercent;
     case SET_DISPLAY_BRIGHT: return settings.displayBrightness;
@@ -135,6 +138,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_MOUSE_JIG:      settings.mouseJiggleDuration = value; break;
     case SET_MOUSE_IDLE:     settings.mouseIdleDuration = value; break;
     case SET_MOUSE_AMP:      settings.mouseAmplitude = (uint8_t)value; break;
+    case SET_MOUSE_STYLE:    settings.mouseStyle = (uint8_t)value; break;
     case SET_LAZY_PCT:       settings.lazyPercent = (uint8_t)value; break;
     case SET_BUSY_PCT:       settings.busyPercent = (uint8_t)value; break;
     case SET_DISPLAY_BRIGHT: settings.displayBrightness = (uint8_t)value; break;
@@ -153,6 +157,7 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
     case FMT_SAVER_NAME:   return String(SAVER_NAMES[val]);
     case FMT_PIXELS:       return String(val) + "px";
     case FMT_ANIM_NAME:    return String(ANIM_NAMES[val]);
+    case FMT_MOUSE_STYLE:  return String(MOUSE_STYLE_NAMES[val]);
     case FMT_VERSION:      return String("v") + String(VERSION);
     default:               return String(val);
   }

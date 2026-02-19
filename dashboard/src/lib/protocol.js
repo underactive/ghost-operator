@@ -83,6 +83,7 @@ export function parseSettings(data) {
     mouseJig: parseInt(data.mouseJig) || 15000,
     mouseIdle: parseInt(data.mouseIdle) || 30000,
     mouseAmp: parseInt(data.mouseAmp) || 1,
+    mouseStyle: parseInt(data.mouseStyle) || 0,
     lazyPct: parseInt(data.lazyPct) || 0,
     busyPct: parseInt(data.busyPct) || 0,
     dispBright: parseInt(data.dispBright) || 80,
@@ -118,10 +119,13 @@ export const PROFILE_NAMES = ['LAZY', 'NORMAL', 'BUSY']
 export const MODE_NAMES = ['NORMAL', 'MENU', 'SLOTS', 'NAME']
 
 /** Mouse state index to name mapping */
-export const MOUSE_STATE_NAMES = ['IDLE', 'JIGGLING', 'RETURNING']
+export const MOUSE_STATE_NAMES = ['IDLE', 'MOVING', 'RETURNING']
 
 /** Animation style index to name mapping (matches firmware ANIM_NAMES[]) */
 export const ANIM_NAMES = ['ECG', 'EQ', 'Ghost', 'Matrix', 'Radar', 'None']
+
+/** Mouse style index to name mapping (matches firmware MOUSE_STYLE_NAMES[]) */
+export const MOUSE_STYLE_NAMES = ['Bezier', 'Brownian']
 
 /** Screensaver timeout index to name mapping (matches firmware SAVER_NAMES[]) */
 export const SAVER_NAMES = ['Never', '1 min', '5 min', '10 min', '15 min', '30 min']

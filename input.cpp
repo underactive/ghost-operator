@@ -55,10 +55,10 @@ bool saveNameEditor() {
 
 void returnToMenuFromName() {
   currentMode = MODE_MENU;
-  menuCursor = 17;           // "Device name" item index
+  menuCursor = 18;           // "Device name" item index
   menuEditing = false;
   nameConfirming = false;
-  menuScrollOffset = (17 > 4) ? 17 - 4 : 0;  // ensure cursor visible in viewport
+  menuScrollOffset = (18 > 4) ? 18 - 4 : 0;  // ensure cursor visible in viewport
   Serial.println("Mode: MENU (from NAME)");
 }
 
@@ -69,8 +69,10 @@ void returnToMenuFromName() {
 // Move menu cursor by direction, skipping headings
 void moveCursor(int direction) {
   int8_t next = menuCursor + direction;
-  // Skip headings
-  while (next >= 0 && next < MENU_ITEM_COUNT && MENU_ITEMS[next].type == MENU_HEADING) {
+  // Skip headings and conditionally hidden items
+  while (next >= 0 && next < MENU_ITEM_COUNT &&
+         (MENU_ITEMS[next].type == MENU_HEADING ||
+          (MENU_ITEMS[next].settingId == SET_MOUSE_AMP && settings.mouseStyle == 0))) {
     next += direction;
   }
   // Clamp at bounds

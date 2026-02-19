@@ -112,7 +112,8 @@ Settings organized under headings in the scrollable menu:
 | | Key slots | → opens SLOTS mode |
 | **Mouse** | Move duration | 0.5s - 90s (0.5s steps) |
 | | Idle duration | 0.5s - 90s (0.5s steps) |
-| | Move size | 1px - 5px (1px steps) |
+| | Move style | Bezier / Brownian |
+| | Move size | 1px - 5px (1px steps, Brownian only) |
 | **Profiles** | Lazy adjust | -50% to 0% (5% steps) |
 | | Busy adjust | 0% to 50% (5% steps) |
 | **Display** | Brightness | 10% - 100% (10% steps) |

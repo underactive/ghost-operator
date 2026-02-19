@@ -35,6 +35,7 @@ export const settings = reactive({
   mouseJig: 15000,
   mouseIdle: 30000,
   mouseAmp: 1,
+  mouseStyle: 0,
   lazyPct: 0,
   busyPct: 0,
   dispBright: 80,
