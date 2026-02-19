@@ -5,6 +5,18 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-02-18
+
+### Added
+
+- **Mouse movement styles**: New "Move style" setting with two movement algorithms
+  - **Bezier** (default): Smooth curved sweeps with random radius — natural-looking arcs
+  - **Brownian**: Classic jiggle with sine ease-in-out velocity profile
+  - "Move size" setting only applies to Brownian mode; hidden in OLED menu and disabled in dashboard when Bezier is active
+  - Settings struct: added `mouseStyle` field — bumped `SETTINGS_MAGIC` (existing settings auto-reset to defaults on first boot)
+  - Dashboard: "Move Style" dropdown in Mouse section, Move Size conditionally disabled in Bezier mode
+  - Serial `d` command prints mouse style name
+
 ## [1.7.2] - 2026-02-18
 
 ### Added
@@ -22,13 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `dfuActive` flag keeps dashboard UI visible during DFU transfer (after serial disconnects)
   - Web Serial API with no VID filter (bootloader reuses Seeed's VID, not Adafruit's)
   - **Requires Chrome/Edge on desktop** (Web Serial API not available in Firefox/Safari)
-- **Mouse movement styles**: New "Move style" setting with two movement algorithms
-  - **Bezier** (default): Smooth curved sweeps with random radius — natural-looking arcs
-  - **Brownian**: Classic jiggle with sine ease-in-out velocity profile
-  - "Move size" setting only applies to Brownian mode; hidden in OLED menu and disabled in dashboard when Bezier is active
-  - Settings struct: added `mouseStyle` field — bumped `SETTINGS_MAGIC` (existing settings auto-reset to defaults on first boot)
-  - Dashboard: "Move Style" dropdown in Mouse section, Move Size conditionally disabled in Bezier mode
-  - Serial `d` command prints mouse style name
 
 ### Changed
 
