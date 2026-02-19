@@ -1,12 +1,13 @@
-# Ghost Operator v1.8.3 - User Manual
+# Ghost Operator v1.9.0 - User Manual
 
 ## Quick Start
 
 1. Connect battery or USB-C
 2. Device boots and shows custom splash screen with version number
-3. On your computer: Bluetooth settings → pair "GhostOperator" (or your custom name)
-4. Display shows Bluetooth icon when connected
-5. Device starts sending keystrokes and mouse movements
+3. **Wireless (BLE):** Bluetooth settings → pair "GhostOperator" (or your custom name)
+4. **Wired (USB):** Keystrokes and mouse movements are also sent over USB when plugged in
+5. Display shows Bluetooth icon (wireless) or USB icon (wired) when connected
+6. Device starts sending keystrokes and mouse movements
 
 ---
 
@@ -42,8 +43,9 @@
 
 **Status Bar:**
 - `GHOST Operator` - Device name
-- Bluetooth icon (solid) - Connected
+- Bluetooth icon (solid) - BLE connected
 - Bluetooth icon (flashing) - Searching for connection
+- USB icon - Wired USB connected
 - `85%` - Battery level
 
 **Key Section:**
@@ -107,6 +109,7 @@
 | | Idle duration | Pause between moves (0.5s-90s) |
 | | Move style | Movement pattern: Bezier (smooth curves) or Brownian (jiggle) |
 | | Move size | Mouse step size, Brownian only (1-5px, default 1px) |
+| | Scroll | Random scroll wheel during mouse movement (Off / On, default Off) |
 | **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
 | | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
 | **Display** | Brightness | OLED display brightness (10-100%, default 80%) |
@@ -114,6 +117,7 @@
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
 | | Animation | Status animation style (ECG / EQ / Ghost / Matrix / Radar / None, default Ghost) |
 | **Device** | Device name | Device name editor (press encoder to enter) |
+| | BT while USB | Keep Bluetooth active when USB plugged in (Off / On, default Off) |
 | | Reset defaults | Restore all settings to factory defaults (confirmation required) |
 | | Reboot | Restart the device (confirmation required) |
 | **About** | Version | Firmware version (read-only) |
@@ -335,6 +339,7 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 - **Idle phase:** Mouse stops for the set duration (adjusted by active profile)
 - ±20% randomness on both durations
 - Mouse returns to approximate starting position after each movement (display shows `[RTN]` with progress bar at 0%)
+- **Scroll wheel** (optional): When "Scroll" is enabled, random scroll wheel events (±1 tick) are injected at 2-5 second intervals during mouse movement, adding another dimension of activity
 
 ---
 
@@ -375,7 +380,7 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 
 | Pattern | Meaning |
 |---------|---------|
-| Slow blink (1/sec) | Connected |
+| Slow blink (1/sec) | Connected (BLE or USB) |
 | Fast blink (5/sec) | Searching for connection |
 | Off | Sleeping |
 
@@ -393,6 +398,7 @@ Connect via USB and open Serial Monitor at 115200 baud.
 | `z` | Enter sleep mode |
 | `p` | Capture PNG screenshot of the OLED display |
 | `v` | Activate screensaver (forces NORMAL mode first) |
+| `e` | Trigger easter egg animation |
 | `f` | Enter OTA DFU mode (BLE firmware update) |
 | `u` | Enter Serial DFU mode (USB firmware update) |
 
@@ -488,6 +494,7 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 | Timing step | 0.5s |
 | Mouse styles | Bezier (default), Brownian |
 | Mouse amplitude | 1-5px (1px steps, default 1px, Brownian only) |
+| Scroll wheel | ±1 tick every 2-5s during jiggle (optional) |
 | Mouse randomness | ±20% |
 | Sleep current | ~3µA |
 | Active current | ~15mA (with display) |
@@ -519,6 +526,6 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 
 ---
 
-*Ghost Operator v1.8.3 | TARS Industrial Technical Solutions*
+*Ghost Operator v1.9.0 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*
