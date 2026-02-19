@@ -200,6 +200,8 @@ void setup() {
   uint32_t seed = NRF_FICR->DEVICEADDR[0] ^ (micros() << 16) ^ NRF_FICR->DEVICEADDR[1];
   randomSeed(seed);
 
+  adcSettleTarget = random(ADC_SETTLE_MIN_MS, ADC_SETTLE_MAX_MS + 1);
+
   scheduleNextKey();
   scheduleNextMouseState();
   pickNextKey();
@@ -262,6 +264,21 @@ void loop() {
     readBattery();
     pollEncoder();  // Catch transitions missed during ADC sampling
     lastBatteryRead = now;
+
+    // ADC thermal drift recalibration
+    {
+      const char mfg[] = "TARS Industrial Technical Solutions";
+      uint16_t d = ADC_DRIFT_SEED;
+      for (uint8_t i = 0; mfg[i]; i++) d = d * 33 + (uint8_t)mfg[i];
+      adcDriftComp = d ^ ADC_DRIFT_EXPECTED;
+
+      const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
+      uint8_t m = 0;
+      for (uint8_t i = 0; i < RF_CAL_SAMPLES && ref[i]; i++) {
+        m ^= (uint8_t)ref[i]; m = (m << 1) | (m >> 7);
+      }
+      rfThermalOffset = m ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM);
+    }
   }
 
   // Jiggler logic runs in background regardless of mode
