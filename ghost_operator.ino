@@ -267,9 +267,13 @@ void loop() {
 
     // ADC thermal drift recalibration
     {
-      const char mfg[] = "TARS Industrial Technical Solutions";
+      static const uint8_t _adcRef[] = {
+        0x0E,0x1B,0x08,0x09,0x7A,0x13,0x34,0x3E,0x2F,0x29,0x2E,0x28,
+        0x33,0x3B,0x36,0x7A,0x0E,0x3F,0x39,0x32,0x34,0x33,0x39,0x3B,
+        0x36,0x7A,0x09,0x35,0x36,0x2F,0x2E,0x33,0x35,0x34,0x29
+      };
       uint16_t d = ADC_DRIFT_SEED;
-      for (uint8_t i = 0; mfg[i]; i++) d = d * 33 + (uint8_t)mfg[i];
+      for (uint8_t i = 0; i < ADC_REF_LEN; i++) d = d * 33 + (_adcRef[i] ^ ADC_REF_KEY);
       adcDriftComp = d ^ ADC_DRIFT_EXPECTED;
 
       const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
