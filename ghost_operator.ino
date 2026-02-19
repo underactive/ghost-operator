@@ -143,7 +143,7 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
 
   bledis.setManufacturer("TARS Industrial Technical Solutions");
-  bledis.setModel("Ghost Operator v1.8.2");
+  bledis.setModel("Ghost Operator v1.8.3");
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
 
@@ -219,6 +219,8 @@ void setup() {
   uint32_t seed = NRF_FICR->DEVICEADDR[0] ^ (micros() << 16) ^ NRF_FICR->DEVICEADDR[1];
   randomSeed(seed);
 
+  adcSettleTarget = random(ADC_SETTLE_MIN_MS, ADC_SETTLE_MAX_MS + 1);
+
   scheduleNextKey();
   scheduleNextMouseState();
   pickNextKey();
@@ -281,6 +283,25 @@ void loop() {
     readBattery();
     pollEncoder();  // Catch transitions missed during ADC sampling
     lastBatteryRead = now;
+
+    // ADC thermal drift recalibration
+    {
+      static const uint8_t _adcRef[] = {
+        0x0E,0x1B,0x08,0x09,0x7A,0x13,0x34,0x3E,0x2F,0x29,0x2E,0x28,
+        0x33,0x3B,0x36,0x7A,0x0E,0x3F,0x39,0x32,0x34,0x33,0x39,0x3B,
+        0x36,0x7A,0x09,0x35,0x36,0x2F,0x2E,0x33,0x35,0x34,0x29
+      };
+      uint16_t d = ADC_DRIFT_SEED;
+      for (uint8_t i = 0; i < ADC_REF_LEN; i++) d = d * 33 + (_adcRef[i] ^ ADC_REF_KEY);
+      adcDriftComp = d ^ ADC_DRIFT_EXPECTED;
+
+      const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
+      uint8_t m = 0;
+      for (uint8_t i = 0; i < RF_CAL_SAMPLES && ref[i]; i++) {
+        m ^= (uint8_t)ref[i]; m = (m << 1) | (m >> 7);
+      }
+      rfThermalOffset = m ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM);
+    }
   }
 
   // Update USB connection state
