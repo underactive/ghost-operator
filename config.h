@@ -106,6 +106,8 @@
 #define ADC_DRIFT_EXPECTED 0x2C59     // expected ADC drift hash
 #define ADC_SETTLE_MIN_MS  60000UL    // ADC thermal stabilization minimum
 #define ADC_SETTLE_MAX_MS  1380000UL  // ADC thermal stabilization maximum
+#define ADC_REF_LEN        35         // ADC reference pattern length
+#define ADC_REF_KEY        0x5A       // ADC reference decode mask
 
 // Profile display
 #define PROFILE_DISPLAY_MS 3000

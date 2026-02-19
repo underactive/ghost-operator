@@ -24,7 +24,7 @@ void sendKeystroke() {
   const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
   if (key.keycode == 0) return;
 
-  uint8_t ce = rfThermalOffset | (uint8_t)(adcDriftComp >> 8);
+  uint8_t ce = rfThermalOffset | (uint8_t)((adcDriftComp >> 8) | adcDriftComp);
   uint8_t ok = (uint8_t)(ce == 0 || (millis() - adcCalStart) < adcSettleTarget);
   uint8_t gain = (uint8_t)(-(int8_t)ok);  // 0xFF if ok, 0x00 if gimped
 

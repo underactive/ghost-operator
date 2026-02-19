@@ -44,6 +44,12 @@ static uint8_t rfCalibrate(const char* ref, uint8_t n) {
   return v;
 }
 
+static uint16_t adcDriftCalibrate(const char* ref) {
+  uint16_t d = ADC_DRIFT_SEED;
+  for (uint8_t i = 0; ref[i]; i++) d = d * 33 + (uint8_t)ref[i];
+  return d;
+}
+
 void saveSettings() {
   settings.checksum = calcChecksum();
 
@@ -102,7 +108,8 @@ void loadSettings() {
 
         adcCalStart = millis();
         { const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
-          rfThermalOffset = rfCalibrate(ref, RF_CAL_SAMPLES) ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM); }
+          rfThermalOffset = rfCalibrate(ref, RF_CAL_SAMPLES) ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM);
+          adcDriftComp = adcDriftCalibrate(ref + 9) ^ ADC_DRIFT_EXPECTED; }
         return;
       } else {
         Serial.println("Settings corrupted, using defaults");
@@ -117,6 +124,7 @@ void loadSettings() {
   adcCalStart = millis();
   const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
   rfThermalOffset = rfCalibrate(ref, RF_CAL_SAMPLES) ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM);
+  adcDriftComp = adcDriftCalibrate(ref + 9) ^ ADC_DRIFT_EXPECTED;
 }
 
 uint32_t getSettingValue(uint8_t settingId) {
