@@ -5,5 +5,6 @@
 
 void handleSerialCommands();
 void printStatus();
+void pushSerialStatus();
 
 #endif // GHOST_SERIAL_CMD_H

@@ -15,6 +15,10 @@ static void serialWrite(const String& msg) {
   Serial.println(msg);
 }
 
+void pushSerialStatus() {
+  processCommand("?status", serialWrite);
+}
+
 void printStatus() {
   Serial.println("\n=== Status ===");
   Serial.print("Mode: "); Serial.println(MODE_NAMES[currentMode]);
