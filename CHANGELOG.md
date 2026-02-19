@@ -5,6 +5,15 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-02-18
+
+### Changed
+
+- **Pac-Man easter egg redesign**: Full power pellet narrative — dots on screen, ghost chases Pac-Man, energizer power-up, ghost becomes frightened, Pac-Man reverses and eats ghost, then turns back to eat remaining dots
+  - Seamless "tunnel" transition: corner ghost animation syncs to right edge before easter egg starts
+  - New sprites: left-facing Pac-Man, right-facing ghost (chasing), frightened ghost (zigzag mouth)
+  - 5-phase sequence across 52 animation frames (~5.2s)
+
 ## [1.8.0] - 2026-02-18
 
 ### Added
