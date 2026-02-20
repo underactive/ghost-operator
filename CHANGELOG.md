@@ -9,17 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **"Dashboard" setting**: Opt-in WebUSB landing page that shows a Chrome notification linking to the web dashboard when plugged in via USB (Off / On, default Off)
+- **"Dashboard" setting with smart default**: WebUSB landing page shows a Chrome notification linking to the web dashboard when plugged in via USB (default On)
   - New menu item "Dashboard" in Device section (On/Off toggle, help text: "reboot to apply")
   - Setting takes effect at boot — Chrome reads the URL during USB enumeration
-  - Settings struct: added `dashboardEnabled` field; bumped `SETTINGS_MAGIC` to `0x50524F4C` (existing settings auto-reset to defaults on first boot)
+  - **Smart auto-disable**: Notification shows for 3 boots; auto-disables on boot 4 if the user never interacts with the setting. Any explicit toggle (menu or config protocol) pins the setting permanently (`dashboardBootCount = 0xFF`)
+  - Pin-on-change: only pins when the value actually changes (writing same value is a no-op for the boot counter)
+  - Settings struct: added `dashboardEnabled` and `dashboardBootCount` fields; bumped `SETTINGS_MAGIC` to `0x50524F4D` (existing settings auto-reset to defaults on first boot)
   - Config protocol: `?settings` includes `dashboard` field; `=dashboard:N` set command added
   - Dashboard web app: "Dashboard Link" dropdown in Device section
-  - Serial `d` command prints `Dashboard: On/Off`
+  - Serial `d` command prints `Dashboard: On/Off (boot: N/3)` or `(boot: pinned)`
+- **USB descriptor customization**: Chrome shows "Ghost Operator" by "TARS Industrial" instead of the board's default name in the WebUSB notification
+  - `TinyUSBDevice.setManufacturerDescriptor("TARS Industrial")` and `TinyUSBDevice.setProductDescriptor("Ghost Operator")` set before USB stack init
 
 ### Changed
 
 - **Settings load moved before USB init**: `loadSettings()` now runs before `usb_web.begin()` and `Serial.begin()` so that `dashboardEnabled` is known before the TinyUSB stack starts and Chrome enumerates the device. Debug output from `loadSettings()` is silent (Serial not yet initialized).
+- **Deferred flash save**: Boot-count `saveSettings()` is deferred until after `Serial.begin()` — LittleFS page erase (~85ms with interrupts disabled) before USB init was preventing WebUSB descriptor enumeration
+- **WebUSB landing page URL**: Changed from `tarsindustrial.tech/ghost-operator/landing` to `tarsindustrial.tech/ghost-operator/dashboard?welcome`
 
 ## [1.9.0] - 2026-02-19
 
