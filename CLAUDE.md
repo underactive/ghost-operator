@@ -79,6 +79,7 @@ Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
 #### 1. HID (BLE + USB)
 - Presents as composite keyboard + mouse device over both BLE and USB
 - BLE: Adafruit Bluefruit HID; USB: TinyUSB composite HID (`setupUSBHID()` registers descriptor before USB stack starts)
+- USB descriptors: manufacturer "TARS Industrial", product "Ghost Operator" (set via `TinyUSBDevice.setManufacturerDescriptor/setProductDescriptor` before stack init)
 - `dualKeyboardReport()` sends to both transports; `sendMouseMove()` and `sendMouseScroll()` likewise
 - Device name: "GhostOperator" (customizable)
 - Auto-reconnects to last paired BLE host
@@ -130,12 +131,13 @@ struct Settings {
   char    deviceName[15];      // 14 chars + null terminator (BLE device name)
   uint8_t btWhileUsb;          // 0=Off (default), 1=On — keep BLE active when USB connected
   uint8_t scrollEnabled;       // 0=Off (default), 1=On — random scroll wheel during mouse jiggle
-  uint8_t dashboardEnabled;    // 0=Off (default), 1=On — WebUSB landing page for Chrome
+  uint8_t dashboardEnabled;    // 1=On (default), 0=Off — WebUSB landing page for Chrome
+  uint8_t dashboardBootCount;  // 0-2=boot count (auto-disable after 3), 0xFF=user pinned
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = Off.
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently).
 
 #### 4. Timing Profiles
 ```cpp
