@@ -43,6 +43,14 @@ function confirmReboot() {
       </select>
     </div>
 
+    <div class="field">
+      <label>Dashboard Link <span class="help-text">(show link on USB connect; reboot to apply)</span></label>
+      <select :value="settings.dashboard" @change="setSetting('dashboard', Number($event.target.value))">
+        <option :value="0">Off</option>
+        <option :value="1">On</option>
+      </select>
+    </div>
+
     <div class="actions">
       <div v-if="!showResetConfirm">
         <button class="btn btn-danger" @click="showResetConfirm = true">

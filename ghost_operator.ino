@@ -46,6 +46,13 @@
 #include <nrf_power.h>
 
 // ============================================================================
+// WEBUSB LANDING PAGE
+// ============================================================================
+
+Adafruit_USBD_WebUSB usb_web;
+WEBUSB_URL_DEF(landingPage, 1 /*https*/, "tarsindustrial.tech/ghost-operator/landing");
+
+// ============================================================================
 // BLE CALLBACKS
 // ============================================================================
 
@@ -187,6 +194,15 @@ void setupUSBHID() {
 // ============================================================================
 
 void setup() {
+  // Load settings before USB init — Chrome reads the WebUSB landing page during
+  // USB enumeration (triggered by Serial.begin), so dashboardEnabled must be known
+  // before the stack starts. Serial isn't running yet so loadSettings() output is silent.
+  loadSettings();
+
+  if (settings.dashboardEnabled) {
+    usb_web.setLandingPage(&landingPage);
+  }
+  usb_web.begin();
   setupUSBHID();  // Must be before Serial.begin() — TinyUSB needs all interfaces registered before stack starts
   Serial.begin(115200);
 
@@ -201,7 +217,6 @@ void setup() {
   Serial.println("╚═══════════════════════════════════════════╝");
   Serial.println();
 
-  loadSettings();
   setupPins();
   setupDisplay();
   setupBLE();

@@ -123,6 +123,7 @@ void handleSerialCommands() {
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
         Serial.print("Device name: "); Serial.println(settings.deviceName);
         Serial.print("BT while USB: "); Serial.println(settings.btWhileUsb ? "On" : "Off");
+        Serial.print("Dashboard: "); Serial.println(settings.dashboardEnabled ? "On" : "Off");
         Serial.print("BLE disabled for USB: "); Serial.println(bleDisabledForUsb ? "YES" : "NO");
         Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);

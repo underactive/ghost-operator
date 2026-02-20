@@ -46,6 +46,7 @@ export const settings = reactive({
   name: 'GhostOperator',
   btWhileUsb: 0,
   scroll: 0,
+  dashboard: 0,
   slots: [2, 28, 28, 28, 28, 28, 28, 28],
 })
 

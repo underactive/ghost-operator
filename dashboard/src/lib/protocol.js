@@ -93,6 +93,7 @@ export function parseSettings(data) {
     name: data.name || 'GhostOperator',
     btWhileUsb: parseInt(data.btWhileUsb) || 0,
     scroll: parseInt(data.scroll) || 0,
+    dashboard: parseInt(data.dashboard) || 0,
     slots: (data.slots || '2,28,28,28,28,28,28,28').split(',').map(Number),
   }
 }
