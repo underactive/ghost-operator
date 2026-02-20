@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { connectionState, startSerialDfu, dfuActive } from '../lib/store.js'
 import { isWebSerialAvailable } from '../lib/serial.js'
 import { parseDfuZip, getDfuPackageInfo } from '../lib/dfu/zip.js'
@@ -20,6 +20,18 @@ const errorMsg = ref('')
 const packageInfo = ref(null)
 let datFile = null
 let binFile = null
+let dfuFileName = ''
+
+// Terminal log
+const logLines = ref([])
+const logContainer = ref(null)
+let dfuStartTime = 0
+
+function scrollIfAtBottom(el) {
+  const threshold = 30
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold
+  if (atBottom) el.scrollTop = el.scrollHeight
+}
 
 // Port selection resolver (called from onWaitingPort)
 let portResolve = null
@@ -34,6 +46,7 @@ function onFileSelect(e) {
     return
   }
 
+  dfuFileName = file.name
   const reader = new FileReader()
   reader.onload = () => {
     try {
@@ -59,6 +72,19 @@ async function confirmUpdate() {
   state.value = 'rebooting'
   progress.value = 0
   progressMsg.value = ''
+  logLines.value = []
+  dfuStartTime = performance.now()
+
+  // Log the selected filename as the first entry
+  const onLog = (msg, level = 'info') => {
+    const elapsed = ((performance.now() - dfuStartTime) / 1000).toFixed(1)
+    logLines.value.push({ time: elapsed, text: msg, level })
+    nextTick(() => {
+      if (logContainer.value) scrollIfAtBottom(logContainer.value)
+    })
+  }
+
+  onLog(`Package: ${dfuFileName}`)
 
   try {
     await startSerialDfu(
@@ -76,6 +102,7 @@ async function confirmUpdate() {
         state.value = 'waiting-port'
         return new Promise(resolve => { portResolve = resolve })
       },
+      onLog,
     )
     state.value = 'complete'
   } catch (err) {
@@ -99,11 +126,17 @@ function reset() {
   packageInfo.value = null
   datFile = null
   binFile = null
+  logLines.value = []
   dfuActive.value = false
 }
 
 function cancel() {
   state.value = packageInfo.value ? 'parsed' : 'idle'
+}
+
+function copyLog() {
+  const text = logLines.value.map(l => `[${l.time}s] ${l.text}`).join('\n')
+  navigator.clipboard.writeText(text)
 }
 </script>
 
@@ -193,6 +226,26 @@ function cancel() {
           <p class="error-text">{{ errorMsg }}</p>
           <p class="help-text">If the device is stuck in DFU mode, power cycle it (unplug USB and battery).</p>
           <button class="btn" @click="reset">Try Again</button>
+        </div>
+
+        <!-- DFU terminal log -->
+        <div v-if="logLines.length" class="dfu-terminal-wrapper">
+          <div class="dfu-terminal-header">
+            <span class="dfu-terminal-title">Log</span>
+            <button class="dfu-terminal-copy" @click="copyLog" title="Copy log">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+            </button>
+          </div>
+          <div class="dfu-terminal" ref="logContainer">
+            <div v-for="(line, i) in logLines" :key="i" class="dfu-terminal-line">
+              <span class="dfu-terminal-time">[{{ line.time }}s]</span>
+              <span :class="['dfu-terminal-text', 'dfu-log-' + line.level]">{{ line.text }}</span>
+            </div>
+          </div>
         </div>
       </template>
     </div>
@@ -363,4 +416,61 @@ function cancel() {
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-size: 0.85rem;
 }
+
+.dfu-terminal-wrapper {
+  margin-top: 0.75rem;
+}
+
+.dfu-terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.dfu-terminal-title {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dfu-terminal-copy {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.dfu-terminal-copy:hover {
+  color: var(--text);
+}
+
+.dfu-terminal {
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #0a0a0a;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.dfu-terminal::-webkit-scrollbar { width: 6px; }
+.dfu-terminal::-webkit-scrollbar-track { background: transparent; }
+.dfu-terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.dfu-terminal-time {
+  color: #005982;
+  margin-right: 0.5rem;
+  user-select: none;
+}
+
+.dfu-terminal-text { color: #b0b0b0; }
+.dfu-log-error { color: var(--danger); }
+.dfu-log-success { color: #22ff00; }
 </style>

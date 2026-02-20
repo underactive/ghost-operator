@@ -212,19 +212,24 @@ export async function refreshSettings() {
  * @param {Uint8Array} binFile - Firmware binary from DFU ZIP
  * @param {function} onProgress - (percent, message) => void
  * @param {function} onWaitingPort - Called when user needs to pick serial port
+ * @param {function} [onLog] - Terminal log (append-only, separate from progress bar): (message, level) => void
  * @returns {Promise<void>}
  */
-export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort) {
+export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort, onLog = () => {}) {
   dfuActive.value = true
   stopPolling()
 
   try {
     // 1. Send !serialdfu over config serial to reboot device into serial DFU mode
     onProgress(0, 'Sending DFU command...')
+    // Terminal log (append-only, separate from progress bar)
+    onLog('Sending DFU command over serial...', 'info')
     await transport.send(buildAction('serialdfu'))
 
     // 2. Brief delay then disconnect config serial (device reboots)
     onProgress(0, 'Waiting for device to reboot...')
+    // Terminal log (append-only, separate from progress bar)
+    onLog('Disconnecting config port...', 'info')
     await sleep(200)
     await transport.disconnect()
     connectionState.connected = false
@@ -232,19 +237,31 @@ export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort
 
     // 3. Wait for USB CDC re-enumeration in bootloader mode
     onProgress(0, 'Waiting for USB serial port...')
+    // Terminal log (append-only, separate from progress bar)
+    onLog('Waiting for USB serial port...', 'info')
     await sleep(3000)
 
     // 4. Signal UI to show "Select Serial Port" button
     await onWaitingPort()
 
     // 5. Open serial port for DFU (user picks from Chrome dialog)
+    // Terminal log (append-only, separate from progress bar)
+    onLog('Opening DFU serial port at 115200 baud', 'info')
     await dfuSerial.open(115200)
+    // Terminal log (append-only, separate from progress bar)
+    onLog('DFU serial port ready', 'info')
 
     // 6. Perform DFU transfer
-    await performDfu(datFile, binFile, onProgress)
+    await performDfu(datFile, binFile, onProgress, onLog)
 
     // 7. Close DFU serial port
     await dfuSerial.close()
+    // Terminal log (append-only, separate from progress bar)
+    onLog('DFU serial port closed', 'info')
+  } catch (err) {
+    // Terminal log (append-only, separate from progress bar)
+    onLog(`DFU error: ${err.message}`, 'error')
+    throw err
   } finally {
     // dfuActive stays true — component controls when to clear it
   }

@@ -84,17 +84,24 @@ async function sendPacket(payload) {
  * @param {Uint8Array} datFile - Init packet (.dat file from DFU ZIP)
  * @param {Uint8Array} binFile - Firmware image (.bin file from DFU ZIP)
  * @param {function} onProgress - Callback: (percent, message) => void
+ * @param {function} [onLog] - Terminal log (append-only, separate from progress bar): (message, level) => void
  */
-export async function performDfu(datFile, binFile, onProgress) {
+export async function performDfu(datFile, binFile, onProgress, onLog = () => {}) {
   // Reset sequence number (first packet will pre-increment to 1)
   seqNo = 0
 
   const totalChunks = Math.ceil(binFile.length / DATA_CHUNK_SIZE)
+  const transferStart = performance.now()
+  let lastLoggedPct = -2 // force first log at 0%
 
   // ── Step 1: Start DFU ──────────────────────────────────────────────
   // Payload: [int32(DFU_START_PACKET)] [int32(mode)] [int32(sd_size)]
   //          [int32(bl_size)] [int32(app_size)]
   onProgress(0, 'Starting DFU...')
+  // Terminal log (append-only, separate from progress bar)
+  onLog('Starting DFU (application mode)', 'info')
+  onLog(`Firmware: ${(binFile.length / 1024).toFixed(1)} KB (${binFile.length} bytes), ${totalChunks} chunks`, 'info')
+
   const startPayload = new Uint8Array(20)
   const startView = new DataView(startPayload.buffer)
   startView.setUint32(0, DFU_START_PACKET, true)     // opcode 3
@@ -109,12 +116,19 @@ export async function performDfu(datFile, binFile, onProgress) {
   const pages = Math.ceil(binFile.length / PAGE_SIZE)
   const eraseMs = Math.max(pages * ERASE_MS_PER_PAGE, 1000)
   onProgress(2, `Erasing flash (${pages} pages)...`)
+  // Terminal log (append-only, separate from progress bar)
+  onLog(`Erasing flash (${pages} page${pages !== 1 ? 's' : ''})...`, 'info')
+  const eraseStart = performance.now()
   await sleep(eraseMs)
+  // Terminal log (append-only, separate from progress bar)
+  onLog(`Erase wait complete (${((performance.now() - eraseStart) / 1000).toFixed(1)}s)`, 'info')
 
   // ── Step 3: Send init packet ───────────────────────────────────────
   // Payload: [int32(DFU_INIT_PACKET)] [dat_bytes...] [int16(0x0000)]
   // The 2-byte zero padding at the end matches adafruit-nrfutil exactly.
   onProgress(5, 'Sending init packet...')
+  // Terminal log (append-only, separate from progress bar)
+  onLog(`Sending init packet (${datFile.length} bytes)...`, 'info')
   const initPayload = new Uint8Array(4 + datFile.length + 2)
   new DataView(initPayload.buffer).setUint32(0, DFU_INIT_PACKET, true)
   initPayload.set(datFile, 4)
@@ -129,6 +143,9 @@ export async function performDfu(datFile, binFile, onProgress) {
   // ── Step 4: Send firmware data in 512-byte chunks ──────────────────
   // Each chunk: [int32(DFU_DATA_PACKET)] [chunk_bytes]
   onProgress(8, 'Transferring firmware...')
+  // Terminal log (append-only, separate from progress bar)
+  onLog('Transferring firmware...', 'info')
+  const dataStart = performance.now()
 
   for (let i = 0; i < totalChunks; i++) {
     const offset = i * DATA_CHUNK_SIZE
@@ -139,11 +156,23 @@ export async function performDfu(datFile, binFile, onProgress) {
     new DataView(dataPayload.buffer).setUint32(0, DFU_DATA_PACKET, true)
     dataPayload.set(chunk, 4)
 
-    await sendPacket(dataPayload)
+    try {
+      await sendPacket(dataPayload)
+    } catch (err) {
+      // Terminal log (append-only, separate from progress bar)
+      onLog(`Error at chunk ${i + 1}/${totalChunks}: ${err.message}`, 'error')
+      throw err
+    }
 
     // Progress: 8% to 90% during data transfer
     const pct = 8 + Math.round((i + 1) / totalChunks * 82)
     onProgress(pct, `Transferring... ${i + 1}/${totalChunks} chunks`)
+
+    // Terminal log at 2% intervals (append-only, separate from progress bar)
+    if (pct - lastLoggedPct >= 2) {
+      onLog(`Writing at 0x${offset.toString(16).toUpperCase().padStart(6, '0')}... (${pct}%)`, 'info')
+      lastLoggedPct = pct
+    }
 
     // Delay every N chunks for flash page write
     if ((i + 1) % CHUNKS_PER_PAGE === 0 && i + 1 < totalChunks) {
@@ -151,12 +180,18 @@ export async function performDfu(datFile, binFile, onProgress) {
     }
   }
 
+  // Terminal log (append-only, separate from progress bar)
+  const dataElapsed = ((performance.now() - dataStart) / 1000).toFixed(1)
+  onLog(`Wrote ${binFile.length} bytes (${(binFile.length / 1024).toFixed(1)} KB) in ${dataElapsed}s`, 'success')
+
   // ── Step 5: Stop data — triggers validate + activate + reboot ──────
   // Payload: [int32(DFU_STOP_DATA_PACKET)]
   // After this, the bootloader validates the firmware, activates it,
   // and reboots into the new application. No separate validate/activate
   // packets are needed (they are no-ops in the Python reference).
   onProgress(95, 'Finalizing...')
+  // Terminal log (append-only, separate from progress bar)
+  onLog('Finalizing...', 'info')
   const stopPayload = new Uint8Array(4)
   new DataView(stopPayload.buffer).setUint32(0, DFU_STOP_DATA_PACKET, true)
 
@@ -165,6 +200,8 @@ export async function performDfu(datFile, binFile, onProgress) {
   await sendPacket(stopPayload)
 
   onProgress(100, 'Firmware update complete!')
+  // Terminal log (append-only, separate from progress bar)
+  onLog('Firmware update complete!', 'success')
 }
 
 function sleep(ms) {
