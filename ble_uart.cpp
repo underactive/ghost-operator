@@ -172,6 +172,7 @@ static void cmdQuerySettings() {
   resp += "|name=";         resp += String(settings.deviceName);
   resp += "|btWhileUsb=";  resp += String(settings.btWhileUsb);
   resp += "|scroll=";      resp += String(settings.scrollEnabled);
+  resp += "|dashboard=";   resp += String(settings.dashboardEnabled);
 
   // Slots as comma-separated indices
   resp += "|slots=";
@@ -246,6 +247,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_BT_WHILE_USB, (uint32_t)atol(valStr));
   } else if (strcmp(key, "scroll") == 0) {
     setSettingValue(SET_SCROLL, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "dashboard") == 0) {
+    setSettingValue(SET_DASHBOARD, (uint32_t)atol(valStr));
   } else if (strcmp(key, "name") == 0) {
     // Device name — up to 14 chars
     strncpy(settings.deviceName, valStr, NAME_MAX_LEN);

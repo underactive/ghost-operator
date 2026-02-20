@@ -69,6 +69,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Device name",   "BLE device name (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_DEVICE_NAME },
   { MENU_VALUE,   "BT while USB",  "Keep Bluetooth active when USB plugged in", FMT_ON_OFF, 0, 1, 1, SET_BT_WHILE_USB },
+  { MENU_VALUE,   "Dashboard",     "Show dashboard link on USB connect (reboot to apply)", FMT_ON_OFF, 0, 1, 1, SET_DASHBOARD },
   { MENU_ACTION,  "Reset defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
   { MENU_ACTION,  "Reboot",        "Restart device (applies pending changes)", FMT_DURATION_MS, 0, 0, 0, SET_REBOOT },
   // About
