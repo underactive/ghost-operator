@@ -10,7 +10,7 @@
 #define VERSION "1.9.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F4C  // bumped: added dashboardEnabled field
+#define SETTINGS_MAGIC 0x50524F4D  // bumped: added dashboardBootCount field
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
 
@@ -180,7 +180,8 @@ struct Settings {
   char    deviceName[15]; // 14 chars + null terminator (BLE device name)
   uint8_t btWhileUsb;     // 0=Off (default), 1=On — keep BLE active when USB connected
   uint8_t scrollEnabled;  // 0=Off (default), 1=On — random scroll wheel during mouse jiggle
-  uint8_t dashboardEnabled; // 0=Off (default), 1=On — WebUSB landing page for Chrome
+  uint8_t dashboardEnabled; // 1=On (default), 0=Off — WebUSB landing page for Chrome
+  uint8_t dashboardBootCount; // 0-2=boot count (auto-disable after 3), 0xFF=user pinned
   uint8_t checksum;       // must remain last
 };
 

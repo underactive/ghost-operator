@@ -50,7 +50,7 @@
 // ============================================================================
 
 Adafruit_USBD_WebUSB usb_web;
-WEBUSB_URL_DEF(landingPage, 1 /*https*/, "tarsindustrial.tech/ghost-operator/landing");
+WEBUSB_URL_DEF(landingPage, 1 /*https*/, "tarsindustrial.tech/ghost-operator/dashboard?welcome");
 
 // ============================================================================
 // BLE CALLBACKS
@@ -199,15 +199,38 @@ void setup() {
   // before the stack starts. Serial isn't running yet so loadSettings() output is silent.
   loadSettings();
 
+  // Smart default: auto-disable dashboard notification after 3 boots if user never touched it.
+  // Only update in-memory here — flash write is deferred until after USB init, because
+  // LittleFS page erase (~85ms, interrupts disabled) before USB start prevents WebUSB enumeration.
+  bool dashboardBootDirty = false;
+  if (settings.dashboardEnabled && settings.dashboardBootCount != 0xFF) {
+    if (settings.dashboardBootCount >= 3) {
+      // Threshold reached — auto-disable
+      settings.dashboardEnabled = 0;
+      settings.dashboardBootCount = 0;
+      dashboardBootDirty = true;
+    } else {
+      settings.dashboardBootCount++;
+      dashboardBootDirty = true;
+    }
+  }
+
   if (settings.dashboardEnabled) {
     usb_web.setLandingPage(&landingPage);
   }
+  TinyUSBDevice.setManufacturerDescriptor("TARS Industrial");
+  TinyUSBDevice.setProductDescriptor("Ghost Operator");
   usb_web.begin();
   setupUSBHID();  // Must be before Serial.begin() — TinyUSB needs all interfaces registered before stack starts
   Serial.begin(115200);
 
   uint32_t t = millis();
   while (!Serial && (millis() - t < 2000)) delay(10);
+
+  // Deferred save — flash writes before USB init disrupt WebUSB descriptor enumeration
+  if (dashboardBootDirty) {
+    saveSettings();
+  }
 
   Serial.println();
   Serial.println("╔═══════════════════════════════════════════╗");
