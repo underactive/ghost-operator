@@ -118,6 +118,7 @@
 | | Animation | Status animation style (ECG / EQ / Ghost / Matrix / Radar / None, default Ghost) |
 | **Device** | Device name | Device name editor (press encoder to enter) |
 | | BT while USB | Keep Bluetooth active when USB plugged in (Off / On, default Off) |
+| | Dashboard | Show Chrome notification linking to web dashboard on USB connect (On / Off, default On — auto-disables after 3 boots if untouched) |
 | | Reset defaults | Restore all settings to factory defaults (confirmation required) |
 | | Reboot | Restart the device (confirmation required) |
 | **About** | Version | Firmware version (read-only) |

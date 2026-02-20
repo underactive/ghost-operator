@@ -331,7 +331,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 
 | Ver | Changes |
 |-----|---------|
-| 1.9.1 | Dashboard setting for WebUSB landing page (opt-in Chrome notification on USB connect) |
+| 1.9.1 | Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization, deferred flash save |
 | 1.9.0 | USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard |
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
 | 1.1.0 | Display overhaul, BT icon, HID keycode fix |

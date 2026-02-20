@@ -358,7 +358,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.9.0** | **USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard** |
+| **1.9.1** | **Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization** |
+| 1.9.0 | USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard |
 | 1.8.2 | Mute indicator on progress bars, custom name in header, narrower screensaver bars |
 | 1.8.1 | Pac-Man easter egg redesign: power pellet narrative with tunnel transition |
 | 1.8.0 | Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation |
