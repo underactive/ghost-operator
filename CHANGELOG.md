@@ -5,6 +5,22 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.1] - 2026-02-20
+
+### Added
+
+- **"Dashboard" setting**: Opt-in WebUSB landing page that shows a Chrome notification linking to the web dashboard when plugged in via USB (Off / On, default Off)
+  - New menu item "Dashboard" in Device section (On/Off toggle, help text: "reboot to apply")
+  - Setting takes effect at boot — Chrome reads the URL during USB enumeration
+  - Settings struct: added `dashboardEnabled` field; bumped `SETTINGS_MAGIC` to `0x50524F4C` (existing settings auto-reset to defaults on first boot)
+  - Config protocol: `?settings` includes `dashboard` field; `=dashboard:N` set command added
+  - Dashboard web app: "Dashboard Link" dropdown in Device section
+  - Serial `d` command prints `Dashboard: On/Off`
+
+### Changed
+
+- **Settings load moved before USB init**: `loadSettings()` now runs before `usb_web.begin()` and `Serial.begin()` so that `dashboardEnabled` is known before the TinyUSB stack starts and Chrome enumerates the device. Debug output from `loadSettings()` is silent (Serial not yet initialized).
+
 ## [1.9.0] - 2026-02-19
 
 ### Added

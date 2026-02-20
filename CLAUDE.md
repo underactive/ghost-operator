@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.9.0
+**Current Version:** 1.9.1
 **Status:** Production-ready
 
 ---
@@ -98,7 +98,7 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (25 entries: 6 headings + 19 items):
+Data-driven architecture using `MenuItem` struct array (26 entries: 6 headings + 20 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF };
@@ -130,11 +130,12 @@ struct Settings {
   char    deviceName[15];      // 14 chars + null terminator (BLE device name)
   uint8_t btWhileUsb;          // 0=Off (default), 1=On — keep BLE active when USB connected
   uint8_t scrollEnabled;       // 0=Off (default), 1=On — random scroll wheel during mouse jiggle
+  uint8_t dashboardEnabled;    // 0=Off (default), 1=On — WebUSB landing page for Chrome
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off.
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = Off.
 
 #### 4. Timing Profiles
 ```cpp
@@ -195,6 +196,7 @@ WEB → DEVICE                    DEVICE → WEB
 =mouseStyle:1               →   +ok
 =btWhileUsb:1               →   +ok
 =scroll:1                   →   +ok
+=dashboard:1                →   +ok
 =statusPush:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok
@@ -327,6 +329,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 
 | Ver | Changes |
 |-----|---------|
+| 1.9.1 | Dashboard setting for WebUSB landing page (opt-in Chrome notification on USB connect) |
 | 1.9.0 | USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard |
 | 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
 | 1.1.0 | Display overhaul, BT icon, HID keycode fix |

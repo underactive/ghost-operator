@@ -7,7 +7,7 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.9.0"
+#define VERSION "1.9.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F4C  // bumped: added dashboardEnabled field
