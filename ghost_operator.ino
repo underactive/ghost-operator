@@ -322,7 +322,11 @@ void loop() {
       decoyConfirming = false;
     }
     if (currentMode == MODE_SCHEDULE) {
+      // Revert unsaved edits — don't persist schedule changes on timeout
       scheduleEditing = false;
+      settings.scheduleMode = scheduleOrigMode;
+      settings.scheduleStart = scheduleOrigStart;
+      settings.scheduleEnd = scheduleOrigEnd;
     }
     defaultsConfirming = false;
     rebootConfirming = false;

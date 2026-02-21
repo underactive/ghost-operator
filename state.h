@@ -129,6 +129,9 @@ extern bool serialStatusPush;
 // Schedule editor state
 extern int8_t scheduleCursor;     // 0=Mode, 1=Start, 2=End
 extern bool   scheduleEditing;    // true when adjusting selected value
+extern uint8_t  scheduleOrigMode;   // snapshot for revert on timeout
+extern uint16_t scheduleOrigStart;
+extern uint16_t scheduleOrigEnd;
 
 // Schedule / wall clock
 extern bool timeSynced;

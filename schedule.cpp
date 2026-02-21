@@ -28,11 +28,12 @@ uint32_t currentDaySeconds() {
 
 String formatCurrentTime() {
   uint32_t secs = currentDaySeconds();
-  if (secs == 0xFFFFFFFF) return String("--:--");
+  if (secs == 0xFFFFFFFF) return String("--:--:--");
   uint8_t h = secs / 3600;
   uint8_t m = (secs % 3600) / 60;
-  char buf[6];
-  sprintf(buf, "%d:%02d", h, m);
+  uint8_t s = secs % 60;
+  char buf[9];
+  sprintf(buf, "%d:%02d:%02d", h, m, s);
   return String(buf);
 }
 

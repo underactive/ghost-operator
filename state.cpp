@@ -121,6 +121,9 @@ bool serialStatusPush = false;
 // Schedule editor state
 int8_t scheduleCursor = 0;
 bool   scheduleEditing = false;
+uint8_t  scheduleOrigMode = 0;
+uint16_t scheduleOrigStart = 0;
+uint16_t scheduleOrigEnd = 0;
 
 // Schedule / wall clock
 bool timeSynced = false;
