@@ -4,6 +4,7 @@
 #include "icons.h"
 #include "timing.h"
 #include "settings.h"
+#include "schedule.h"
 
 // ============================================================================
 // STATIC HELPERS (file-local)
@@ -484,10 +485,15 @@ static void drawNormalMode() {
       display.setCursor(0, 54);
       display.print(PROFILE_NAMES[currentProfile]);
     } else {
-      // Normal uptime display
       display.setCursor(0, 54);
-      display.print("Up: ");
-      display.print(formatUptime(now - startTime));
+      if (timeSynced) {
+        // Show real-time clock when synced
+        display.print(formatCurrentTime());
+      } else {
+        // Fall back to uptime when not synced
+        display.print("Up: ");
+        display.print(formatUptime(now - startTime));
+      }
     }
 
     // Status animation (lower-right corner)
@@ -1129,6 +1135,12 @@ static void drawMenuMode() {
         atMin = true;
         atMax = true;
       }
+      // Hide schedule start/end when schedule mode is Off
+      if ((item.settingId == SET_SCHEDULE_START || item.settingId == SET_SCHEDULE_END) && settings.scheduleMode == SCHED_OFF) {
+        valStr = "---";
+        atMin = true;
+        atMax = true;
+      }
       // Negative-display: displayed range is inverted (raw max = displayed min)
       if (item.format == FMT_PERCENT_NEG) { bool tmp = atMin; atMin = atMax; atMax = tmp; }
 
@@ -1205,6 +1217,7 @@ static void drawMenuMode() {
 
 void updateDisplay() {
   if (!displayInitialized) return;
+  if (scheduleSleeping) return;  // light sleep — display managed by schedule module
 
   // Contrast management: screensaver dims, normal uses displayBrightness
   static bool wasSaver = false;

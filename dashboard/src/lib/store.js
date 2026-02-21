@@ -28,6 +28,9 @@ export const status = reactive({
   mouseState: 0,
   uptime: 0,
   kbNext: '---',
+  timeSynced: false,
+  daySecs: 0,
+  schedSleeping: false,
 })
 
 export const settings = reactive({
@@ -48,6 +51,9 @@ export const settings = reactive({
   scroll: 0,
   dashboard: 0,
   decoy: 0,
+  schedMode: 0,
+  schedStart: 18,
+  schedEnd: 34,
   slots: [2, 28, 28, 28, 28, 28, 28, 28],
 })
 
@@ -120,6 +126,10 @@ export async function connectDevice() {
 
     // Enable real-time status push from device
     await transport.send(buildSet('statusPush', 1))
+    await sleep(50)
+
+    // Sync wall clock time to device
+    await syncTimeToDevice()
     await sleep(50)
 
     // Fetch initial data
@@ -280,6 +290,15 @@ export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort
   }
 }
 
+/**
+ * Sync the current wall clock time to the device.
+ */
+async function syncTimeToDevice() {
+  const now = new Date()
+  const daySeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
+  await transport.send(buildSet('time', daySeconds))
+}
+
 // --- Internal helpers ---
 
 function sendAndWait(cmd) {
@@ -296,11 +315,19 @@ function sendAndWait(cmd) {
   })
 }
 
+let pollCount = 0
+
 function startPolling() {
   stopPolling()
+  pollCount = 0
   pollInterval = setInterval(async () => {
     if (transport.isConnected()) {
       await transport.send(buildQuery('status'))
+      pollCount++
+      // Re-sync time every 5 minutes (60 polls * 5s = 300s)
+      if (pollCount % 60 === 0) {
+        await syncTimeToDevice()
+      }
     }
   }, 5000)
 }

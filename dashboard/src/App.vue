@@ -6,6 +6,7 @@ import TimingSection from './components/TimingSection.vue'
 import KeySlotEditor from './components/KeySlotEditor.vue'
 import MouseSection from './components/MouseSection.vue'
 import ProfileSection from './components/ProfileSection.vue'
+import ScheduleSection from './components/ScheduleSection.vue'
 import DisplaySection from './components/DisplaySection.vue'
 import DeviceSection from './components/DeviceSection.vue'
 import FirmwareUpdate from './components/FirmwareUpdate.vue'
@@ -29,6 +30,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
           <MouseSection />
           <KeySlotEditor />
           <ProfileSection />
+          <ScheduleSection />
           <DisplaySection />
           <DeviceSection />
         </template>
