@@ -160,7 +160,7 @@ void setupBLE() {
     bledis.setModel(DECOY_NAMES[settings.decoyIndex - 1]);
   } else {
     bledis.setManufacturer("TARS Industrial Technical Solutions");
-    bledis.setModel("Ghost Operator v1.9.1");
+    bledis.setModel("Ghost Operator v1.10.0");
   }
   bledis.setSoftwareRev(VERSION);
   bledis.begin();

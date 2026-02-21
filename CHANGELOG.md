@@ -5,6 +5,43 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-02-20
+
+### Added
+
+- **BLE identity presets (decoy masquerade)**: Device can impersonate common commercial Bluetooth peripherals to blend into corporate BLE scans
+  - 10 built-in presets: Apple Magic Keyboard/Mouse/Trackpad, Logitech MX Master 3S/MX Keys S/MX Anywhere 3S/K380/ERGO K860, Keychron K2/V1
+  - New `MODE_DECOY` UI: scrollable picker with active marker (`*`), encoder navigates, button selects, reboot confirmation on change
+  - BLE device name and USB descriptors updated to match selected identity
+  - "Custom" mode (index 0) preserves manual device name editing via `MODE_NAME`
+  - Menu item "BLE identity" in Device section (action item, opens picker)
+  - Config protocol: `=decoy:N` (0=Custom, 1-10=preset), `?decoys` returns preset list
+  - Dashboard: identity dropdown in Device section, disables custom name field when preset selected
+  - Serial `d` command prints current BLE identity
+- **Timed schedule (auto-sleep / full auto)**: Automated sleep and wake tied to wall clock time, synced via USB dashboard
+  - Two scheduling modes: **Auto-sleep** (deep sleep at end time, manual wake) and **Full auto** (light sleep at end time, auto-wake at start time)
+  - 5-minute time slot granularity (288 slots per day), configurable start and end times (default 9:00–17:00)
+  - New `MODE_SCHEDULE` UI: 3-row editor (Mode, Start, End) with contextual help text; rows hidden based on mode selection
+  - Wall clock synced from dashboard on USB connect (`=time:SECS` command, seconds since midnight)
+  - Schedule editor locked with "Sync clock via USB dashboard" message until time is synced
+  - Light sleep state: display dimmed, BLE advertising stopped, "Scheduled Sleep" + wake time shown; encoder button wakes manually
+  - Auto-sleep mode disables schedule before entering deep sleep to prevent boot loop
+  - New `schedule.h/.cpp` module (core logic: time sync, schedule check, light/deep sleep transitions)
+  - Config protocol: `=schedMode:0-2`, `=schedStart:N`, `=schedEnd:N`, `=time:SECS`
+  - Dashboard: new Schedule section with mode dropdown, start/end time sliders, sync indicator and sleeping badge
+  - Serial `d` command prints schedule mode, times, sync status, and current time
+
+### Changed
+
+- **Settings struct**: Added `decoyIndex` (uint8), `scheduleMode` (uint8), `scheduleStart` (uint16), `scheduleEnd` (uint16); bumped `SETTINGS_MAGIC` to `0x50524F50` (existing settings auto-reset to defaults on first boot)
+- **Menu**: 2 new action items (BLE identity, Schedule) — `MENU_ITEM_COUNT` updated; new `FMT_SCHEDULE_MODE` and `FMT_TIME_5MIN` value formats
+- **Config protocol**: `?settings` response includes `decoy`, `schedMode`, `schedStart`, `schedEnd` fields; `?status` includes `timeSynced`, `schedSleeping`, `daySecs`
+- **Dashboard**: Device section includes BLE identity dropdown; new Schedule section component
+
+### Fixed
+
+- **Dashboard port close**: Awaits serial port close on disconnect to prevent stale connection state
+
 ## [1.9.1] - 2026-02-20
 
 ### Added
