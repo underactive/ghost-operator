@@ -1,6 +1,6 @@
 <script setup>
 import { settings, status, setSetting } from '../lib/store.js'
-import { SCHEDULE_MODE_NAMES, formatTime30 } from '../lib/protocol.js'
+import { SCHEDULE_MODE_NAMES, formatTime5 } from '../lib/protocol.js'
 </script>
 
 <template>
@@ -26,24 +26,24 @@ import { SCHEDULE_MODE_NAMES, formatTime30 } from '../lib/protocol.js'
     <div class="field" v-if="settings.schedMode !== 0">
       <label>
         Start Time
-        <span class="field-value">{{ formatTime30(settings.schedStart) }}</span>
+        <span class="field-value">{{ formatTime5(settings.schedStart) }}</span>
       </label>
       <input
         type="range"
         :value="settings.schedStart"
-        min="0" max="47" step="1"
+        min="0" max="287" step="1"
         @input="setSetting('schedStart', Number($event.target.value))"
       />
     </div>
     <div class="field" v-if="settings.schedMode !== 0">
       <label>
         End Time
-        <span class="field-value">{{ formatTime30(settings.schedEnd) }}</span>
+        <span class="field-value">{{ formatTime5(settings.schedEnd) }}</span>
       </label>
       <input
         type="range"
         :value="settings.schedEnd"
-        min="0" max="47" step="1"
+        min="0" max="287" step="1"
         @input="setSetting('schedEnd', Number($event.target.value))"
       />
     </div>
