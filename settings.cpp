@@ -200,7 +200,12 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       }
       settings.dashboardEnabled = (uint8_t)value;
       break;
-    case SET_SCHEDULE_MODE:  settings.scheduleMode = (uint8_t)value; break;
+    case SET_SCHEDULE_MODE:
+      settings.scheduleMode = (uint8_t)value;
+      if (settings.scheduleMode != SCHED_OFF) {
+        scheduleManualWake = true;  // suppress immediate sleep until next active window
+      }
+      break;
     case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)value; break;
     case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)value; break;
   }
