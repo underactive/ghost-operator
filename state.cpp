@@ -118,6 +118,10 @@ unsigned long adcSettleTarget = 60000;
 // Serial status push (off by default — toggle with 't' command)
 bool serialStatusPush = false;
 
+// Schedule editor state
+int8_t scheduleCursor = 0;
+bool   scheduleEditing = false;
+
 // Schedule / wall clock
 bool timeSynced = false;
 uint32_t wallClockDaySecs = 0;

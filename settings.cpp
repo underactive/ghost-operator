@@ -6,6 +6,7 @@
 using namespace Adafruit_LittleFS_Namespace;
 
 void loadDefaults() {
+  memset(&settings, 0, sizeof(Settings));  // zero padding bytes for checksum consistency
   settings.magic = SETTINGS_MAGIC;
   settings.keyIntervalMin = 2000;      // 2 seconds
   settings.keyIntervalMax = 6500;      // 6.5 seconds
@@ -31,8 +32,8 @@ void loadDefaults() {
   settings.dashboardBootCount = 0;
   settings.decoyIndex = 0;
   settings.scheduleMode = SCHED_OFF;
-  settings.scheduleStart = 18;  // 9:00
-  settings.scheduleEnd = 34;    // 17:00
+  settings.scheduleStart = 108;  // 9:00 (108 * 5min = 540min = 9h)
+  settings.scheduleEnd = 204;    // 17:00 (204 * 5min = 1020min = 17h)
 }
 
 uint8_t calcChecksum() {
@@ -119,8 +120,8 @@ void loadSettings() {
         if (settings.dashboardBootCount != 0xFF && settings.dashboardBootCount > 3) settings.dashboardBootCount = 0;
         if (settings.decoyIndex > DECOY_COUNT) settings.decoyIndex = 0;
         if (settings.scheduleMode >= SCHED_MODE_COUNT) settings.scheduleMode = SCHED_OFF;
-        if (settings.scheduleStart >= SCHEDULE_SLOTS) settings.scheduleStart = 18;
-        if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 34;
+        if (settings.scheduleStart >= SCHEDULE_SLOTS) settings.scheduleStart = 108;
+        if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 204;
 
         adcCalStart = millis();
         { const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
@@ -200,8 +201,8 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       settings.dashboardEnabled = (uint8_t)value;
       break;
     case SET_SCHEDULE_MODE:  settings.scheduleMode = (uint8_t)value; break;
-    case SET_SCHEDULE_START: settings.scheduleStart = (uint8_t)value; break;
-    case SET_SCHEDULE_END:   settings.scheduleEnd = (uint8_t)value; break;
+    case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)value; break;
+    case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)value; break;
   }
 }
 
@@ -217,9 +218,10 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
     case FMT_MOUSE_STYLE:  return String(MOUSE_STYLE_NAMES[val]);
     case FMT_ON_OFF:       return String(ON_OFF_NAMES[val]);
     case FMT_SCHEDULE_MODE: return String(SCHEDULE_MODE_NAMES[val]);
-    case FMT_TIME_30MIN: {
-      uint8_t h = (val * 30) / 60;
-      uint8_t m = (val * 30) % 60;
+    case FMT_TIME_5MIN: {
+      uint16_t totalMin = val * 5;
+      uint8_t h = totalMin / 60;
+      uint8_t m = totalMin % 60;
       char buf[6];
       sprintf(buf, "%d:%02d", h, m);
       return String(buf);

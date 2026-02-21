@@ -321,6 +321,9 @@ void loop() {
     if (currentMode == MODE_DECOY) {
       decoyConfirming = false;
     }
+    if (currentMode == MODE_SCHEDULE) {
+      scheduleEditing = false;
+    }
     defaultsConfirming = false;
     rebootConfirming = false;
     menuEditing = false;

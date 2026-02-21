@@ -67,9 +67,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Animation",     "Status animation style", FMT_ANIM_NAME, 0, 5, 1, SET_ANIMATION },
   // Schedule settings
   { MENU_HEADING, "Schedule",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
-  { MENU_VALUE,   "Mode",          "Off / Auto-sleep / Full auto", FMT_SCHEDULE_MODE, 0, 2, 1, SET_SCHEDULE_MODE },
-  { MENU_VALUE,   "Start time",    "Schedule active start time", FMT_TIME_30MIN, 0, 47, 1, SET_SCHEDULE_START },
-  { MENU_VALUE,   "End time",      "Schedule active end time", FMT_TIME_30MIN, 0, 47, 1, SET_SCHEDULE_END },
+  { MENU_ACTION,  "Schedule",      "Configure schedule mode & times", FMT_DURATION_MS, 0, 0, 0, SET_SCHEDULE_MODE },
   // Device settings
   { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "BLE identity",  "BLE device name preset (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_BLE_IDENTITY },
@@ -94,7 +92,7 @@ const char*   SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min",
 
 const char NAME_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_";
 
-const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY" };
+const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY", "SCHED" };
 const char* PROFILE_NAMES[] = { "LAZY", "NORMAL", "BUSY" };
 const char* ANIM_NAMES[] = { "ECG", "EQ", "Ghost", "Matrix", "Radar", "None" };
 const char* MOUSE_STYLE_NAMES[] = { "Bezier", "Brownian" };

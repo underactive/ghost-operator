@@ -141,10 +141,12 @@ void handleSerialCommands() {
         Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
         Serial.print("Schedule mode: "); Serial.println(SCHEDULE_MODE_NAMES[settings.scheduleMode]);
         if (settings.scheduleMode != SCHED_OFF) {
-          uint8_t sh = (settings.scheduleStart * 30) / 60;
-          uint8_t sm = (settings.scheduleStart * 30) % 60;
-          uint8_t eh = (settings.scheduleEnd * 30) / 60;
-          uint8_t em = (settings.scheduleEnd * 30) % 60;
+          uint16_t startMin = settings.scheduleStart * 5;
+          uint16_t endMin = settings.scheduleEnd * 5;
+          uint8_t sh = startMin / 60;
+          uint8_t sm = startMin % 60;
+          uint8_t eh = endMin / 60;
+          uint8_t em = endMin % 60;
           Serial.print("Schedule: "); Serial.print(sh); Serial.print(":"); if(sm<10)Serial.print("0"); Serial.print(sm);
           Serial.print(" - "); Serial.print(eh); Serial.print(":"); if(em<10)Serial.print("0"); Serial.println(em);
           Serial.print("Time synced: "); Serial.println(timeSynced ? "YES" : "NO");

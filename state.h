@@ -126,6 +126,10 @@ extern unsigned long adcSettleTarget;
 // Serial status push (toggle with 't' command)
 extern bool serialStatusPush;
 
+// Schedule editor state
+extern int8_t scheduleCursor;     // 0=Mode, 1=Start, 2=End
+extern bool   scheduleEditing;    // true when adjusting selected value
+
 // Schedule / wall clock
 extern bool timeSynced;
 extern uint32_t wallClockDaySecs;
