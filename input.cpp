@@ -56,11 +56,43 @@ bool saveNameEditor() {
 
 void returnToMenuFromName() {
   currentMode = MODE_MENU;
-  menuCursor = 19;           // "Device name" item index
+  menuCursor = 19;           // "BLE identity" item index
   menuEditing = false;
   nameConfirming = false;
   menuScrollOffset = (19 > 4) ? 19 - 4 : 0;  // ensure cursor visible in viewport
   Serial.println("Mode: MENU (from NAME)");
+}
+
+// ============================================================================
+// DECOY PICKER HELPERS
+// ============================================================================
+
+void returnToMenuFromDecoy() {
+  currentMode = MODE_MENU;
+  menuCursor = 19;           // "BLE identity" item index
+  menuEditing = false;
+  decoyConfirming = false;
+  menuScrollOffset = (19 > 4) ? 19 - 4 : 0;
+  Serial.println("Mode: MENU (from DECOY)");
+}
+
+void initDecoyPicker() {
+  // Position cursor on current selection
+  decoyCursor = settings.decoyIndex;  // 0=Custom at bottom mapped later, 1-10=preset
+  if (settings.decoyIndex == 0) {
+    decoyCursor = DECOY_COUNT;  // "Custom" is last item
+  } else {
+    decoyCursor = settings.decoyIndex - 1;  // 0-based in list
+  }
+  // Ensure cursor is visible in 5-row viewport
+  if (decoyCursor > 4) {
+    decoyScrollOffset = decoyCursor - 4;
+  } else {
+    decoyScrollOffset = 0;
+  }
+  decoyConfirming = false;
+  decoyRebootYes = true;
+  decoyOriginal = settings.decoyIndex;
 }
 
 // ============================================================================
@@ -176,6 +208,24 @@ void handleEncoder() {
         }
         break;
 
+      case MODE_DECOY:
+        if (decoyConfirming) {
+          decoyRebootYes = !decoyRebootYes;
+        } else {
+          // Scroll cursor (0..DECOY_COUNT where DECOY_COUNT = "Custom")
+          int8_t next = decoyCursor + direction;
+          if (next < 0) next = 0;
+          if (next > DECOY_COUNT) next = DECOY_COUNT;
+          decoyCursor = next;
+          // Adjust scroll to keep cursor visible (5-row viewport)
+          if (decoyCursor < decoyScrollOffset) {
+            decoyScrollOffset = decoyCursor;
+          } else if (decoyCursor > decoyScrollOffset + 4) {
+            decoyScrollOffset = decoyCursor - 4;
+          }
+        }
+        break;
+
       default:
         break;
     }
@@ -269,10 +319,10 @@ void handleButtons() {
               activeSlot = 0;
               Serial.println("Mode: SLOTS");
               pushSerialStatus();
-            } else if (item.settingId == SET_DEVICE_NAME) {
-              currentMode = MODE_NAME;
-              initNameEditor();
-              Serial.println("Mode: NAME");
+            } else if (item.settingId == SET_BLE_IDENTITY) {
+              currentMode = MODE_DECOY;
+              initDecoyPicker();
+              Serial.println("Mode: DECOY");
             } else if (item.settingId == SET_RESTORE_DEFAULTS) {
               defaultsConfirming = true;
               defaultsConfirmYes = false;  // default to No
@@ -305,6 +355,41 @@ void handleButtons() {
         } else {
           // Advance cursor to next position (wraps)
           activeNamePos = (activeNamePos + 1) % NAME_MAX_LEN;
+        }
+        break;
+
+      case MODE_DECOY:
+        if (decoyConfirming) {
+          if (decoyRebootYes) {
+            Serial.println("Rebooting for identity change...");
+            NVIC_SystemReset();
+          } else {
+            returnToMenuFromDecoy();
+          }
+        } else {
+          if (decoyCursor == DECOY_COUNT) {
+            // "Custom" selected — enter name editor
+            settings.decoyIndex = 0;
+            currentMode = MODE_NAME;
+            initNameEditor();
+            Serial.println("Mode: NAME (from DECOY)");
+          } else {
+            // Preset selected
+            uint8_t newIndex = decoyCursor + 1;  // 1-based
+            if (newIndex == decoyOriginal) {
+              // Same as current — no change needed, return to menu
+              returnToMenuFromDecoy();
+            } else {
+              // Apply preset name to deviceName for display consistency
+              settings.decoyIndex = newIndex;
+              strncpy(settings.deviceName, DECOY_NAMES[decoyCursor], NAME_MAX_LEN);
+              settings.deviceName[NAME_MAX_LEN] = '\0';
+              saveSettings();
+              // Show reboot confirmation
+              decoyConfirming = true;
+              decoyRebootYes = true;
+            }
+          }
         }
         break;
 
@@ -393,8 +478,10 @@ void handleButtons() {
 
           case MODE_NAME:
             if (!nameConfirming) {
+              settings.decoyIndex = 0;  // switching to custom (saved by saveNameEditor)
               bool changed = saveNameEditor();
-              if (changed) {
+              if (changed || decoyOriginal != 0) {
+                // Name or identity changed — prompt reboot
                 nameConfirming = true;
                 nameRebootYes = true;
               } else {
@@ -403,6 +490,16 @@ void handleButtons() {
             } else {
               // From reboot prompt -- func button = "No" (skip reboot)
               returnToMenuFromName();
+            }
+            break;
+
+          case MODE_DECOY:
+            if (decoyConfirming) {
+              decoyConfirming = false;  // cancel confirmation
+              returnToMenuFromDecoy();
+            } else {
+              // Back to menu without changes
+              returnToMenuFromDecoy();
             }
             break;
 

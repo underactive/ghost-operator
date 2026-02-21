@@ -19,6 +19,7 @@ static void bleWrite(const String& msg);
 static void cmdQueryStatus();
 static void cmdQuerySettings();
 static void cmdQueryKeys();
+static void cmdQueryDecoys();
 static void cmdSetValue(const char* body);
 static void cmdSave();
 static void cmdDefaults();
@@ -103,6 +104,8 @@ void processCommand(const char* line, ResponseWriter writer) {
       cmdQuerySettings();
     } else if (strcmp(cmd, "keys") == 0) {
       cmdQueryKeys();
+    } else if (strcmp(cmd, "decoys") == 0) {
+      cmdQueryDecoys();
     } else {
       currentWriter("-err:unknown query");
     }
@@ -173,6 +176,7 @@ static void cmdQuerySettings() {
   resp += "|btWhileUsb=";  resp += String(settings.btWhileUsb);
   resp += "|scroll=";      resp += String(settings.scrollEnabled);
   resp += "|dashboard=";   resp += String(settings.dashboardEnabled);
+  resp += "|decoy=";       resp += String(settings.decoyIndex);
 
   // Slots as comma-separated indices
   resp += "|slots=";
@@ -192,6 +196,18 @@ static void cmdQueryKeys() {
   for (int i = 0; i < NUM_KEYS; i++) {
     resp += "|";
     resp += AVAILABLE_KEYS[i].name;
+  }
+  currentWriter(resp);
+}
+
+// ----------------------------------------------------------------------------
+// ?decoys — list of all decoy preset names (populates dropdown)
+// ----------------------------------------------------------------------------
+static void cmdQueryDecoys() {
+  String resp = "!decoys";
+  for (int i = 0; i < DECOY_COUNT; i++) {
+    resp += "|";
+    resp += DECOY_NAMES[i];
   }
   currentWriter(resp);
 }
@@ -253,6 +269,15 @@ static void cmdSetValue(const char* body) {
     // Device name — up to 14 chars
     strncpy(settings.deviceName, valStr, NAME_MAX_LEN);
     settings.deviceName[NAME_MAX_LEN] = '\0';
+  } else if (strcmp(key, "decoy") == 0) {
+    uint8_t idx = (uint8_t)atoi(valStr);
+    if (idx > DECOY_COUNT) idx = 0;
+    settings.decoyIndex = idx;
+    // Sync deviceName when selecting a preset
+    if (idx > 0) {
+      strncpy(settings.deviceName, DECOY_NAMES[idx - 1], NAME_MAX_LEN);
+      settings.deviceName[NAME_MAX_LEN] = '\0';
+    }
   } else if (strcmp(key, "statusPush") == 0) {
     serialStatusPush = atoi(valStr) != 0;
     currentWriter("+ok");

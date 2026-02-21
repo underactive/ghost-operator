@@ -47,6 +47,13 @@ bool    nameConfirming = false;
 bool    nameRebootYes = true;
 char    nameOriginal[NAME_MAX_LEN + 1];
 
+// Decoy identity picker state
+int8_t  decoyCursor = 0;
+int8_t  decoyScrollOffset = 0;
+bool    decoyConfirming = false;
+bool    decoyRebootYes = true;
+uint8_t decoyOriginal = 0;
+
 // Reset defaults confirmation state
 bool    defaultsConfirming = false;
 bool    defaultsConfirmYes = false;

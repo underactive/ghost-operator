@@ -55,6 +55,13 @@ extern bool    nameConfirming;
 extern bool    nameRebootYes;
 extern char    nameOriginal[];
 
+// Decoy identity picker state
+extern int8_t  decoyCursor;
+extern int8_t  decoyScrollOffset;
+extern bool    decoyConfirming;
+extern bool    decoyRebootYes;
+extern uint8_t decoyOriginal;
+
 // Reset defaults confirmation state
 extern bool    defaultsConfirming;
 extern bool    defaultsConfirmYes;

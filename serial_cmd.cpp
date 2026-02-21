@@ -122,6 +122,14 @@ void handleSerialCommands() {
         Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
         Serial.print("Device name: "); Serial.println(settings.deviceName);
+        Serial.print("BLE identity: ");
+        if (settings.decoyIndex > 0 && settings.decoyIndex <= DECOY_COUNT) {
+          Serial.print(DECOY_NAMES[settings.decoyIndex - 1]);
+          Serial.print(" (decoy "); Serial.print(settings.decoyIndex); Serial.println(")");
+        } else {
+          Serial.print(settings.deviceName);
+          Serial.println(" (custom)");
+        }
         Serial.print("BT while USB: "); Serial.println(settings.btWhileUsb ? "On" : "Off");
         Serial.print("Dashboard: "); Serial.print(settings.dashboardEnabled ? "On" : "Off");
         Serial.print(" (boot: ");

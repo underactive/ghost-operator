@@ -16,5 +16,6 @@ extern const char* PROFILE_NAMES[];
 extern const char* ANIM_NAMES[];
 extern const char* MOUSE_STYLE_NAMES[];
 extern const char* ON_OFF_NAMES[];
+extern const char* const DECOY_NAMES[];
 
 #endif // GHOST_KEYS_H

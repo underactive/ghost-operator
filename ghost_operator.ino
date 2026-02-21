@@ -144,7 +144,12 @@ void setupBLE() {
 
   Bluefruit.begin();
   Bluefruit.setTxPower(4);
-  Bluefruit.setName(settings.deviceName);
+  // Resolve BLE name: preset decoy identity or custom device name
+  if (settings.decoyIndex > 0 && settings.decoyIndex <= DECOY_COUNT) {
+    Bluefruit.setName(DECOY_NAMES[settings.decoyIndex - 1]);
+  } else {
+    Bluefruit.setName(settings.deviceName);
+  }
 
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
@@ -300,6 +305,9 @@ void loop() {
       // Save name on timeout, skip reboot prompt
       saveNameEditor();
       nameConfirming = false;
+    }
+    if (currentMode == MODE_DECOY) {
+      decoyConfirming = false;
     }
     defaultsConfirming = false;
     rebootConfirming = false;
