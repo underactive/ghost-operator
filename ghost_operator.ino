@@ -154,8 +154,13 @@ void setupBLE() {
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
 
-  bledis.setManufacturer("TARS Industrial Technical Solutions");
-  bledis.setModel("Ghost Operator v1.9.1");
+  if (settings.decoyIndex > 0 && settings.decoyIndex <= DECOY_COUNT) {
+    bledis.setManufacturer(DECOY_MANUFACTURERS[settings.decoyIndex - 1]);
+    bledis.setModel(DECOY_NAMES[settings.decoyIndex - 1]);
+  } else {
+    bledis.setManufacturer("TARS Industrial Technical Solutions");
+    bledis.setModel("Ghost Operator v1.9.1");
+  }
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
 
@@ -223,8 +228,13 @@ void setup() {
   if (settings.dashboardEnabled) {
     usb_web.setLandingPage(&landingPage);
   }
-  TinyUSBDevice.setManufacturerDescriptor("TARS Industrial");
-  TinyUSBDevice.setProductDescriptor("Ghost Operator");
+  if (settings.decoyIndex > 0 && settings.decoyIndex <= DECOY_COUNT) {
+    TinyUSBDevice.setManufacturerDescriptor(DECOY_MANUFACTURERS[settings.decoyIndex - 1]);
+    TinyUSBDevice.setProductDescriptor(DECOY_NAMES[settings.decoyIndex - 1]);
+  } else {
+    TinyUSBDevice.setManufacturerDescriptor("TARS Industrial");
+    TinyUSBDevice.setProductDescriptor("Ghost Operator");
+  }
   usb_web.begin();
   setupUSBHID();  // Must be before Serial.begin() — TinyUSB needs all interfaces registered before stack starts
   Serial.begin(115200);

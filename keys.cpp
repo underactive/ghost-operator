@@ -103,6 +103,19 @@ const char* const DECOY_NAMES[] = {
   "MX Anywhere 3S",
   "K380 Keyboard",
   "ERGO K860",
-  "Arc Mouse",
-  "Dell MS5320W"
+  "Keychron K2",
+  "Keychron V1"
+};
+
+const char* const DECOY_MANUFACTURERS[] = {
+  "Apple Inc.",
+  "Apple Inc.",
+  "Apple Inc.",
+  "Logitech",
+  "Logitech",
+  "Logitech",
+  "Logitech",
+  "Logitech",
+  "Keychron",
+  "Keychron"
 };
