@@ -96,8 +96,8 @@ export function parseSettings(data) {
     dashboard: parseInt(data.dashboard) || 0,
     decoy: parseInt(data.decoy) || 0,
     schedMode: parseInt(data.schedMode) || 0,
-    schedStart: parseInt(data.schedStart ?? '18'),
-    schedEnd: parseInt(data.schedEnd ?? '34'),
+    schedStart: parseInt(data.schedStart ?? '108'),
+    schedEnd: parseInt(data.schedEnd ?? '204'),
     slots: (data.slots || '2,28,28,28,28,28,28,28').split(',').map(Number),
   }
 }
@@ -144,9 +144,9 @@ export const SAVER_NAMES = ['Never', '1 min', '5 min', '10 min', '15 min', '30 m
 /** Schedule mode index to name mapping (matches firmware SCHEDULE_MODE_NAMES[]) */
 export const SCHEDULE_MODE_NAMES = ['Off', 'Auto-sleep', 'Full auto']
 
-/** Format a 30-minute slot index (0-47) as H:MM */
-export function formatTime30(slot) {
-  const totalMinutes = slot * 30
+/** Format a 5-minute slot index (0-287) as H:MM */
+export function formatTime5(slot) {
+  const totalMinutes = slot * 5
   const h = Math.floor(totalMinutes / 60)
   const m = totalMinutes % 60
   return `${h}:${String(m).padStart(2, '0')}`
