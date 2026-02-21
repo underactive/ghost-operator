@@ -30,6 +30,9 @@ void loadDefaults() {
   settings.dashboardEnabled = 1;
   settings.dashboardBootCount = 0;
   settings.decoyIndex = 0;
+  settings.scheduleMode = SCHED_OFF;
+  settings.scheduleStart = 18;  // 9:00
+  settings.scheduleEnd = 34;    // 17:00
 }
 
 uint8_t calcChecksum() {
@@ -115,6 +118,9 @@ void loadSettings() {
         if (settings.dashboardEnabled > 1) settings.dashboardEnabled = 0;
         if (settings.dashboardBootCount != 0xFF && settings.dashboardBootCount > 3) settings.dashboardBootCount = 0;
         if (settings.decoyIndex > DECOY_COUNT) settings.decoyIndex = 0;
+        if (settings.scheduleMode >= SCHED_MODE_COUNT) settings.scheduleMode = SCHED_OFF;
+        if (settings.scheduleStart >= SCHEDULE_SLOTS) settings.scheduleStart = 18;
+        if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 34;
 
         adcCalStart = millis();
         { const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
@@ -154,7 +160,11 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_BT_WHILE_USB:   return settings.btWhileUsb;
     case SET_SCROLL:         return settings.scrollEnabled;
     case SET_DASHBOARD:      return settings.dashboardEnabled;
+    case SET_SCHEDULE_MODE:  return settings.scheduleMode;
+    case SET_SCHEDULE_START: return settings.scheduleStart;
+    case SET_SCHEDULE_END:   return settings.scheduleEnd;
     case SET_VERSION:        return 0;  // read-only display
+    case SET_UPTIME:         return 0;  // read-only display
     default:                 return 0;
   }
 }
@@ -189,6 +199,9 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       }
       settings.dashboardEnabled = (uint8_t)value;
       break;
+    case SET_SCHEDULE_MODE:  settings.scheduleMode = (uint8_t)value; break;
+    case SET_SCHEDULE_START: settings.scheduleStart = (uint8_t)value; break;
+    case SET_SCHEDULE_END:   settings.scheduleEnd = (uint8_t)value; break;
   }
 }
 
@@ -203,6 +216,15 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
     case FMT_ANIM_NAME:    return String(ANIM_NAMES[val]);
     case FMT_MOUSE_STYLE:  return String(MOUSE_STYLE_NAMES[val]);
     case FMT_ON_OFF:       return String(ON_OFF_NAMES[val]);
+    case FMT_SCHEDULE_MODE: return String(SCHEDULE_MODE_NAMES[val]);
+    case FMT_TIME_30MIN: {
+      uint8_t h = (val * 30) / 60;
+      uint8_t m = (val * 30) % 60;
+      char buf[6];
+      sprintf(buf, "%d:%02d", h, m);
+      return String(buf);
+    }
+    case FMT_UPTIME:       return formatUptime(millis() - startTime);
     case FMT_VERSION:      return String("v") + String(VERSION);
     default:               return String(val);
   }

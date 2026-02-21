@@ -5,6 +5,7 @@
 #include "settings.h"
 #include "timing.h"
 #include "hid.h"
+#include "schedule.h"
 
 // Line buffer for accumulating UART bytes
 #define UART_BUF_SIZE 128
@@ -151,6 +152,11 @@ static void cmdQueryStatus() {
   resp += "|mouseState=";  resp += String((int)mouseState);
   resp += "|uptime=";      resp += String(uptime);
   resp += "|kbNext=";      resp += String(AVAILABLE_KEYS[nextKeyIndex].name);
+  resp += "|timeSynced=";  resp += timeSynced ? "1" : "0";
+  resp += "|schedSleeping="; resp += scheduleSleeping ? "1" : "0";
+  if (timeSynced) {
+    resp += "|daySecs=";   resp += String(currentDaySeconds());
+  }
 
   currentWriter(resp);
 }
@@ -177,6 +183,9 @@ static void cmdQuerySettings() {
   resp += "|scroll=";      resp += String(settings.scrollEnabled);
   resp += "|dashboard=";   resp += String(settings.dashboardEnabled);
   resp += "|decoy=";       resp += String(settings.decoyIndex);
+  resp += "|schedMode=";   resp += String(settings.scheduleMode);
+  resp += "|schedStart=";  resp += String(settings.scheduleStart);
+  resp += "|schedEnd=";    resp += String(settings.scheduleEnd);
 
   // Slots as comma-separated indices
   resp += "|slots=";
@@ -278,6 +287,14 @@ static void cmdSetValue(const char* body) {
       strncpy(settings.deviceName, DECOY_NAMES[idx - 1], NAME_MAX_LEN);
       settings.deviceName[NAME_MAX_LEN] = '\0';
     }
+  } else if (strcmp(key, "schedMode") == 0) {
+    setSettingValue(SET_SCHEDULE_MODE, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "schedStart") == 0) {
+    setSettingValue(SET_SCHEDULE_START, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "schedEnd") == 0) {
+    setSettingValue(SET_SCHEDULE_END, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "time") == 0) {
+    syncTime((uint32_t)atol(valStr));
   } else if (strcmp(key, "statusPush") == 0) {
     serialStatusPush = atoi(valStr) != 0;
     currentWriter("+ok");

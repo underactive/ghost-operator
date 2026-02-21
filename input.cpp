@@ -5,6 +5,7 @@
 #include "timing.h"
 #include "hid.h"
 #include "serial_cmd.h"
+#include "schedule.h"
 
 // ============================================================================
 // NAME EDITOR HELPERS
@@ -56,10 +57,10 @@ bool saveNameEditor() {
 
 void returnToMenuFromName() {
   currentMode = MODE_MENU;
-  menuCursor = 19;           // "BLE identity" item index
+  menuCursor = 23;           // "BLE identity" item index
   menuEditing = false;
   nameConfirming = false;
-  menuScrollOffset = (19 > 4) ? 19 - 4 : 0;  // ensure cursor visible in viewport
+  menuScrollOffset = (23 > 4) ? 23 - 4 : 0;  // ensure cursor visible in viewport
   Serial.println("Mode: MENU (from NAME)");
 }
 
@@ -69,10 +70,10 @@ void returnToMenuFromName() {
 
 void returnToMenuFromDecoy() {
   currentMode = MODE_MENU;
-  menuCursor = 19;           // "BLE identity" item index
+  menuCursor = 23;           // "BLE identity" item index
   menuEditing = false;
   decoyConfirming = false;
-  menuScrollOffset = (19 > 4) ? 19 - 4 : 0;
+  menuScrollOffset = (23 > 4) ? 23 - 4 : 0;
   Serial.println("Mode: MENU (from DECOY)");
 }
 
@@ -105,7 +106,8 @@ void moveCursor(int direction) {
   // Skip headings and conditionally hidden items
   while (next >= 0 && next < MENU_ITEM_COUNT &&
          (MENU_ITEMS[next].type == MENU_HEADING ||
-          (MENU_ITEMS[next].settingId == SET_MOUSE_AMP && settings.mouseStyle == 0))) {
+          (MENU_ITEMS[next].settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) ||
+          ((MENU_ITEMS[next].settingId == SET_SCHEDULE_START || MENU_ITEMS[next].settingId == SET_SCHEDULE_END) && settings.scheduleMode == SCHED_OFF))) {
     next += direction;
   }
   // Clamp at bounds
@@ -148,6 +150,9 @@ void handleEncoder() {
 
     // Suppress input during sleep confirm/cancel overlay
     if (sleepConfirmActive || sleepCancelActive) return;
+
+    // Wake from scheduled light sleep -- consume input
+    if (scheduleSleeping) { exitLightSleep(); return; }
 
     // Wake screensaver -- consume input
     if (screensaverActive) { screensaverActive = false; return; }
@@ -252,6 +257,9 @@ void handleButtons() {
 
     // Suppress input during sleep confirm/cancel overlay
     if (sleepConfirmActive || sleepCancelActive) { lastEncBtn = encBtn; return; }
+
+    // Wake from scheduled light sleep -- consume input
+    if (scheduleSleeping) { exitLightSleep(); lastEncBtn = encBtn; return; }
 
     // Wake screensaver -- consume input
     if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
@@ -431,6 +439,9 @@ void handleButtons() {
       } else if (holdTime > 50) {
         // Short press -- mode switching
         lastModeActivity = now;
+
+        // Wake from scheduled light sleep -- consume input
+        if (scheduleSleeping) { exitLightSleep(); funcBtnWasPressed = false; return; }
 
         // Wake screensaver -- consume input
         if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }

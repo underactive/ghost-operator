@@ -8,6 +8,11 @@ void enterDeepSleep() {
   Serial.println("\n*** ENTERING DEEP SLEEP ***");
   Serial.flush();
 
+  // Time is lost after system-off wake
+  timeSynced = false;
+  scheduleSleeping = false;
+  scheduleManualWake = false;
+
   // Save settings before sleep
   saveSettings();
 

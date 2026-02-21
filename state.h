@@ -126,6 +126,14 @@ extern unsigned long adcSettleTarget;
 // Serial status push (toggle with 't' command)
 extern bool serialStatusPush;
 
+// Schedule / wall clock
+extern bool timeSynced;
+extern uint32_t wallClockDaySecs;
+extern unsigned long wallClockSyncMs;
+extern bool scheduleSleeping;
+extern bool scheduleManualWake;
+extern unsigned long lastScheduleCheck;
+
 // Button state
 extern unsigned long funcBtnPressStart;
 extern bool funcBtnWasPressed;
