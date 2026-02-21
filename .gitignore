@@ -23,6 +23,9 @@ releases/
 dashboard/node_modules/
 dashboard/dist/
 
+# Docs (private)
+docs/IDEAS.md
+
 # OS
 .DS_Store
 Thumbs.db
