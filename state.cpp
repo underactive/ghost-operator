@@ -118,6 +118,21 @@ unsigned long adcSettleTarget = 60000;
 // Serial status push (off by default — toggle with 't' command)
 bool serialStatusPush = false;
 
+// Schedule editor state
+int8_t scheduleCursor = 0;
+bool   scheduleEditing = false;
+uint8_t  scheduleOrigMode = 0;
+uint16_t scheduleOrigStart = 0;
+uint16_t scheduleOrigEnd = 0;
+
+// Schedule / wall clock
+bool timeSynced = false;
+uint32_t wallClockDaySecs = 0;
+unsigned long wallClockSyncMs = 0;
+bool scheduleSleeping = false;
+bool scheduleManualWake = false;
+unsigned long lastScheduleCheck = 0;
+
 // Button state
 unsigned long funcBtnPressStart = 0;
 bool funcBtnWasPressed = false;

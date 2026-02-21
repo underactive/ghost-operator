@@ -41,6 +41,7 @@
 #include "input.h"
 #include "display.h"
 #include "ble_uart.h"
+#include "schedule.h"
 
 #include <nrf_soc.h>
 #include <nrf_power.h>
@@ -282,6 +283,7 @@ void setup() {
   lastKeyTime = millis();
   lastMouseStateChange = millis();
   lastModeActivity = millis();
+  lastScheduleCheck = millis();
 
   Serial.println("Setup complete.");
   Serial.println("Short press func btn = open/close menu");
@@ -318,6 +320,13 @@ void loop() {
     }
     if (currentMode == MODE_DECOY) {
       decoyConfirming = false;
+    }
+    if (currentMode == MODE_SCHEDULE) {
+      // Revert unsaved edits — don't persist schedule changes on timeout
+      scheduleEditing = false;
+      settings.scheduleMode = scheduleOrigMode;
+      settings.scheduleStart = scheduleOrigStart;
+      settings.scheduleEnd = scheduleOrigEnd;
     }
     defaultsConfirming = false;
     rebootConfirming = false;
@@ -391,8 +400,11 @@ void loop() {
     bleDisabledForUsb = false;
   }
 
+  // Schedule check
+  checkSchedule();
+
   // Jiggler logic runs in background regardless of mode
-  if (deviceConnected || usbConnected) {
+  if ((deviceConnected || usbConnected) && !scheduleSleeping) {
     // Keystroke logic
     if (keyEnabled && hasPopulatedSlot()) {
       if (now - lastKeyTime >= currentKeyInterval) {
@@ -410,7 +422,7 @@ void loop() {
   }
 
   // Display update
-  if (displayInitialized) {
+  if (displayInitialized && !scheduleSleeping) {
     if (now - lastDisplayUpdate >= DISPLAY_UPDATE_MS) {
       pollEncoder();  // Catch transitions right before I2C transfer
       updateDisplay();
@@ -421,7 +433,9 @@ void loop() {
 
   // LED blink
   static unsigned long lastBlink = 0;
-  if ((deviceConnected || usbConnected) && (now - lastBlink >= 1000)) {
+  if (scheduleSleeping) {
+    digitalWrite(PIN_LED, LOW);
+  } else if ((deviceConnected || usbConnected) && (now - lastBlink >= 1000)) {
     digitalWrite(PIN_LED, !digitalRead(PIN_LED));
     lastBlink = now;
   } else if (!deviceConnected && !usbConnected && (now - lastBlink >= 200)) {

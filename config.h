@@ -10,7 +10,7 @@
 #define VERSION "1.9.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F4E  // bumped: added decoyIndex field
+#define SETTINGS_MAGIC 0x50524F50  // bumped: schedule 5-min slots (uint16_t)
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -89,6 +89,11 @@
 #define EASTER_EGG_INTERVAL     80
 #define EASTER_EGG_TOTAL_FRAMES 53
 
+// Schedule
+#define SCHEDULE_SLOTS        288      // 0-287 = 5-min slots covering 24h
+#define SCHEDULE_SLOT_SECS    300      // 5 minutes in seconds
+#define SCHEDULE_CHECK_MS     10000UL  // check schedule every 10s
+
 // BLE device name character set
 #define NAME_CHAR_COUNT  65   // printable characters
 #define NAME_CHAR_END    65   // sentinel index = "end of name"
@@ -118,9 +123,10 @@
 // ============================================================================
 // ENUMS
 // ============================================================================
-enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_COUNT };
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME };
+enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 
@@ -137,9 +143,13 @@ enum SettingId {
   SET_BT_WHILE_USB,
   SET_SCROLL,
   SET_DASHBOARD,
+  SET_SCHEDULE_MODE,
+  SET_SCHEDULE_START,
+  SET_SCHEDULE_END,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
-  SET_VERSION
+  SET_VERSION,
+  SET_UPTIME
 };
 
 // ============================================================================
@@ -161,7 +171,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 26
+#define MENU_ITEM_COUNT 29
 
 struct Settings {
   uint32_t magic;
@@ -184,6 +194,9 @@ struct Settings {
   uint8_t dashboardEnabled; // 1=On (default), 0=Off — WebUSB landing page for Chrome
   uint8_t dashboardBootCount; // 0-2=boot count (auto-disable after 3), 0xFF=user pinned
   uint8_t decoyIndex;     // 0=Custom/default, 1-10=preset index into DECOY_NAMES[]
+  uint8_t scheduleMode;   // 0=Off, 1=Auto-sleep, 2=Full auto
+  uint16_t scheduleStart;  // 0-287 (5-min slots), default 108 (9:00)
+  uint16_t scheduleEnd;    // 0-287 (5-min slots), default 204 (17:00)
   uint8_t checksum;       // must remain last
 };
 
