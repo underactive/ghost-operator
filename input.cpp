@@ -5,6 +5,7 @@
 #include "timing.h"
 #include "hid.h"
 #include "serial_cmd.h"
+#include "schedule.h"
 
 // ============================================================================
 // NAME EDITOR HELPERS
@@ -56,10 +57,10 @@ bool saveNameEditor() {
 
 void returnToMenuFromName() {
   currentMode = MODE_MENU;
-  menuCursor = 19;           // "BLE identity" item index
+  menuCursor = 21;           // "BLE identity" item index
   menuEditing = false;
   nameConfirming = false;
-  menuScrollOffset = (19 > 4) ? 19 - 4 : 0;  // ensure cursor visible in viewport
+  menuScrollOffset = (21 > 4) ? 21 - 4 : 0;  // ensure cursor visible in viewport
   Serial.println("Mode: MENU (from NAME)");
 }
 
@@ -69,10 +70,10 @@ void returnToMenuFromName() {
 
 void returnToMenuFromDecoy() {
   currentMode = MODE_MENU;
-  menuCursor = 19;           // "BLE identity" item index
+  menuCursor = 21;           // "BLE identity" item index
   menuEditing = false;
   decoyConfirming = false;
-  menuScrollOffset = (19 > 4) ? 19 - 4 : 0;
+  menuScrollOffset = (21 > 4) ? 21 - 4 : 0;
   Serial.println("Mode: MENU (from DECOY)");
 }
 
@@ -93,6 +94,27 @@ void initDecoyPicker() {
   decoyConfirming = false;
   decoyRebootYes = true;
   decoyOriginal = settings.decoyIndex;
+}
+
+// ============================================================================
+// SCHEDULE EDITOR HELPERS
+// ============================================================================
+
+void initScheduleEditor() {
+  scheduleCursor = 0;
+  scheduleEditing = false;
+  // Snapshot for revert on timeout
+  scheduleOrigMode = settings.scheduleMode;
+  scheduleOrigStart = settings.scheduleStart;
+  scheduleOrigEnd = settings.scheduleEnd;
+}
+
+void returnToMenuFromSchedule() {
+  currentMode = MODE_MENU;
+  menuCursor = 19;  // "Schedule" action item
+  menuEditing = false;
+  menuScrollOffset = (19 > 4) ? 19 - 4 : 0;
+  Serial.println("Mode: MENU (from SCHEDULE)");
 }
 
 // ============================================================================
@@ -148,6 +170,9 @@ void handleEncoder() {
 
     // Suppress input during sleep confirm/cancel overlay
     if (sleepConfirmActive || sleepCancelActive) return;
+
+    // Wake from scheduled light sleep -- consume input
+    if (scheduleSleeping) { exitLightSleep(); return; }
 
     // Wake screensaver -- consume input
     if (screensaverActive) { screensaverActive = false; return; }
@@ -226,6 +251,44 @@ void handleEncoder() {
         }
         break;
 
+      case MODE_SCHEDULE:
+        if (scheduleEditing) {
+          // Adjust value based on cursor position
+          if (scheduleCursor == 0) {
+            // Mode: cycle 0-2
+            int8_t val = (int8_t)settings.scheduleMode + direction;
+            if (val < 0) val = 0;
+            if (val >= SCHED_MODE_COUNT) val = SCHED_MODE_COUNT - 1;
+            settings.scheduleMode = (uint8_t)val;
+          } else if (scheduleCursor == 1) {
+            // Start time: 0-287
+            int16_t val = (int16_t)settings.scheduleStart + direction;
+            if (val < 0) val = 0;
+            if (val >= SCHEDULE_SLOTS) val = SCHEDULE_SLOTS - 1;
+            settings.scheduleStart = (uint16_t)val;
+          } else {
+            // End time: 0-287
+            int16_t val = (int16_t)settings.scheduleEnd + direction;
+            if (val < 0) val = 0;
+            if (val >= SCHEDULE_SLOTS) val = SCHEDULE_SLOTS - 1;
+            settings.scheduleEnd = (uint16_t)val;
+          }
+        } else {
+          // Navigate cursor (0-2), skip unavailable rows
+          int8_t next = scheduleCursor + direction;
+          if (next < 0) next = 0;
+          if (next > 2) next = 2;
+          if (!timeSynced || settings.scheduleMode == SCHED_OFF) {
+            // Lock to Mode only
+            next = 0;
+          } else if (settings.scheduleMode == SCHED_AUTO_SLEEP && next == 1) {
+            // Skip Start time (irrelevant for deep sleep)
+            next = (direction > 0) ? 2 : 0;
+          }
+          scheduleCursor = next;
+        }
+        break;
+
       default:
         break;
     }
@@ -252,6 +315,9 @@ void handleButtons() {
 
     // Suppress input during sleep confirm/cancel overlay
     if (sleepConfirmActive || sleepCancelActive) { lastEncBtn = encBtn; return; }
+
+    // Wake from scheduled light sleep -- consume input
+    if (scheduleSleeping) { exitLightSleep(); lastEncBtn = encBtn; return; }
 
     // Wake screensaver -- consume input
     if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
@@ -314,7 +380,11 @@ void handleButtons() {
             menuEditing = true;
             Serial.print("Menu: editing "); Serial.println(item.label);
           } else if (item.type == MENU_ACTION) {
-            if (item.settingId == SET_KEY_SLOTS) {
+            if (item.settingId == SET_SCHEDULE_MODE) {
+              currentMode = MODE_SCHEDULE;
+              initScheduleEditor();
+              Serial.println("Mode: SCHEDULE");
+            } else if (item.settingId == SET_KEY_SLOTS) {
               currentMode = MODE_SLOTS;
               activeSlot = 0;
               Serial.println("Mode: SLOTS");
@@ -355,6 +425,20 @@ void handleButtons() {
         } else {
           // Advance cursor to next position (wraps)
           activeNamePos = (activeNamePos + 1) % NAME_MAX_LEN;
+        }
+        break;
+
+      case MODE_SCHEDULE:
+        if (scheduleEditing) {
+          scheduleEditing = false;
+          // If Mode just changed to Off, reset cursor to Mode row
+          if (scheduleCursor > 0 && settings.scheduleMode == SCHED_OFF) {
+            scheduleCursor = 0;
+          }
+          Serial.println("Schedule: edit done");
+        } else {
+          scheduleEditing = true;
+          Serial.print("Schedule: editing row "); Serial.println(scheduleCursor);
         }
         break;
 
@@ -432,6 +516,9 @@ void handleButtons() {
         // Short press -- mode switching
         lastModeActivity = now;
 
+        // Wake from scheduled light sleep -- consume input
+        if (scheduleSleeping) { exitLightSleep(); funcBtnWasPressed = false; return; }
+
         // Wake screensaver -- consume input
         if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
 
@@ -491,6 +578,13 @@ void handleButtons() {
               // From reboot prompt -- func button = "No" (skip reboot)
               returnToMenuFromName();
             }
+            break;
+
+          case MODE_SCHEDULE:
+            // Save and return to menu
+            saveSettings();
+            scheduleEditing = false;
+            returnToMenuFromSchedule();
             break;
 
           case MODE_DECOY:

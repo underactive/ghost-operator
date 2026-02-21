@@ -4,6 +4,7 @@
 #include "keys.h"
 #include "timing.h"
 #include "screenshot.h"
+#include "schedule.h"
 
 // Line buffer for protocol commands (?/=/!) arriving over USB serial
 #define SERIAL_BUF_SIZE 128
@@ -138,6 +139,22 @@ void handleSerialCommands() {
         Serial.println(")");
         Serial.print("BLE disabled for USB: "); Serial.println(bleDisabledForUsb ? "YES" : "NO");
         Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
+        Serial.print("Schedule mode: "); Serial.println(SCHEDULE_MODE_NAMES[settings.scheduleMode]);
+        if (settings.scheduleMode != SCHED_OFF) {
+          uint16_t startMin = settings.scheduleStart * 5;
+          uint16_t endMin = settings.scheduleEnd * 5;
+          uint8_t sh = startMin / 60;
+          uint8_t sm = startMin % 60;
+          uint8_t eh = endMin / 60;
+          uint8_t em = endMin % 60;
+          Serial.print("Schedule: "); Serial.print(sh); Serial.print(":"); if(sm<10)Serial.print("0"); Serial.print(sm);
+          Serial.print(" - "); Serial.print(eh); Serial.print(":"); if(em<10)Serial.print("0"); Serial.println(em);
+          Serial.print("Time synced: "); Serial.println(timeSynced ? "YES" : "NO");
+          if (timeSynced) {
+            Serial.print("Current time: "); Serial.println(formatCurrentTime());
+          }
+          Serial.print("Schedule sleeping: "); Serial.println(scheduleSleeping ? "YES" : "NO");
+        }
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
         break;
       case 'f':

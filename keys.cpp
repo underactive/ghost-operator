@@ -65,16 +65,20 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Saver bright",  "Screensaver dimmed brightness", FMT_PERCENT, 10, 100, 10, SET_SAVER_BRIGHT },
   { MENU_VALUE,   "Saver T.O.",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
   { MENU_VALUE,   "Animation",     "Status animation style", FMT_ANIM_NAME, 0, 5, 1, SET_ANIMATION },
+  // Schedule settings
+  { MENU_HEADING, "Schedule",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_ACTION,  "Schedule",      "Configure schedule mode & times", FMT_DURATION_MS, 0, 0, 0, SET_SCHEDULE_MODE },
   // Device settings
   { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "BLE identity",  "BLE device name preset (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_BLE_IDENTITY },
   { MENU_VALUE,   "BT while USB",  "Keep Bluetooth active when USB plugged in", FMT_ON_OFF, 0, 1, 1, SET_BT_WHILE_USB },
   { MENU_VALUE,   "Dashboard",     "Show dashboard link on USB connect (reboot to apply)", FMT_ON_OFF, 0, 1, 1, SET_DASHBOARD },
-  { MENU_ACTION,  "Reset defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
+  { MENU_ACTION,  "Restore defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
   { MENU_ACTION,  "Reboot",        "Restart device (applies pending changes)", FMT_DURATION_MS, 0, 0, 0, SET_REBOOT },
   // About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Version",       "(c) 2026 TARS Industrial Technical Solutions", FMT_VERSION, 0, 0, 0, SET_VERSION },
+  { MENU_VALUE,   "Uptime",        "Time since last boot", FMT_UPTIME, 0, 0, 0, SET_UPTIME },
 };
 
 const int8_t MOUSE_DIRS[][2] = {
@@ -88,11 +92,12 @@ const char*   SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min",
 
 const char NAME_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_";
 
-const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY" };
+const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY", "SCHED" };
 const char* PROFILE_NAMES[] = { "LAZY", "NORMAL", "BUSY" };
 const char* ANIM_NAMES[] = { "ECG", "EQ", "Ghost", "Matrix", "Radar", "None" };
 const char* MOUSE_STYLE_NAMES[] = { "Bezier", "Brownian" };
 const char* ON_OFF_NAMES[] = { "Off", "On" };
+const char* SCHEDULE_MODE_NAMES[] = { "Off", "Sleep", "Full auto" };
 
 const char* const DECOY_NAMES[] = {
   "Magic Keyboard",
