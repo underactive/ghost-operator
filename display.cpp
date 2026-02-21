@@ -1053,7 +1053,7 @@ static void drawScheduleMode() {
     switch (settings.scheduleMode) {
       case SCHED_OFF:
         help1 = "Schedule disabled.";
-        help2 = "Manual sleep.";
+        help2 = "Manual Power On/Off.";
         break;
       case SCHED_AUTO_SLEEP:
         help1 = "Deep sleep at end.";
