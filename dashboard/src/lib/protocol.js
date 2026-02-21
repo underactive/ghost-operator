@@ -29,8 +29,8 @@ export function parseResponse(line) {
     const parts = line.substring(1).split('|')
     const type = parts[0]
 
-    // ?keys response: values are bare strings (no = sign)
-    if (type === 'keys') {
+    // ?keys and ?decoys responses: values are bare strings (no = sign)
+    if (type === 'keys' || type === 'decoys') {
       return { type, data: parts.slice(1) }
     }
 
@@ -94,6 +94,7 @@ export function parseSettings(data) {
     btWhileUsb: parseInt(data.btWhileUsb) || 0,
     scroll: parseInt(data.scroll) || 0,
     dashboard: parseInt(data.dashboard) || 0,
+    decoy: parseInt(data.decoy) || 0,
     slots: (data.slots || '2,28,28,28,28,28,28,28').split(',').map(Number),
   }
 }
@@ -120,7 +121,7 @@ export function parseStatus(data) {
 export const PROFILE_NAMES = ['LAZY', 'NORMAL', 'BUSY']
 
 /** Mode index to name mapping (matches firmware MODE_NAMES[]) */
-export const MODE_NAMES = ['NORMAL', 'MENU', 'SLOTS', 'NAME']
+export const MODE_NAMES = ['NORMAL', 'MENU', 'SLOTS', 'NAME', 'DECOY']
 
 /** Mouse state index to name mapping */
 export const MOUSE_STATE_NAMES = ['IDLE', 'MOVING', 'RETURNING']

@@ -1,9 +1,13 @@
 <script setup>
 import { ref } from 'vue'
-import { settings, setSetting, resetDefaults, rebootDevice } from '../lib/store.js'
+import { settings, setSetting, resetDefaults, rebootDevice, decoyNames } from '../lib/store.js'
 
 const showResetConfirm = ref(false)
 const showRebootConfirm = ref(false)
+
+function onDecoyChange(e) {
+  setSetting('decoy', Number(e.target.value))
+}
 
 function onNameInput(e) {
   // Limit to 14 chars, printable ASCII only
@@ -26,11 +30,22 @@ function confirmReboot() {
   <section class="card">
     <h2>Device</h2>
     <div class="field">
-      <label>Device Name <span class="help-text">(requires reboot)</span></label>
+      <label>BLE Identity <span class="help-text">(requires reboot)</span></label>
+      <select :value="settings.decoy" @change="onDecoyChange">
+        <option v-for="(name, idx) in decoyNames" :key="idx + 1" :value="idx + 1">
+          {{ name }}
+        </option>
+        <option :value="0">Custom</option>
+      </select>
+    </div>
+
+    <div class="field" :class="{ 'field-disabled': settings.decoy !== 0 }">
+      <label>Custom Name</label>
       <input
         type="text"
         :value="settings.name"
         maxlength="14"
+        :disabled="settings.decoy !== 0"
         @input="onNameInput"
       />
     </div>
@@ -91,5 +106,9 @@ function confirmReboot() {
 }
 .confirm-row span {
   font-size: 0.9rem;
+}
+.field-disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 </style>
