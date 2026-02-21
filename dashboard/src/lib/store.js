@@ -47,10 +47,12 @@ export const settings = reactive({
   btWhileUsb: 0,
   scroll: 0,
   dashboard: 0,
+  decoy: 0,
   slots: [2, 28, 28, 28, 28, 28, 28, 28],
 })
 
 export const availableKeys = ref([])
+export const decoyNames = ref([])
 export const dirty = ref(false)
 export const saving = ref(false)
 export const statusMessage = ref('')
@@ -83,6 +85,8 @@ function handleLine(line) {
     Object.assign(status, parseStatus(parsed.data))
   } else if (parsed.type === 'keys') {
     availableKeys.value = parsed.data
+  } else if (parsed.type === 'decoys') {
+    decoyNames.value = parsed.data
   } else if (parsed.type === 'ok' || parsed.type === 'error') {
     if (pendingResolve) {
       pendingResolve(parsed)
@@ -120,7 +124,9 @@ export async function connectDevice() {
 
     // Fetch initial data
     await transport.send(buildQuery('keys'))
-    // Small delay to let keys response arrive before settings query
+    await sleep(50)
+    await transport.send(buildQuery('decoys'))
+    // Small delay to let responses arrive before settings query
     await sleep(100)
     await transport.send(buildQuery('settings'))
     await sleep(100)
@@ -155,6 +161,12 @@ export async function setSetting(key, value) {
     settings.slots = String(value).split(',').map(Number)
   } else if (key === 'name') {
     settings.name = value
+  } else if (key === 'decoy') {
+    settings.decoy = Number(value)
+    // Sync name display when selecting a preset
+    if (settings.decoy > 0 && settings.decoy <= decoyNames.value.length) {
+      settings.name = decoyNames.value[settings.decoy - 1]
+    }
   } else if (key in settings) {
     settings[key] = typeof settings[key] === 'number' ? Number(value) : value
   }
