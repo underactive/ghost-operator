@@ -1139,7 +1139,7 @@ static void drawMenuMode() {
   display.setTextSize(1);
 
   if (defaultsConfirming) {
-    // === Reset defaults confirmation prompt ===
+    // === Restore defaults confirmation prompt ===
     display.setCursor(0, 0);
     display.print("RESET DEFAULTS");
     display.drawFastHLine(0, 10, 128, SSD1306_WHITE);

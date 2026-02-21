@@ -103,6 +103,10 @@ void initDecoyPicker() {
 void initScheduleEditor() {
   scheduleCursor = 0;
   scheduleEditing = false;
+  // Snapshot for revert on timeout
+  scheduleOrigMode = settings.scheduleMode;
+  scheduleOrigStart = settings.scheduleStart;
+  scheduleOrigEnd = settings.scheduleEnd;
 }
 
 void returnToMenuFromSchedule() {
