@@ -917,6 +917,168 @@ static void drawDecoyMode() {
 }
 
 // ============================================================================
+// SCHEDULE MODE
+// ============================================================================
+
+static void drawScheduleMode() {
+  display.setTextSize(1);
+
+  // === Header (y=0) ===
+  display.setCursor(0, 0);
+  display.print("SCHEDULE");
+
+  // Separator
+  display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+
+  // === Not synced: show only sync message, nothing interactive ===
+  if (!timeSynced) {
+    const char* lines[] = { "Sync clock via USB", "dashboard to enable", "scheduling." };
+    for (int i = 0; i < 3; i++) {
+      int w = strlen(lines[i]) * 6;
+      display.setCursor((128 - w) / 2, 20 + i * 10);
+      display.print(lines[i]);
+    }
+    return;
+  }
+
+  // === Synced: show settings rows ===
+  const char* rowLabels[] = { "Mode", "Start time", "End time" };
+  const int rowY[] = { 10, 18, 26 };
+
+  // Mode row
+  {
+    String valStr = formatMenuValue(SET_SCHEDULE_MODE, FMT_SCHEDULE_MODE);
+    bool atMin = (settings.scheduleMode == 0);
+    bool atMax = (settings.scheduleMode >= SCHED_MODE_COUNT - 1);
+    bool isSelected = (scheduleCursor == 0);
+
+    if (isSelected && scheduleEditing) {
+      display.setCursor(2, rowY[0]);
+      display.print(rowLabels[0]);
+
+      String editStr = "";
+      if (!atMin) editStr += "< "; else editStr += "  ";
+      editStr += valStr;
+      if (!atMax) editStr += " >"; else editStr += "  ";
+
+      int editW = editStr.length() * 6;
+      int editX = 128 - editW - 1;
+      display.fillRect(editX, rowY[0], editW + 1, 8, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(editX, rowY[0]);
+      display.print(editStr);
+      display.setTextColor(SSD1306_WHITE);
+    } else if (isSelected) {
+      display.fillRect(0, rowY[0], 128, 8, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(2, rowY[0]);
+      display.print(rowLabels[0]);
+
+      String dispStr = "";
+      if (!atMin) dispStr += "< "; else dispStr += "  ";
+      dispStr += valStr;
+      if (!atMax) dispStr += " >"; else dispStr += "  ";
+
+      int dw = dispStr.length() * 6;
+      display.setCursor(128 - dw - 1, rowY[0]);
+      display.print(dispStr);
+      display.setTextColor(SSD1306_WHITE);
+    } else {
+      display.setCursor(2, rowY[0]);
+      display.print(rowLabels[0]);
+      int vw = valStr.length() * 6;
+      display.setCursor(128 - vw - 1, rowY[0]);
+      display.print(valStr);
+    }
+  }
+
+  // Start/End rows
+  for (int row = 1; row <= 2; row++) {
+    uint8_t settingId = (row == 1) ? SET_SCHEDULE_START : SET_SCHEDULE_END;
+    bool isOff = (settings.scheduleMode == SCHED_OFF);
+    bool isHidden = isOff || (row == 1 && settings.scheduleMode == SCHED_AUTO_SLEEP);
+    String valStr = isHidden ? "---" : formatMenuValue(settingId, FMT_TIME_5MIN);
+    uint16_t rawVal = (row == 1) ? settings.scheduleStart : settings.scheduleEnd;
+    bool atMin = isHidden || (rawVal == 0);
+    bool atMax = isHidden || (rawVal >= SCHEDULE_SLOTS - 1);
+    bool isSelected = (scheduleCursor == row);
+
+    if (isSelected && scheduleEditing) {
+      display.setCursor(2, rowY[row]);
+      display.print(rowLabels[row]);
+
+      String editStr = "";
+      if (!atMin) editStr += "< "; else editStr += "  ";
+      editStr += valStr;
+      if (!atMax) editStr += " >"; else editStr += "  ";
+
+      int editW = editStr.length() * 6;
+      int editX = 128 - editW - 1;
+      display.fillRect(editX, rowY[row], editW + 1, 8, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(editX, rowY[row]);
+      display.print(editStr);
+      display.setTextColor(SSD1306_WHITE);
+    } else if (isSelected) {
+      display.fillRect(0, rowY[row], 128, 8, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(2, rowY[row]);
+      display.print(rowLabels[row]);
+
+      String dispStr = "";
+      if (!atMin) dispStr += "< "; else dispStr += "  ";
+      dispStr += valStr;
+      if (!atMax) dispStr += " >"; else dispStr += "  ";
+
+      int dw = dispStr.length() * 6;
+      display.setCursor(128 - dw - 1, rowY[row]);
+      display.print(dispStr);
+      display.setTextColor(SSD1306_WHITE);
+    } else {
+      display.setCursor(2, rowY[row]);
+      display.print(rowLabels[row]);
+      int vw = valStr.length() * 6;
+      display.setCursor(128 - vw - 1, rowY[row]);
+      display.print(valStr);
+    }
+  }
+
+  // === Separator ===
+  display.drawFastHLine(0, 42, 128, SSD1306_WHITE);
+
+  // === Help text (2 lines at y=44, y=52) ===
+  const char* help1;
+  const char* help2;
+  if (scheduleCursor == 0) {
+    switch (settings.scheduleMode) {
+      case SCHED_OFF:
+        help1 = "Schedule disabled.";
+        help2 = "Manual sleep.";
+        break;
+      case SCHED_AUTO_SLEEP:
+        help1 = "Deep sleep at end.";
+        help2 = "Button wakes device.";
+        break;
+      case SCHED_FULL_AUTO:
+      default:
+        help1 = "Light sleep at end.";
+        help2 = "Auto-wakes at start.";
+        break;
+    }
+  } else if (scheduleCursor == 1) {
+    help1 = "Schedule start time.";
+    help2 = "5-min increments.";
+  } else {
+    help1 = "Schedule end time.";
+    help2 = "5-min increments.";
+  }
+  display.setCursor(0, 44);
+  display.print(help1);
+  display.setCursor(0, 52);
+  display.print(help2);
+}
+
+// ============================================================================
 // HELP BAR
 // ============================================================================
 
@@ -1135,12 +1297,6 @@ static void drawMenuMode() {
         atMin = true;
         atMax = true;
       }
-      // Hide schedule start/end when schedule mode is Off
-      if ((item.settingId == SET_SCHEDULE_START || item.settingId == SET_SCHEDULE_END) && settings.scheduleMode == SCHED_OFF) {
-        valStr = "---";
-        atMin = true;
-        atMax = true;
-      }
       // Negative-display: displayed range is inverted (raw max = displayed min)
       if (item.format == FMT_PERCENT_NEG) { bool tmp = atMin; atMin = atMax; atMax = tmp; }
 
@@ -1254,6 +1410,8 @@ void updateDisplay() {
     drawNameMode();
   } else if (currentMode == MODE_DECOY) {
     drawDecoyMode();
+  } else if (currentMode == MODE_SCHEDULE) {
+    drawScheduleMode();
   }
 
   display.display();

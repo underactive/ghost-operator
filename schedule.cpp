@@ -64,6 +64,7 @@ bool isScheduleActive() {
 void checkSchedule() {
   if (settings.scheduleMode == SCHED_OFF) return;
   if (!timeSynced) return;
+  if (currentMode == MODE_SCHEDULE) return;  // don't act while user is editing
 
   unsigned long now = millis();
   if (now - lastScheduleCheck < SCHEDULE_CHECK_MS) return;
