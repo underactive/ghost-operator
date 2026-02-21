@@ -154,11 +154,11 @@ export async function connectDevice() {
 /**
  * Disconnect from the device.
  */
-export function disconnectDevice() {
-  transport.disconnect()
+export async function disconnectDevice() {
+  stopPolling()
+  await transport.disconnect()
   connectionState.connected = false
   connectionState.deviceName = ''
-  stopPolling()
 }
 
 /**

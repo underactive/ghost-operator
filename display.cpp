@@ -1056,7 +1056,7 @@ static void drawScheduleMode() {
         help2 = "Manual Power On/Off.";
         break;
       case SCHED_AUTO_SLEEP:
-        help1 = "Deep sleep at end.";
+        help1 = "Power off at end.";
         help2 = "Button wakes device.";
         break;
       case SCHED_FULL_AUTO:
