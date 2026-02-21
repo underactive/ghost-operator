@@ -799,6 +799,118 @@ static void drawNameMode() {
 }
 
 // ============================================================================
+// DECOY MODE
+// ============================================================================
+
+static void drawDecoyMode() {
+  display.setTextSize(1);
+
+  if (decoyConfirming) {
+    // === Reboot confirmation prompt ===
+    display.setCursor(0, 0);
+    display.print("IDENTITY SET");
+    display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+
+    // Show selected preset name in quotes, centered
+    const char* selectedName = (settings.decoyIndex > 0 && settings.decoyIndex <= DECOY_COUNT)
+                               ? DECOY_NAMES[settings.decoyIndex - 1] : settings.deviceName;
+    char nameBuf[20];
+    snprintf(nameBuf, sizeof(nameBuf), "\"%s\"", selectedName);
+    int nameW = strlen(nameBuf) * 6;
+    display.setCursor((128 - nameW) / 2, 18);
+    display.print(nameBuf);
+
+    // "Reboot to apply?"
+    const char* prompt = "Reboot to apply?";
+    int promptW = strlen(prompt) * 6;
+    display.setCursor((128 - promptW) / 2, 30);
+    display.print(prompt);
+
+    // Yes / No options
+    int optY = 42;
+    int yesX = 30;
+    int noX = 80;
+
+    if (decoyRebootYes) {
+      display.fillRect(yesX - 2, optY - 1, 30, 10, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(yesX, optY);
+      display.print("Yes");
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(noX, optY);
+      display.print("No");
+    } else {
+      display.setCursor(yesX, optY);
+      display.print("Yes");
+      display.fillRect(noX - 2, optY - 1, 24, 10, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(noX, optY);
+      display.print("No");
+      display.setTextColor(SSD1306_WHITE);
+    }
+
+    display.drawFastHLine(0, 54, 128, SSD1306_WHITE);
+    display.setCursor(0, 56);
+    display.print("Turn=select Press=OK");
+
+  } else {
+    // === Preset list picker ===
+    display.setCursor(0, 0);
+    display.print("BLE IDENTITY");
+    display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+
+    // 5-row scrollable viewport (y=10..49, 8px rows)
+    for (int row = 0; row < 5; row++) {
+      int idx = decoyScrollOffset + row;
+      if (idx < 0 || idx > DECOY_COUNT) continue;  // 0..DECOY_COUNT
+
+      int y = 10 + row * 8;
+      bool isSelected = (idx == decoyCursor);
+      bool isActive;
+
+      // Determine if this is the currently active item
+      if (idx == DECOY_COUNT) {
+        // "Custom" row — active when decoyIndex == 0
+        isActive = (settings.decoyIndex == 0);
+      } else {
+        // Preset row — active when decoyIndex == idx+1
+        isActive = (settings.decoyIndex == idx + 1);
+      }
+
+      if (isSelected) {
+        display.fillRect(0, y, 128, 8, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+      } else {
+        display.setTextColor(SSD1306_WHITE);
+      }
+
+      // Active marker
+      display.setCursor(2, y);
+      if (isActive) {
+        display.print("*");
+      } else {
+        display.print(" ");
+      }
+
+      // Item label
+      display.setCursor(8, y);
+      if (idx == DECOY_COUNT) {
+        display.print("Custom");
+      } else {
+        display.print(DECOY_NAMES[idx]);
+      }
+
+      if (isSelected) display.setTextColor(SSD1306_WHITE);
+    }
+
+    // Footer
+    display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
+    display.setCursor(0, 52);
+    display.print("Func=back");
+  }
+}
+
+// ============================================================================
 // HELP BAR
 // ============================================================================
 
@@ -810,9 +922,13 @@ static void drawHelpBar(int y) {
     text = "Turn to adjust, Press to confirm";
   } else if (menuCursor == -1) {
     text = "Turn/Press dial to select/OK";
-  } else if (menuCursor >= 0 && MENU_ITEMS[menuCursor].settingId == SET_DEVICE_NAME && MENU_ITEMS[menuCursor].type == MENU_ACTION) {
-    // Dynamic help: show current saved name
-    snprintf(nameHelpBuf, sizeof(nameHelpBuf), "Current: %s", settings.deviceName);
+  } else if (menuCursor >= 0 && MENU_ITEMS[menuCursor].settingId == SET_BLE_IDENTITY && MENU_ITEMS[menuCursor].type == MENU_ACTION) {
+    // Dynamic help: show current identity
+    if (settings.decoyIndex > 0 && settings.decoyIndex <= DECOY_COUNT) {
+      snprintf(nameHelpBuf, sizeof(nameHelpBuf), "Current: %s", DECOY_NAMES[settings.decoyIndex - 1]);
+    } else {
+      snprintf(nameHelpBuf, sizeof(nameHelpBuf), "Current: %s", settings.deviceName);
+    }
     text = nameHelpBuf;
   } else if (menuCursor >= 0 && MENU_ITEMS[menuCursor].helpText) {
     text = MENU_ITEMS[menuCursor].helpText;
@@ -1123,6 +1239,8 @@ void updateDisplay() {
     drawSlotsMode();
   } else if (currentMode == MODE_NAME) {
     drawNameMode();
+  } else if (currentMode == MODE_DECOY) {
+    drawDecoyMode();
   }
 
   display.display();

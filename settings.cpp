@@ -29,6 +29,7 @@ void loadDefaults() {
   settings.scrollEnabled = 0;
   settings.dashboardEnabled = 1;
   settings.dashboardBootCount = 0;
+  settings.decoyIndex = 0;
 }
 
 uint8_t calcChecksum() {
@@ -113,6 +114,7 @@ void loadSettings() {
         if (settings.scrollEnabled > 1) settings.scrollEnabled = 0;
         if (settings.dashboardEnabled > 1) settings.dashboardEnabled = 0;
         if (settings.dashboardBootCount != 0xFF && settings.dashboardBootCount > 3) settings.dashboardBootCount = 0;
+        if (settings.decoyIndex > DECOY_COUNT) settings.decoyIndex = 0;
 
         adcCalStart = millis();
         { const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;

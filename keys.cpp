@@ -67,7 +67,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Animation",     "Status animation style", FMT_ANIM_NAME, 0, 5, 1, SET_ANIMATION },
   // Device settings
   { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
-  { MENU_ACTION,  "Device name",   "BLE device name (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_DEVICE_NAME },
+  { MENU_ACTION,  "BLE identity",  "BLE device name preset (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_BLE_IDENTITY },
   { MENU_VALUE,   "BT while USB",  "Keep Bluetooth active when USB plugged in", FMT_ON_OFF, 0, 1, 1, SET_BT_WHILE_USB },
   { MENU_VALUE,   "Dashboard",     "Show dashboard link on USB connect (reboot to apply)", FMT_ON_OFF, 0, 1, 1, SET_DASHBOARD },
   { MENU_ACTION,  "Reset defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
@@ -88,8 +88,21 @@ const char*   SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min",
 
 const char NAME_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_";
 
-const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME" };
+const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY" };
 const char* PROFILE_NAMES[] = { "LAZY", "NORMAL", "BUSY" };
 const char* ANIM_NAMES[] = { "ECG", "EQ", "Ghost", "Matrix", "Radar", "None" };
 const char* MOUSE_STYLE_NAMES[] = { "Bezier", "Brownian" };
 const char* ON_OFF_NAMES[] = { "Off", "On" };
+
+const char* const DECOY_NAMES[] = {
+  "Magic Keyboard",
+  "Magic Mouse",
+  "Magic Trackpad",
+  "MX Master 3S",
+  "MX Keys S",
+  "MX Anywhere 3S",
+  "K380 Keyboard",
+  "ERGO K860",
+  "Arc Mouse",
+  "Dell MS5320W"
+};
