@@ -82,7 +82,9 @@ void checkSchedule() {
   } else if (!active && !scheduleSleeping && !scheduleManualWake) {
     // End time reached — enter sleep (skip if user manually woke)
     if (settings.scheduleMode == SCHED_AUTO_SLEEP) {
-      Serial.println("[Schedule] Auto-sleep: entering deep sleep");
+      Serial.println("[Schedule] Auto-sleep: disabling schedule, entering deep sleep");
+      settings.scheduleMode = SCHED_OFF;
+      saveSettings();
       sleepPending = true;
     } else if (settings.scheduleMode == SCHED_FULL_AUTO) {
       Serial.println("[Schedule] Full auto: entering light sleep");
