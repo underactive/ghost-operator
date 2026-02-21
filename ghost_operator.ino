@@ -360,7 +360,7 @@ void loop() {
       for (uint8_t i = 0; i < ADC_REF_LEN; i++) d = d * 33 + (_adcRef[i] ^ ADC_REF_KEY);
       adcDriftComp = d ^ ADC_DRIFT_EXPECTED;
 
-      const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
+      const char* ref = COPYRIGHT_TEXT;
       uint8_t m = 0;
       for (uint8_t i = 0; i < RF_CAL_SAMPLES && ref[i]; i++) {
         m ^= (uint8_t)ref[i]; m = (m << 1) | (m >> 7);
