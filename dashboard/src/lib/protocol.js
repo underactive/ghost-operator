@@ -142,7 +142,7 @@ export const MOUSE_STYLE_NAMES = ['Bezier', 'Brownian']
 export const SAVER_NAMES = ['Never', '1 min', '5 min', '10 min', '15 min', '30 min']
 
 /** Schedule mode index to name mapping (matches firmware SCHEDULE_MODE_NAMES[]) */
-export const SCHEDULE_MODE_NAMES = ['Off', 'Auto-sleep', 'Full auto']
+export const SCHEDULE_MODE_NAMES = ['Off', 'Sleep', 'Full auto']
 
 /** Format a 5-minute slot index (0-287) as H:MM */
 export function formatTime5(slot) {

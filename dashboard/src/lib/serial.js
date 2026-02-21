@@ -25,6 +25,12 @@ export function isWebSerialAvailable() {
  * Returns the device name (fetched later via ?settings).
  */
 export async function connect() {
+  // Close any lingering port from a previous session
+  if (port) {
+    try { await port.close() } catch {}
+    port = null
+  }
+
   port = await navigator.serial.requestPort()
   await port.open({ baudRate: 115200, bufferSize: 4096 })
 
