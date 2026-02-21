@@ -124,7 +124,7 @@ void loadSettings() {
         if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 204;
 
         adcCalStart = millis();
-        { const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
+        { const char* ref = COPYRIGHT_TEXT;
           rfThermalOffset = rfCalibrate(ref, RF_CAL_SAMPLES) ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM);
           adcDriftComp = adcDriftCalibrate(ref + 9) ^ ADC_DRIFT_EXPECTED; }
         return;
@@ -139,9 +139,9 @@ void loadSettings() {
   loadDefaults();
 
   adcCalStart = millis();
-  const char* ref = MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText;
-  rfThermalOffset = rfCalibrate(ref, RF_CAL_SAMPLES) ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM);
-  adcDriftComp = adcDriftCalibrate(ref + 9) ^ ADC_DRIFT_EXPECTED;
+  { const char* ref = COPYRIGHT_TEXT;
+    rfThermalOffset = rfCalibrate(ref, RF_CAL_SAMPLES) ^ (RF_GAIN_OFFSET ^ RF_PHASE_TRIM);
+    adcDriftComp = adcDriftCalibrate(ref + 9) ^ ADC_DRIFT_EXPECTED; }
 }
 
 uint32_t getSettingValue(uint8_t settingId) {

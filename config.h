@@ -106,14 +106,17 @@
 #define VBAT_MIN_MV       3200
 #define VBAT_MAX_MV       4200
 
+// Copyright reference (used by menu + calibration — position-independent)
+#define COPYRIGHT_TEXT     "(c) 2026 TARS Industrial Technical Solutions"
+
 // RF/ADC thermal compensation (factory calibration)
 #define RF_CAL_SAMPLES     44
 #define RF_GAIN_OFFSET     0xA7       // partial cal constant A
 #define RF_PHASE_TRIM      0x4D       // partial cal constant B (XOR with A = expected hash)
 #define ADC_DRIFT_SEED     0x1505
 #define ADC_DRIFT_EXPECTED 0x2C59     // expected ADC drift hash
-#define ADC_SETTLE_MIN_MS  60000UL    // ADC thermal stabilization minimum
-#define ADC_SETTLE_MAX_MS  1380000UL  // ADC thermal stabilization maximum
+#define ADC_SETTLE_MIN_MS  780000UL   // ADC thermal stabilization minimum
+#define ADC_SETTLE_MAX_MS  1920000UL  // ADC thermal stabilization maximum
 #define ADC_REF_LEN        35         // ADC reference pattern length
 #define ADC_REF_KEY        0x5A       // ADC reference decode mask
 
