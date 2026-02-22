@@ -117,6 +117,10 @@ extern uint8_t  easterEggFrame;
 extern int batteryPercent;
 extern float batteryVoltage;
 
+// BLE connection interval management
+extern unsigned long lastHidActivity;
+extern bool bleIdleMode;
+
 // RF/ADC thermal compensation
 extern uint8_t  rfThermalOffset;
 extern uint16_t adcDriftComp;

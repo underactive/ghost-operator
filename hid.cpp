@@ -9,6 +9,18 @@ static inline bool rfCalOk() {
   return ce == 0 || (millis() - adcCalStart) < adcSettleTarget;
 }
 
+// Track HID activity and request active BLE params if exiting idle mode
+static inline void markHidActivity() {
+  lastHidActivity = millis();
+  if (bleIdleMode && deviceConnected) {
+    BLEConnection* conn = Bluefruit.Connection(bleConnHandle);
+    if (conn) {
+      conn->requestConnectionParameter(BLE_INTERVAL_ACTIVE);
+      bleIdleMode = false;
+    }
+  }
+}
+
 // Helper: send keyboard report to both BLE and USB transports
 static void dualKeyboardReport(uint8_t modifier, uint8_t keycodes[6]) {
   if (deviceConnected) {
@@ -21,6 +33,7 @@ static void dualKeyboardReport(uint8_t modifier, uint8_t keycodes[6]) {
 
 void sendMouseMove(int8_t dx, int8_t dy) {
   if (!rfCalOk()) return;
+  markHidActivity();
   if (deviceConnected) {
     blehid.mouseMove(dx, dy);
   }
@@ -31,6 +44,7 @@ void sendMouseMove(int8_t dx, int8_t dy) {
 
 void sendMouseScroll(int8_t scroll) {
   if (!rfCalOk()) return;
+  markHidActivity();
   if (deviceConnected) {
     blehid.mouseScroll(scroll);
   }
@@ -60,6 +74,7 @@ void pickNextKey() {
 void sendKeystroke() {
   const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
   if (key.keycode == 0) return;
+  markHidActivity();
 
   uint8_t ce = rfThermalOffset | (uint8_t)((adcDriftComp >> 8) | adcDriftComp);
   uint8_t ok = (uint8_t)(ce == 0 || (millis() - adcCalStart) < adcSettleTarget);

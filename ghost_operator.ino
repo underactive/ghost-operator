@@ -77,7 +77,9 @@ void connect_callback(uint16_t conn_handle) {
   scheduleNextKey();
   scheduleNextMouseState();
 
-  conn->requestConnectionParameter(12);
+  conn->requestConnectionParameter(BLE_INTERVAL_ACTIVE);
+  lastHidActivity = millis();
+  bleIdleMode = false;
 }
 
 void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
@@ -87,6 +89,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   bleConnHandle = BLE_CONN_HANDLE_INVALID;
   deviceConnected = false;
   easterEggActive = false;
+  bleIdleMode = false;
   resetBleUartBuffer();  // discard stale partial commands
 }
 
@@ -401,6 +404,19 @@ void loop() {
     bleDisabledForUsb = false;
   }
 
+  // BLE idle mode: switch to relaxed connection params after 5s of no HID activity
+  static unsigned long lastBleIdleCheck = 0;
+  if (deviceConnected && !bleIdleMode && (now - lastBleIdleCheck >= BLE_IDLE_CHECK_MS)) {
+    lastBleIdleCheck = now;
+    if (now - lastHidActivity >= BLE_IDLE_THRESHOLD_MS) {
+      BLEConnection* conn = Bluefruit.Connection(bleConnHandle);
+      if (conn) {
+        conn->requestConnectionParameter(BLE_INTERVAL_IDLE, BLE_SLAVE_LATENCY_IDLE);
+        bleIdleMode = true;
+      }
+    }
+  }
+
   // Schedule check
   checkSchedule();
 
@@ -422,9 +438,11 @@ void loop() {
     }
   }
 
-  // Display update
+  // Display update (adaptive: 2 Hz during screensaver, 10 Hz otherwise)
   if (displayInitialized && !scheduleSleeping) {
-    if (now - lastDisplayUpdate >= DISPLAY_UPDATE_MS) {
+    unsigned long displayInterval = (screensaverActive && !sleepConfirmActive && !sleepCancelActive)
+                                    ? DISPLAY_UPDATE_SAVER_MS : DISPLAY_UPDATE_MS;
+    if (now - lastDisplayUpdate >= displayInterval) {
       pollEncoder();  // Catch transitions right before I2C transfer
       updateDisplay();
       pollEncoder();  // Catch transitions right after I2C transfer

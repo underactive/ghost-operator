@@ -2,6 +2,7 @@
 import { connectionState, dirty, saving, saveToFlash, statusMessage, dfuActive } from './lib/store.js'
 import ConnectButton from './components/ConnectButton.vue'
 import StatusBar from './components/StatusBar.vue'
+import BatteryChart from './components/BatteryChart.vue'
 import TimingSection from './components/TimingSection.vue'
 import KeySlotEditor from './components/KeySlotEditor.vue'
 import MouseSection from './components/MouseSection.vue'
@@ -23,6 +24,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
 
     <template v-if="connectionState.connected || dfuActive">
       <StatusBar v-if="connectionState.connected" />
+      <BatteryChart v-if="connectionState.connected" />
 
       <div class="settings-grid">
         <template v-if="connectionState.connected">

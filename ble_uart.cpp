@@ -156,13 +156,14 @@ void processCommand(const char* line, ResponseWriter writer) {
 static void cmdQueryStatus() {
   unsigned long uptime = millis() - startTime;
 
-  char buf[192];
+  char buf[208];
   int len = snprintf(buf, sizeof(buf),
-    "!status|connected=%d|usb=%d|kb=%d|ms=%d|bat=%d|profile=%d|mode=%d"
+    "!status|connected=%d|usb=%d|kb=%d|ms=%d|bat=%d|batMv=%d|profile=%d|mode=%d"
     "|mouseState=%d|uptime=%lu|kbNext=%s|timeSynced=%d|schedSleeping=%d",
     deviceConnected ? 1 : 0, usbConnected ? 1 : 0,
     keyEnabled ? 1 : 0, mouseEnabled ? 1 : 0,
-    batteryPercent, (int)currentProfile, (int)currentMode,
+    batteryPercent, (int)(batteryVoltage * 1000),
+    (int)currentProfile, (int)currentMode,
     (int)mouseState, uptime, AVAILABLE_KEYS[nextKeyIndex].name,
     timeSynced ? 1 : 0, scheduleSleeping ? 1 : 0);
 

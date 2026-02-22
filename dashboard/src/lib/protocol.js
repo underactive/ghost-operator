@@ -112,6 +112,7 @@ export function parseStatus(data) {
     kb: data.kb === '1',
     ms: data.ms === '1',
     bat: parseInt(data.bat) || 0,
+    batMv: parseInt(data.batMv) || 0,
     profile: parseInt(data.profile ?? '1'),
     mode: parseInt(data.mode) || 0,
     mouseState: parseInt(data.mouseState) || 0,
