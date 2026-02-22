@@ -313,7 +313,11 @@ void loop() {
   handleButtons();
 
   // Auto-return to NORMAL mode after timeout
-  if (currentMode != MODE_NORMAL && (now - lastModeActivity > MODE_TIMEOUT_MS)) {
+  // Skip timeout when viewing read-only About items (Uptime, Die temp, Version)
+  bool aboutItemSelected = (currentMode == MODE_MENU &&
+      (menuCursor == MENU_IDX_UPTIME || menuCursor == MENU_IDX_DIE_TEMP || menuCursor == MENU_IDX_VERSION));
+
+  if (currentMode != MODE_NORMAL && !aboutItemSelected && (now - lastModeActivity > MODE_TIMEOUT_MS)) {
     if (currentMode == MODE_NAME) {
       // Save name on timeout, skip reboot prompt
       saveNameEditor();

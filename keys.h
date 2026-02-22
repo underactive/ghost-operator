@@ -24,5 +24,8 @@ extern const char* const DECOY_MANUFACTURERS[];
 #define MENU_IDX_KEY_SLOTS    3
 #define MENU_IDX_SCHEDULE     19
 #define MENU_IDX_BLE_IDENTITY 21
+#define MENU_IDX_UPTIME       27
+#define MENU_IDX_DIE_TEMP     28
+#define MENU_IDX_VERSION      29
 
 #endif // GHOST_KEYS_H
