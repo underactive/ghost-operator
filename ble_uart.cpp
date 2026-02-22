@@ -11,6 +11,7 @@
 #define UART_BUF_SIZE 128
 static char uartBuf[UART_BUF_SIZE];
 static uint8_t uartBufPos = 0;
+static bool uartBufOverflow = false;
 
 // File-scoped writer pointer — set by processCommand(), used by cmd*() helpers
 static ResponseWriter currentWriter = nullptr;
@@ -48,6 +49,14 @@ void setupBleUart() {
 }
 
 // ----------------------------------------------------------------------------
+// Reset line buffer — call on BLE disconnect to discard stale partial commands
+// ----------------------------------------------------------------------------
+void resetBleUartBuffer() {
+  uartBufPos = 0;
+  uartBufOverflow = false;
+}
+
+// ----------------------------------------------------------------------------
 // Poll: read bytes into line buffer, dispatch on newline
 // Called from loop() in ghost_operator.ino
 // ----------------------------------------------------------------------------
@@ -56,12 +65,19 @@ void handleBleUart() {
     char c = (char)bleuart.read();
     if (c == '\n' || c == '\r') {
       if (uartBufPos > 0) {
-        uartBuf[uartBufPos] = '\0';
-        processCommand(uartBuf, bleWrite);
+        if (uartBufOverflow) {
+          bleWrite("-err:cmd too long");
+        } else {
+          uartBuf[uartBufPos] = '\0';
+          processCommand(uartBuf, bleWrite);
+        }
         uartBufPos = 0;
+        uartBufOverflow = false;
       }
     } else if (uartBufPos < UART_BUF_SIZE - 1) {
       uartBuf[uartBufPos++] = c;
+    } else {
+      uartBufOverflow = true;
     }
   }
 }
@@ -138,63 +154,55 @@ void processCommand(const char* line, ResponseWriter writer) {
 // ?status — runtime status (polled by dashboard)
 // ----------------------------------------------------------------------------
 static void cmdQueryStatus() {
-  unsigned long now = millis();
-  unsigned long uptime = now - startTime;
+  unsigned long uptime = millis() - startTime;
 
-  String resp = "!status";
-  resp += "|connected=";  resp += deviceConnected ? "1" : "0";
-  resp += "|usb=";         resp += usbConnected ? "1" : "0";
-  resp += "|kb=";          resp += keyEnabled ? "1" : "0";
-  resp += "|ms=";          resp += mouseEnabled ? "1" : "0";
-  resp += "|bat=";         resp += String(batteryPercent);
-  resp += "|profile=";     resp += String((int)currentProfile);
-  resp += "|mode=";        resp += String((int)currentMode);
-  resp += "|mouseState=";  resp += String((int)mouseState);
-  resp += "|uptime=";      resp += String(uptime);
-  resp += "|kbNext=";      resp += String(AVAILABLE_KEYS[nextKeyIndex].name);
-  resp += "|timeSynced=";  resp += timeSynced ? "1" : "0";
-  resp += "|schedSleeping="; resp += scheduleSleeping ? "1" : "0";
+  char buf[192];
+  int len = snprintf(buf, sizeof(buf),
+    "!status|connected=%d|usb=%d|kb=%d|ms=%d|bat=%d|profile=%d|mode=%d"
+    "|mouseState=%d|uptime=%lu|kbNext=%s|timeSynced=%d|schedSleeping=%d",
+    deviceConnected ? 1 : 0, usbConnected ? 1 : 0,
+    keyEnabled ? 1 : 0, mouseEnabled ? 1 : 0,
+    batteryPercent, (int)currentProfile, (int)currentMode,
+    (int)mouseState, uptime, AVAILABLE_KEYS[nextKeyIndex].name,
+    timeSynced ? 1 : 0, scheduleSleeping ? 1 : 0);
+
   if (timeSynced) {
-    resp += "|daySecs=";   resp += String(currentDaySeconds());
+    snprintf(buf + len, sizeof(buf) - len, "|daySecs=%lu", (unsigned long)currentDaySeconds());
   }
 
-  currentWriter(resp);
+  currentWriter(String(buf));
 }
 
 // ----------------------------------------------------------------------------
 // ?settings — all persistent settings
 // ----------------------------------------------------------------------------
 static void cmdQuerySettings() {
-  String resp = "!settings";
-  resp += "|keyMin=";       resp += String(settings.keyIntervalMin);
-  resp += "|keyMax=";       resp += String(settings.keyIntervalMax);
-  resp += "|mouseJig=";     resp += String(settings.mouseJiggleDuration);
-  resp += "|mouseIdle=";    resp += String(settings.mouseIdleDuration);
-  resp += "|mouseAmp=";     resp += String(settings.mouseAmplitude);
-  resp += "|mouseStyle=";   resp += String(settings.mouseStyle);
-  resp += "|lazyPct=";      resp += String(settings.lazyPercent);
-  resp += "|busyPct=";      resp += String(settings.busyPercent);
-  resp += "|dispBright=";   resp += String(settings.displayBrightness);
-  resp += "|saverBright=";  resp += String(settings.saverBrightness);
-  resp += "|saverTimeout="; resp += String(settings.saverTimeout);
-  resp += "|animStyle=";    resp += String(settings.animStyle);
-  resp += "|name=";         resp += String(settings.deviceName);
-  resp += "|btWhileUsb=";  resp += String(settings.btWhileUsb);
-  resp += "|scroll=";      resp += String(settings.scrollEnabled);
-  resp += "|dashboard=";   resp += String(settings.dashboardEnabled);
-  resp += "|decoy=";       resp += String(settings.decoyIndex);
-  resp += "|schedMode=";   resp += String(settings.scheduleMode);
-  resp += "|schedStart=";  resp += String(settings.scheduleStart);
-  resp += "|schedEnd=";    resp += String(settings.scheduleEnd);
+  char buf[320];
+  int len = snprintf(buf, sizeof(buf),
+    "!settings|keyMin=%lu|keyMax=%lu|mouseJig=%lu|mouseIdle=%lu"
+    "|mouseAmp=%d|mouseStyle=%d|lazyPct=%d|busyPct=%d"
+    "|dispBright=%d|saverBright=%d|saverTimeout=%d|animStyle=%d"
+    "|name=%s|btWhileUsb=%d|scroll=%d|dashboard=%d"
+    "|decoy=%d|schedMode=%d|schedStart=%d|schedEnd=%d",
+    settings.keyIntervalMin, settings.keyIntervalMax,
+    settings.mouseJiggleDuration, settings.mouseIdleDuration,
+    settings.mouseAmplitude, settings.mouseStyle,
+    settings.lazyPercent, settings.busyPercent,
+    settings.displayBrightness, settings.saverBrightness,
+    settings.saverTimeout, settings.animStyle,
+    settings.deviceName, settings.btWhileUsb,
+    settings.scrollEnabled, settings.dashboardEnabled,
+    settings.decoyIndex, settings.scheduleMode,
+    settings.scheduleStart, settings.scheduleEnd);
 
   // Slots as comma-separated indices
-  resp += "|slots=";
+  len += snprintf(buf + len, sizeof(buf) - len, "|slots=");
   for (int i = 0; i < NUM_SLOTS; i++) {
-    if (i > 0) resp += ",";
-    resp += String(settings.keySlots[i]);
+    len += snprintf(buf + len, sizeof(buf) - len, "%s%d",
+                    (i > 0) ? "," : "", settings.keySlots[i]);
   }
 
-  currentWriter(resp);
+  currentWriter(String(buf));
 }
 
 // ----------------------------------------------------------------------------
@@ -312,6 +320,10 @@ static void cmdSetValue(const char* body) {
       // Advance past this number and the comma
       while (*p && *p != ',') p++;
       if (*p == ',') p++;
+    }
+    // Fill remaining slots with NONE if fewer than NUM_SLOTS provided
+    for (; slot < NUM_SLOTS; slot++) {
+      settings.keySlots[slot] = NUM_KEYS - 1;
     }
   } else {
     currentWriter("-err:unknown key");

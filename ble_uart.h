@@ -9,6 +9,7 @@ typedef void (*ResponseWriter)(const String& msg);
 
 void setupBleUart();
 void handleBleUart();
+void resetBleUartBuffer();
 void processCommand(const char* line, ResponseWriter writer);
 void resetToDfu();
 void resetToSerialDfu();

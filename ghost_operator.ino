@@ -87,6 +87,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   bleConnHandle = BLE_CONN_HANDLE_INVALID;
   deviceConnected = false;
   easterEggActive = false;
+  resetBleUartBuffer();  // discard stale partial commands
 }
 
 // ============================================================================
@@ -249,11 +250,11 @@ void setup() {
   }
 
   Serial.println();
-  Serial.println("╔═══════════════════════════════════════════╗");
-  Serial.println("║   GHOST OPERATOR - BLE HID                ║");
-  Serial.println("║   Version " VERSION "                           ║");
-  Serial.println("║   TARS Industrial Technical Solutions     ║");
-  Serial.println("╚═══════════════════════════════════════════╝");
+  Serial.println("╔══════════════════════════════");
+  Serial.println("║   GHOST OPERATOR - BLE HID");
+  Serial.println("║   Version " VERSION "");
+  Serial.println("║   TARS Industrial Technical Solutions");
+  Serial.println("╚══════════════════════════════════════════");
   Serial.println();
 
   setupPins();

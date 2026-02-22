@@ -365,6 +365,36 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 
 ---
 
+## Development Rules (QA Hardening)
+
+These rules exist to prevent classes of bugs found during firmware QA. Follow them for all new code and modifications.
+
+### 1. Validate all external input at the storage boundary
+Every value arriving over BLE UART or USB serial (`=key:value` commands) passes through `setSettingValue()`, which clamps to valid bounds using `clampVal()`. **Never** assign a protocol-supplied value to a setting field without bounds checking — the encoder UI path uses `MENU_ITEMS[].minVal/maxVal`, and the protocol path must be equally strict. When adding a new setting to `setSettingValue()`, always wrap the assignment with `clampVal(value, MIN, MAX)`.
+
+### 2. Guard all array-indexed format lookups
+`formatMenuValue()` uses setting values as direct indices into name arrays (`ANIM_NAMES[]`, `SAVER_NAMES[]`, `MOUSE_STYLE_NAMES[]`, etc.). Every such lookup must have a bounds check: `(val < COUNT) ? NAMES[val] : "???"`. This is defense-in-depth in case a corrupt or unvalidated value reaches the display path.
+
+### 3. Reset connection-scoped state on disconnect
+BLE UART and USB serial maintain line buffers (`uartBuf`, `serialBuf`) that accumulate bytes across reads. On BLE disconnect, `resetBleUartBuffer()` clears the buffer and overflow flag. Any new connection-scoped state (buffers, flags, session variables) must be reset in `disconnect_callback()` to prevent cross-session corruption.
+
+### 4. Avoid Arduino `String` concatenation in hot paths
+On the nRF52's 256KB RAM with no heap compaction, repeated `String +=` causes heap fragmentation that accumulates over weeks of uptime. Use `snprintf()` into stack-allocated `char[]` buffers for protocol responses (`cmdQueryStatus`, `cmdQuerySettings`) and any function called more than once per second. Reserve `String` for one-shot or display-only code where allocation lifetime is short.
+
+### 5. Use symbolic constants for menu indices
+Never hardcode `menuCursor = N` — use the `MENU_IDX_*` defines from `keys.h` (`MENU_IDX_KEY_SLOTS`, `MENU_IDX_SCHEDULE`, `MENU_IDX_BLE_IDENTITY`). These must match `MENU_ITEMS[]` order in `keys.cpp`. When reordering or inserting menu items, update both the array and the index defines together.
+
+### 6. Throttle event-driven output
+`pushSerialStatus()` has a 200ms minimum interval guard to prevent BLE stack saturation. Any new function that sends data in response to frequent events (keystroke, mouse transition, timer tick) must implement similar throttling. The BLE UART's 20-byte chunked writes amplify the cost — a single 200-byte status response requires ~10 BLE write operations.
+
+### 7. Use `snprintf` over `sprintf`
+Always use `snprintf(buf, sizeof(buf), ...)` instead of `sprintf(buf, ...)`, even when the buffer appears large enough. This prevents silent overflow if format arguments change in the future.
+
+### 8. Report errors, don't silently truncate
+Command buffers track an overflow flag (`uartBufOverflow`, `serialBufOverflow`). When a line exceeds the buffer, respond with `-err:cmd too long` instead of silently truncating and processing a partial command. Apply the same principle to any new protocol handler: always give the client actionable error feedback.
+
+---
+
 ## Common Modifications
 
 ### Version bumps
@@ -402,8 +432,11 @@ Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `keys.cpp` (minVal/maxVal cur
 2. Add field to `Settings` struct in `config.h` (before `checksum`)
 3. Set default in `loadDefaults()` in `settings.cpp`, add bounds check in `loadSettings()`
 4. Add `MenuItem` entry to `MENU_ITEMS[]` array in `keys.cpp` (update `MENU_ITEM_COUNT` in `config.h`)
-5. Add cases to `getSettingValue()` and `setSettingValue()` in `settings.cpp`
-6. `calcChecksum()` auto-adapts (loops `sizeof(Settings) - 1`)
+5. Add cases to `getSettingValue()` and `setSettingValue()` in `settings.cpp` — **use `clampVal()` in `setSettingValue()`** to enforce bounds
+6. If the setting uses an array-indexed format (e.g., `FMT_ANIM_NAME`), add a bounds guard in `formatMenuValue()`: `(val < COUNT) ? NAMES[val] : "???"`
+7. If the new item changes existing `MENU_ITEMS[]` positions, update `MENU_IDX_*` defines in `keys.h`
+8. If adding a protocol `=key:value` command, add the case in `cmdSetValue()` in `ble_uart.cpp`
+9. `calcChecksum()` auto-adapts (loops `sizeof(Settings) - 1`)
 
 ### Change device name
 Configurable via menu: Device → "Device name" action item opens a character editor (MODE_NAME). Max 14 characters, A-Z, a-z, 0-9, space, dash, underscore. Requires reboot to apply. The compile-time default is:

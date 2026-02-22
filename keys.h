@@ -20,4 +20,9 @@ extern const char* SCHEDULE_MODE_NAMES[];
 extern const char* const DECOY_NAMES[];
 extern const char* const DECOY_MANUFACTURERS[];
 
+// Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
+#define MENU_IDX_KEY_SLOTS    3
+#define MENU_IDX_SCHEDULE     19
+#define MENU_IDX_BLE_IDENTITY 21
+
 #endif // GHOST_KEYS_H

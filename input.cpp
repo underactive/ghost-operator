@@ -57,10 +57,10 @@ bool saveNameEditor() {
 
 void returnToMenuFromName() {
   currentMode = MODE_MENU;
-  menuCursor = 21;           // "BLE identity" item index
+  menuCursor = MENU_IDX_BLE_IDENTITY;
   menuEditing = false;
   nameConfirming = false;
-  menuScrollOffset = (21 > 4) ? 21 - 4 : 0;  // ensure cursor visible in viewport
+  menuScrollOffset = (MENU_IDX_BLE_IDENTITY > 4) ? MENU_IDX_BLE_IDENTITY - 4 : 0;
   Serial.println("Mode: MENU (from NAME)");
 }
 
@@ -70,10 +70,10 @@ void returnToMenuFromName() {
 
 void returnToMenuFromDecoy() {
   currentMode = MODE_MENU;
-  menuCursor = 21;           // "BLE identity" item index
+  menuCursor = MENU_IDX_BLE_IDENTITY;
   menuEditing = false;
   decoyConfirming = false;
-  menuScrollOffset = (21 > 4) ? 21 - 4 : 0;
+  menuScrollOffset = (MENU_IDX_BLE_IDENTITY > 4) ? MENU_IDX_BLE_IDENTITY - 4 : 0;
   Serial.println("Mode: MENU (from DECOY)");
 }
 
@@ -111,9 +111,9 @@ void initScheduleEditor() {
 
 void returnToMenuFromSchedule() {
   currentMode = MODE_MENU;
-  menuCursor = 19;  // "Schedule" action item
+  menuCursor = MENU_IDX_SCHEDULE;
   menuEditing = false;
-  menuScrollOffset = (19 > 4) ? 19 - 4 : 0;
+  menuScrollOffset = (MENU_IDX_SCHEDULE > 4) ? MENU_IDX_SCHEDULE - 4 : 0;
   Serial.println("Mode: MENU (from SCHEDULE)");
 }
 
@@ -552,13 +552,12 @@ void handleButtons() {
             break;
 
           case MODE_SLOTS:
-            // Back to menu at "Key slots" item (index 3)
+            // Back to menu at "Key slots" item
             saveSettings();
             currentMode = MODE_MENU;
-            menuCursor = 3;
+            menuCursor = MENU_IDX_KEY_SLOTS;
             menuEditing = false;
-            // Ensure cursor visible
-            menuScrollOffset = 0;
+            menuScrollOffset = (MENU_IDX_KEY_SLOTS > 4) ? MENU_IDX_KEY_SLOTS - 4 : 0;
             Serial.println("Mode: MENU (from SLOTS)");
             pushSerialStatus();
             break;

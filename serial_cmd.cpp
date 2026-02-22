@@ -10,6 +10,7 @@
 #define SERIAL_BUF_SIZE 128
 static char serialBuf[SERIAL_BUF_SIZE];
 static uint8_t serialBufPos = 0;
+static bool serialBufOverflow = false;
 
 // Serial response writer — plain println, no chunking needed for USB
 static void serialWrite(const String& msg) {
@@ -18,6 +19,10 @@ static void serialWrite(const String& msg) {
 
 void pushSerialStatus() {
   if (!serialStatusPush) return;
+  static unsigned long lastPush = 0;
+  unsigned long now = millis();
+  if (now - lastPush < 200) return;  // 200ms throttle — max 5 updates/sec
+  lastPush = now;
   processCommand("?status", serialWrite);
 }
 
@@ -47,11 +52,18 @@ void handleSerialCommands() {
     // If we're accumulating a protocol command, keep buffering
     if (serialBufPos > 0) {
       if (c == '\n' || c == '\r') {
-        serialBuf[serialBufPos] = '\0';
-        processCommand(serialBuf, serialWrite);
+        if (serialBufOverflow) {
+          serialWrite("-err:cmd too long");
+        } else {
+          serialBuf[serialBufPos] = '\0';
+          processCommand(serialBuf, serialWrite);
+        }
         serialBufPos = 0;
+        serialBufOverflow = false;
       } else if (serialBufPos < SERIAL_BUF_SIZE - 1) {
         serialBuf[serialBufPos++] = c;
+      } else {
+        serialBufOverflow = true;
       }
       continue;
     }
