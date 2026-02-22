@@ -662,7 +662,7 @@ static void drawSimulationNormal() {
       case PHASE_MOUSING:
         actLabel = "MSE";
         invertLabel = (now - orch.lastPhantomClickMs < 200);
-        outlineLabel = !invertLabel && (mouseState == MOUSE_JIGGLING);
+        outlineLabel = !invertLabel && (mouseState != MOUSE_IDLE);
         break;
       case PHASE_IDLE:
         actLabel = "IDL";

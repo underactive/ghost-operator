@@ -271,9 +271,9 @@ static void tickMousePhase(unsigned long now) {
   // Delegate to existing mouse state machine
   handleMouseStateMachine(now);
 
-  // Phantom middle-click (only during mouse idle or sweep pauses)
+  // Phantom middle-click during mouse activity
   if (settings.phantomClicks && now >= orch.nextPhantomClickMs) {
-    if (mouseState == MOUSE_IDLE) {
+    if (mouseState == MOUSE_IDLE || mouseState == MOUSE_JIGGLING) {
       sendMouseClick(0x04, (uint16_t)randRange(50, 150));  // middle button
       orch.lastPhantomClickMs = millis();  // post-blocking timestamp for display
       orch.nextPhantomClickMs = now + randRange(15000, 90000);
