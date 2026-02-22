@@ -7,7 +7,7 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.10.1"
+#define VERSION "1.10.2"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F51  // bumped: invertDial field
