@@ -94,11 +94,9 @@ void formatUptime(unsigned long ms, char* buf, size_t bufSize) {
   unsigned long s = totalSecs % 60;
 
   int pos = 0;
-  if (d > 0) pos += snprintf(buf + pos, bufSize - pos, "%lud ", d);
-  if (h > 0) pos += snprintf(buf + pos, bufSize - pos, "%luh ", h);
-  if (m > 0) pos += snprintf(buf + pos, bufSize - pos, "%lum ", m);
+  if (d > 0) pos += snprintf(buf + pos, bufSize - pos, "%lud", d);
+  if (h > 0) pos += snprintf(buf + pos, bufSize - pos, "%luh", h);
+  if (m > 0) pos += snprintf(buf + pos, bufSize - pos, "%lum", m);
   if (d == 0 && s > 0) pos += snprintf(buf + pos, bufSize - pos, "%lus", s);
   if (pos == 0) { snprintf(buf, bufSize, "0s"); return; }
-  // Trim trailing space
-  if (pos > 0 && buf[pos - 1] == ' ') buf[pos - 1] = '\0';
 }

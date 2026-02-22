@@ -130,30 +130,32 @@ bool isMenuItemHidden(int8_t idx) {
 
   bool isSim = (settings.operationMode == 1);
 
-  // Move size hidden when Bezier (existing behavior)
+  // Conditional visibility (independent of mode)
   if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) return true;
-
-  // Click type hidden when phantom clicks disabled
   if (item.settingId == SET_CLICK_TYPE && !settings.phantomClicks) return true;
 
-  // --- Simple-only items: hidden when in Simulation mode ---
-  // Keyboard heading (idx 0), Key min (1), Key max (2) — hidden in sim
-  if (isSim && idx <= 2) return true;
-  // Mouse heading (idx 4) and mouse items (5-9) — hidden in sim
-  if (isSim && idx >= 4 && idx <= 9) return true;
+  // Simple-only items: hidden in Simulation mode
+  if (isSim) {
+    switch (item.settingId) {
+      case SET_KEY_MIN: case SET_KEY_MAX:
+      case SET_MOUSE_JIG: case SET_MOUSE_IDLE: case SET_MOUSE_STYLE:
+      case SET_MOUSE_AMP: case SET_SCROLL:
+      case SET_LAZY_PCT: case SET_BUSY_PCT:
+        return true;
+    }
+  }
 
-  // --- Simulation-only items: hidden when in Simple mode ---
-  // Simulation heading (idx 10) — hidden in simple
-  if (!isSim && idx == 10) return true;
-  // Sim items: Job profile (11), Phantom clicks (12), Click type (13), Window switch (14), Host OS (15), Header display (16)
-  if (!isSim && idx >= 11 && idx <= 16) return true;
+  // Sim-only items: hidden in Simple mode
+  if (!isSim) {
+    switch (item.settingId) {
+      case SET_JOB_SIM: case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
+      case SET_WINDOW_SWITCH: case SET_HOST_OS: case SET_HEADER_DISPLAY:
+        return true;
+    }
+  }
 
-  // Profiles heading (idx 17), Lazy/Busy (18-19) — hidden in sim (auto-managed)
-  if (isSim && idx >= 17 && idx <= 19) return true;
-
-  // Headings with all children hidden should be hidden too
+  // Orphan heading auto-hide: headings with all children hidden
   if (item.type == MENU_HEADING) {
-    // Check if any child before the next heading is visible
     bool anyChildVisible = false;
     for (int8_t j = idx + 1; j < MENU_ITEM_COUNT; j++) {
       if (MENU_ITEMS[j].type == MENU_HEADING) break;

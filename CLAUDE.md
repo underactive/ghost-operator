@@ -101,7 +101,7 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (26 entries: 6 headings + 20 items):
+Data-driven architecture using `MenuItem` struct array (38 entries: 7 headings + 31 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF };
@@ -272,11 +272,11 @@ KB [F16] 1.7-5.5s        ↑     ← effective (profile-adjusted) range
 MS [MOV]  17s/25s          ↑   ← effective durations
 ██████░░░░░░░░░░░░░░░░░  8.5s
 ─────────────────────────────
-BUSY                  ~^~_~^~  ← profile name (3s) or "Up: 2h 34m"; animation on right
+BUSY                  ~^~_~^~  ← profile name (3s) or "Up: 2h34m"; animation on right
 ```
 `KB [F16]` shows the pre-picked next key. Changes after each keypress.
 `[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (progress bar at 0%).
-Footer shows profile name for 3 seconds after switching, then reverts to uptime (compact format: `2h 34m`, `1d 5h`, `45s` — seconds hidden above 1 day). Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost). Animation speed is activity-aware: full speed when both KB and mouse are enabled, half speed when one is muted, frozen when both are muted.
+Footer shows profile name for 3 seconds after switching, then reverts to uptime (compact format: `2h34m`, `1d5h`, `45s` — seconds hidden above 1 day). Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost). Animation speed is activity-aware: full speed when both KB and mouse are enabled, half speed when one is muted, frozen when both are muted.
 
 ### Menu Mode
 ```
@@ -596,7 +596,7 @@ ln -sfn "$(pwd)" /tmp/ghost_operator && arduino-cli compile --fqbn Seeeduino:nrf
 - [ ] Animation setting persists after menu close → reopen, and after sleep/wake
 - [ ] Animation changes live in NORMAL mode footer area
 - [ ] Animation: full speed with both KB+MS enabled, half speed with one muted, frozen with both muted
-- [ ] Uptime footer: compact format (e.g. "45s", "2h 34m", "1d 5h" — seconds hidden above 1 day)
+- [ ] Uptime footer: compact format (e.g. "45s", "2h34m", "1d5h" — seconds hidden above 1 day)
 - [ ] Dashboard uptime matches device compact format
 - [ ] Serial `d` → prints animation style name
 - [ ] Menu: "Device" heading visible with Device name/Reset defaults/Reboot items
