@@ -170,44 +170,52 @@ uint32_t getSettingValue(uint8_t settingId) {
   }
 }
 
+// Clamp helper — returns value constrained to [lo, hi]
+static uint32_t clampVal(uint32_t value, uint32_t lo, uint32_t hi) {
+  if (value < lo) return lo;
+  if (value > hi) return hi;
+  return value;
+}
+
 void setSettingValue(uint8_t settingId, uint32_t value) {
   switch (settingId) {
     case SET_KEY_MIN:
-      settings.keyIntervalMin = value;
+      settings.keyIntervalMin = clampVal(value, VALUE_MIN_MS, VALUE_MAX_KEY_MS);
       if (settings.keyIntervalMin > settings.keyIntervalMax)
         settings.keyIntervalMax = settings.keyIntervalMin;
       break;
     case SET_KEY_MAX:
-      settings.keyIntervalMax = value;
+      settings.keyIntervalMax = clampVal(value, VALUE_MIN_MS, VALUE_MAX_KEY_MS);
       if (settings.keyIntervalMax < settings.keyIntervalMin)
         settings.keyIntervalMin = settings.keyIntervalMax;
       break;
-    case SET_MOUSE_JIG:      settings.mouseJiggleDuration = value; break;
-    case SET_MOUSE_IDLE:     settings.mouseIdleDuration = value; break;
-    case SET_MOUSE_AMP:      settings.mouseAmplitude = (uint8_t)value; break;
-    case SET_MOUSE_STYLE:    settings.mouseStyle = (uint8_t)value; break;
-    case SET_LAZY_PCT:       settings.lazyPercent = (uint8_t)value; break;
-    case SET_BUSY_PCT:       settings.busyPercent = (uint8_t)value; break;
-    case SET_DISPLAY_BRIGHT: settings.displayBrightness = (uint8_t)value; break;
-    case SET_SAVER_BRIGHT:   settings.saverBrightness = (uint8_t)value; break;
-    case SET_SAVER_TIMEOUT:  settings.saverTimeout = (uint8_t)value; break;
-    case SET_ANIMATION:      settings.animStyle = (uint8_t)value; break;
-    case SET_BT_WHILE_USB:   settings.btWhileUsb = (uint8_t)value; break;
-    case SET_SCROLL:         settings.scrollEnabled = (uint8_t)value; break;
+    case SET_MOUSE_JIG:      settings.mouseJiggleDuration = clampVal(value, VALUE_MIN_MS, VALUE_MAX_MOUSE_MS); break;
+    case SET_MOUSE_IDLE:     settings.mouseIdleDuration = clampVal(value, VALUE_MIN_MS, VALUE_MAX_MOUSE_MS); break;
+    case SET_MOUSE_AMP:      settings.mouseAmplitude = (uint8_t)clampVal(value, 1, 5); break;
+    case SET_MOUSE_STYLE:    settings.mouseStyle = (uint8_t)clampVal(value, 0, MOUSE_STYLE_COUNT - 1); break;
+    case SET_LAZY_PCT:       settings.lazyPercent = (uint8_t)clampVal(value, 0, 50); break;
+    case SET_BUSY_PCT:       settings.busyPercent = (uint8_t)clampVal(value, 0, 50); break;
+    case SET_DISPLAY_BRIGHT: settings.displayBrightness = (uint8_t)clampVal(value, 10, 100); break;
+    case SET_SAVER_BRIGHT:   settings.saverBrightness = (uint8_t)clampVal(value, 10, 100); break;
+    case SET_SAVER_TIMEOUT:  settings.saverTimeout = (uint8_t)clampVal(value, 0, SAVER_TIMEOUT_COUNT - 1); break;
+    case SET_ANIMATION:      settings.animStyle = (uint8_t)clampVal(value, 0, ANIM_STYLE_COUNT - 1); break;
+    case SET_BT_WHILE_USB:   settings.btWhileUsb = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_SCROLL:         settings.scrollEnabled = (uint8_t)clampVal(value, 0, 1); break;
     case SET_DASHBOARD:
+      value = clampVal(value, 0, 1);
       if ((uint8_t)value != settings.dashboardEnabled) {
         settings.dashboardBootCount = 0xFF;  // user changed value — pin, never auto-disable
       }
       settings.dashboardEnabled = (uint8_t)value;
       break;
     case SET_SCHEDULE_MODE:
-      settings.scheduleMode = (uint8_t)value;
+      settings.scheduleMode = (uint8_t)clampVal(value, 0, SCHED_MODE_COUNT - 1);
       if (settings.scheduleMode != SCHED_OFF) {
         scheduleManualWake = true;  // suppress immediate sleep until next active window
       }
       break;
-    case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)value; break;
-    case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)value; break;
+    case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
+    case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
   }
 }
 
@@ -217,18 +225,18 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
     case FMT_DURATION_MS:  return formatDuration(val);
     case FMT_PERCENT:      return String(val) + "%";
     case FMT_PERCENT_NEG:  return (val == 0) ? String("0%") : ("-" + String(val) + "%");
-    case FMT_SAVER_NAME:   return String(SAVER_NAMES[val]);
+    case FMT_SAVER_NAME:   return (val < SAVER_TIMEOUT_COUNT) ? String(SAVER_NAMES[val]) : String("???");
     case FMT_PIXELS:       return String(val) + "px";
-    case FMT_ANIM_NAME:    return String(ANIM_NAMES[val]);
-    case FMT_MOUSE_STYLE:  return String(MOUSE_STYLE_NAMES[val]);
-    case FMT_ON_OFF:       return String(ON_OFF_NAMES[val]);
-    case FMT_SCHEDULE_MODE: return String(SCHEDULE_MODE_NAMES[val]);
+    case FMT_ANIM_NAME:    return (val < ANIM_STYLE_COUNT) ? String(ANIM_NAMES[val]) : String("???");
+    case FMT_MOUSE_STYLE:  return (val < MOUSE_STYLE_COUNT) ? String(MOUSE_STYLE_NAMES[val]) : String("???");
+    case FMT_ON_OFF:       return (val < 2) ? String(ON_OFF_NAMES[val]) : String("???");
+    case FMT_SCHEDULE_MODE: return (val < SCHED_MODE_COUNT) ? String(SCHEDULE_MODE_NAMES[val]) : String("???");
     case FMT_TIME_5MIN: {
       uint16_t totalMin = val * 5;
       uint8_t h = totalMin / 60;
       uint8_t m = totalMin % 60;
       char buf[6];
-      sprintf(buf, "%d:%02d", h, m);
+      snprintf(buf, sizeof(buf), "%d:%02d", h, m);
       return String(buf);
     }
     case FMT_UPTIME:       return formatUptime(millis() - startTime);

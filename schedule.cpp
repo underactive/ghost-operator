@@ -33,7 +33,7 @@ String formatCurrentTime() {
   uint8_t m = (secs % 3600) / 60;
   uint8_t s = secs % 60;
   char buf[9];
-  sprintf(buf, "%d:%02d:%02d", h, m, s);
+  snprintf(buf, sizeof(buf), "%d:%02d:%02d", h, m, s);
   return String(buf);
 }
 
@@ -126,7 +126,7 @@ void enterLightSleep() {
     uint8_t wh = wakeSecs / 3600;
     uint8_t wm = (wakeSecs % 3600) / 60;
     char wakeBuf[16];
-    sprintf(wakeBuf, "Wake: %d:%02d", wh, wm);
+    snprintf(wakeBuf, sizeof(wakeBuf), "Wake: %d:%02d", wh, wm);
     int w2 = strlen(wakeBuf) * 6;
     display.setCursor((128 - w2) / 2, 34);
     display.print(wakeBuf);
