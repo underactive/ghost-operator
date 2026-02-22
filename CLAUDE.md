@@ -19,13 +19,14 @@
 - Built-in LiPo charger (USB-C)
 - Deep sleep: ~3µA
 
-### Components (7 total)
+### Components (8 total)
 | Ref | Component | Purpose |
 |-----|-----------|---------|
 | U1 | XIAO nRF52840 | MCU + BLE |
 | DISP1 | SSD1306 OLED 128x64 | Display (I2C) |
 | ENC1 | KY-040 Rotary Encoder | Input + key selection |
 | SW1 | Tactile button 6x6mm | Mode cycle / sleep |
+| SW2 | Tactile button 6x6mm | Mute (KB/MS toggle) |
 | BT1 | LiPo 3.7V 1000mAh | Power |
 | C1 | 100nF ceramic | Decoupling |
 | C2 | 10µF electrolytic | Decoupling |
@@ -40,7 +41,8 @@
 | D4 | I2C SDA | OLED |
 | D5 | I2C SCL | OLED |
 | D6 | LED (optional) | Activity indicator |
-| D7-D10 | Unused | Available for expansion |
+| D7 | Mute button | SPST momentary, active LOW |
+| D8-D10 | Unused | Available for expansion |
 | BAT+/- | Battery | Direct to LiPo |
 
 ---
