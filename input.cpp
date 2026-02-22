@@ -145,11 +145,11 @@ bool isMenuItemHidden(int8_t idx) {
   // --- Simulation-only items: hidden when in Simple mode ---
   // Simulation heading (idx 10) — hidden in simple
   if (!isSim && idx == 10) return true;
-  // Sim items: Job profile (12), Phantom clicks (13), Click type (14), Window switch (15), Host OS (16), Header display (17)
-  if (!isSim && idx >= 12 && idx <= 17) return true;
+  // Sim items: Job profile (11), Phantom clicks (12), Click type (13), Window switch (14), Host OS (15), Header display (16)
+  if (!isSim && idx >= 11 && idx <= 16) return true;
 
-  // Profiles heading (idx 18), Lazy/Busy (19-20) — hidden in sim (auto-managed)
-  if (isSim && idx >= 18 && idx <= 20) return true;
+  // Profiles heading (idx 17), Lazy/Busy (18-19) — hidden in sim (auto-managed)
+  if (isSim && idx >= 17 && idx <= 19) return true;
 
   // Headings with all children hidden should be hidden too
   if (item.type == MENU_HEADING) {
@@ -259,7 +259,9 @@ void handleEncoder() {
         break;
 
       case MODE_MENU:
-        if (defaultsConfirming) {
+        if (modeConfirming) {
+          modeRebootYes = !modeRebootYes;
+        } else if (defaultsConfirming) {
           defaultsConfirmYes = !defaultsConfirmYes;
         } else if (rebootConfirming) {
           rebootConfirmYes = !rebootConfirmYes;
@@ -422,7 +424,16 @@ void handleButtons() {
         break;
 
       case MODE_MENU:
-        if (defaultsConfirming) {
+        if (modeConfirming) {
+          if (modeRebootYes) {
+            saveSettings();
+            Serial.println("Rebooting for mode change...");
+            NVIC_SystemReset();
+          } else {
+            settings.operationMode = modeOriginalValue;
+            modeConfirming = false;
+          }
+        } else if (defaultsConfirming) {
           if (defaultsConfirmYes) {
             loadDefaults();
             saveSettings();
@@ -443,11 +454,20 @@ void handleButtons() {
         } else if (menuEditing) {
           // Exit edit mode
           menuEditing = false;
+          // Check if Mode was changed — trigger reboot confirmation
+          if (menuCursor >= 0 && MENU_ITEMS[menuCursor].settingId == SET_OP_MODE &&
+              settings.operationMode != modeOriginalValue) {
+            modeConfirming = true;
+            modeRebootYes = true;
+          }
           Serial.println("Menu: edit done");
         } else if (menuCursor >= 0) {
           const MenuItem& item = MENU_ITEMS[menuCursor];
           if (item.type == MENU_VALUE && item.minVal != item.maxVal) {
             // Enter edit mode (skip read-only items where min == max)
+            if (item.settingId == SET_OP_MODE) {
+              modeOriginalValue = settings.operationMode;
+            }
             menuEditing = true;
             Serial.print("Menu: editing "); Serial.println(item.label);
           } else if (item.type == MENU_ACTION) {
@@ -608,7 +628,10 @@ void handleButtons() {
             break;
 
           case MODE_MENU:
-            if (defaultsConfirming) {
+            if (modeConfirming) {
+              settings.operationMode = modeOriginalValue;
+              modeConfirming = false;
+            } else if (defaultsConfirming) {
               defaultsConfirming = false;  // cancel confirmation
             } else if (rebootConfirming) {
               rebootConfirming = false;    // cancel confirmation

@@ -70,6 +70,11 @@ extern bool    defaultsConfirmYes;
 extern bool    rebootConfirming;
 extern bool    rebootConfirmYes;
 
+// Mode change confirmation state
+extern bool    modeConfirming;
+extern bool    modeRebootYes;
+extern uint8_t modeOriginalValue;
+
 // UI Mode
 extern UIMode currentMode;
 extern unsigned long lastModeActivity;

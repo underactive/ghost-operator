@@ -394,6 +394,10 @@ void loop() {
       settings.scheduleStart = scheduleOrigStart;
       settings.scheduleEnd = scheduleOrigEnd;
     }
+    if (modeConfirming) {
+      settings.operationMode = modeOriginalValue;
+      modeConfirming = false;
+    }
     defaultsConfirming = false;
     rebootConfirming = false;
     menuEditing = false;

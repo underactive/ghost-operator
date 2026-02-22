@@ -62,6 +62,11 @@ bool    defaultsConfirmYes = false;
 bool    rebootConfirming = false;
 bool    rebootConfirmYes = false;
 
+// Mode change confirmation state
+bool    modeConfirming = false;
+bool    modeRebootYes = true;
+uint8_t modeOriginalValue = 0;
+
 // UI Mode
 UIMode currentMode = MODE_NORMAL;
 unsigned long lastModeActivity = 0;

@@ -1438,6 +1438,55 @@ static void drawHelpBar(int y) {
 static void drawMenuMode() {
   display.setTextSize(1);
 
+  if (modeConfirming) {
+    // === Mode change confirmation prompt ===
+    display.setCursor(0, 0);
+    display.print("MODE CHANGE");
+    display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+
+    // Show new mode name in quotes, centered
+    const char* modeName = (settings.operationMode < 2) ? OP_MODE_NAMES[settings.operationMode] : "???";
+    char nameBuf[20];
+    snprintf(nameBuf, sizeof(nameBuf), "\"%s\"", modeName);
+    int nameW = strlen(nameBuf) * 6;
+    display.setCursor((128 - nameW) / 2, 18);
+    display.print(nameBuf);
+
+    // "Reboot to apply?"
+    const char* prompt = "Reboot to apply?";
+    int promptW = strlen(prompt) * 6;
+    display.setCursor((128 - promptW) / 2, 30);
+    display.print(prompt);
+
+    // Yes / No options (Yes highlighted by default)
+    int optY = 42;
+    int yesX = 30;
+    int noX = 80;
+
+    if (modeRebootYes) {
+      display.fillRect(yesX - 2, optY - 1, 30, 10, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(yesX, optY);
+      display.print("Yes");
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(noX, optY);
+      display.print("No");
+    } else {
+      display.setCursor(yesX, optY);
+      display.print("Yes");
+      display.fillRect(noX - 2, optY - 1, 24, 10, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(noX, optY);
+      display.print("No");
+      display.setTextColor(SSD1306_WHITE);
+    }
+
+    display.drawFastHLine(0, 54, 128, SSD1306_WHITE);
+    display.setCursor(0, 56);
+    display.print("Turn=select Press=OK");
+    return;
+  }
+
   if (defaultsConfirming) {
     // === Restore defaults confirmation prompt ===
     display.setCursor(0, 0);
