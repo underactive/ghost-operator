@@ -22,8 +22,14 @@ void syncTime(uint32_t daySeconds) {
 uint32_t currentDaySeconds() {
   if (!timeSynced) return 0xFFFFFFFF;
   unsigned long elapsed = millis() - wallClockSyncMs;
-  uint32_t now = wallClockDaySecs + (elapsed / 1000);
-  return now % 86400;
+  uint32_t elapsedSecs = elapsed / 1000;
+  // Re-anchor every 24h to prevent millis() wrap drift
+  if (elapsedSecs >= 86400) {
+    wallClockDaySecs = (wallClockDaySecs + elapsedSecs) % 86400;
+    wallClockSyncMs = millis();
+    elapsedSecs = 0;
+  }
+  return (wallClockDaySecs + elapsedSecs) % 86400;
 }
 
 String formatCurrentTime() {

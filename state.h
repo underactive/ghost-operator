@@ -30,7 +30,7 @@ extern Settings settings;
 
 // Profile
 extern Profile currentProfile;
-extern unsigned long profileDisplayUntil;
+extern unsigned long profileDisplayStart;
 
 // Encoder
 extern volatile int encoderPos;
