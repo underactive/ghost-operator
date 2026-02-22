@@ -161,7 +161,7 @@ static void startMode(unsigned long now) {
   orch.inBurstGap = false;
 
   // Schedule window switch
-  orch.nextWindowSwitchMs = now + randRange(180000, 900000);
+  orch.nextWindowSwitchMs = now + randRange(3000, 7000);  // DEBUG: was 180000-900000
 
   Serial.print("[SIM] Mode: ");
   Serial.print(mode.shortName);
@@ -288,11 +288,22 @@ static void tickMousePhase(unsigned long now) {
 // ============================================================================
 
 static void tickSwitchPhase(unsigned long now) {
+  // DEBUG: log every SWITCHING phase entry with gate states
+  Serial.print("[DBG-SWT] winSwitch=");
+  Serial.print(settings.windowSwitching);
+  Serial.print(" hostOS=");
+  Serial.print(settings.hostOS);
+  Serial.print(" profile=");
+  Serial.print(orch.autoProfile);
+  Serial.print(" timerIn=");
+  Serial.println(orch.nextWindowSwitchMs > now ? (orch.nextWindowSwitchMs - now) : 0);
+
   // Window switch fires during SWITCHING phase at long intervals
   if (settings.windowSwitching && settings.hostOS != HOST_OS_DISABLED &&
       orch.autoProfile != PROFILE_LAZY && now >= orch.nextWindowSwitchMs) {
+    Serial.println("[DBG-SWT] >>> FIRING sendWindowSwitch()");
     sendWindowSwitch();
-    orch.nextWindowSwitchMs = now + randRange(180000, 900000);
+    orch.nextWindowSwitchMs = now + randRange(3000, 7000);  // DEBUG: was 180000-900000
   }
 }
 
