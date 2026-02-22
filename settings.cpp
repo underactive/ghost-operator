@@ -35,6 +35,7 @@ void loadDefaults() {
   settings.scheduleMode = SCHED_OFF;
   settings.scheduleStart = 108;  // 9:00 (108 * 5min = 540min = 9h)
   settings.scheduleEnd = 204;    // 17:00 (204 * 5min = 1020min = 17h)
+  settings.invertDial = 0;
 }
 
 uint8_t calcChecksum() {
@@ -123,6 +124,7 @@ void loadSettings() {
         if (settings.scheduleMode >= SCHED_MODE_COUNT) settings.scheduleMode = SCHED_OFF;
         if (settings.scheduleStart >= SCHEDULE_SLOTS) settings.scheduleStart = 108;
         if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 204;
+        if (settings.invertDial > 1) settings.invertDial = 0;
 
         adcCalStart = millis();
         { const char* ref = COPYRIGHT_TEXT;
@@ -162,6 +164,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_BT_WHILE_USB:   return settings.btWhileUsb;
     case SET_SCROLL:         return settings.scrollEnabled;
     case SET_DASHBOARD:      return settings.dashboardEnabled;
+    case SET_INVERT_DIAL:    return settings.invertDial;
     case SET_SCHEDULE_MODE:  return settings.scheduleMode;
     case SET_SCHEDULE_START: return settings.scheduleStart;
     case SET_SCHEDULE_END:   return settings.scheduleEnd;
@@ -210,6 +213,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       }
       settings.dashboardEnabled = (uint8_t)value;
       break;
+    case SET_INVERT_DIAL:  settings.invertDial = (uint8_t)clampVal(value, 0, 1); break;
     case SET_SCHEDULE_MODE:
       settings.scheduleMode = (uint8_t)clampVal(value, 0, SCHED_MODE_COUNT - 1);
       if (settings.scheduleMode != SCHED_OFF) {

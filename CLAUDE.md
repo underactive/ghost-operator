@@ -133,11 +133,16 @@ struct Settings {
   uint8_t scrollEnabled;       // 0=Off (default), 1=On — random scroll wheel during mouse jiggle
   uint8_t dashboardEnabled;    // 1=On (default), 0=Off — WebUSB landing page for Chrome
   uint8_t dashboardBootCount;  // 0-2=boot count (auto-disable after 3), 0xFF=user pinned
+  uint8_t decoyIndex;          // 0=Custom/default, 1-10=preset index into DECOY_NAMES[]
+  uint8_t scheduleMode;        // 0=Off, 1=Auto-sleep, 2=Full auto
+  uint16_t scheduleStart;      // 0-287 (5-min slots), default 108 (9:00)
+  uint16_t scheduleEnd;        // 0-287 (5-min slots), default 204 (17:00)
+  uint8_t invertDial;          // 0=Off (default), 1=On — reverse encoder rotation
   uint8_t checksum;            // must remain last
 };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently).
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off.
 
 #### 4. Timing Profiles
 ```cpp
@@ -199,6 +204,7 @@ WEB → DEVICE                    DEVICE → WEB
 =btWhileUsb:1               →   +ok
 =scroll:1                   →   +ok
 =dashboard:1                →   +ok
+=invertDial:1               →   +ok
 =statusPush:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok

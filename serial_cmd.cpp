@@ -149,6 +149,7 @@ void handleSerialCommands() {
         if (settings.dashboardBootCount == 0xFF) Serial.print("pinned");
         else { Serial.print(settings.dashboardBootCount); Serial.print("/3"); }
         Serial.println(")");
+        Serial.print("Invert dial: "); Serial.println(settings.invertDial ? "On" : "Off");
         Serial.print("BLE disabled for USB: "); Serial.println(bleDisabledForUsb ? "YES" : "NO");
         Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
         Serial.print("Schedule mode: "); Serial.println(SCHEDULE_MODE_NAMES[settings.scheduleMode]);
