@@ -162,6 +162,9 @@ extern unsigned long sleepCancelStart;
 // Mute button state (D7)
 extern unsigned long lastMuteBtnPress;
 
+// Debug button state (D8)
+extern unsigned long lastDebugBtnPress;
+
 // Orchestrator state (simulation mode)
 struct OrchestratorState {
   // Position in hierarchy

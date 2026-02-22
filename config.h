@@ -37,6 +37,7 @@
 #define PIN_LED          6   // D6 - Activity LED
 #endif
 #define PIN_MUTE_BTN     7   // D7 - Mute button (SPST, active LOW)
+#define PIN_DEBUG_BTN    8   // D8 - Debug button (SPST, active LOW)
 
 // Internal battery pin - use board defaults if available
 #ifndef PIN_VBAT
