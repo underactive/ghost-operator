@@ -16,10 +16,10 @@ struct ProfileWeights {
 struct PhaseTiming {
   uint8_t  burstKeysMin, burstKeysMax;
   uint16_t interKeyMinMs, interKeyMaxMs;
-  uint16_t burstGapMinMs, burstGapMaxMs;
+  uint32_t burstGapMinMs, burstGapMaxMs;
   uint16_t keyHoldMinMs, keyHoldMaxMs;
-  uint16_t mouseDurMinMs, mouseDurMaxMs;
-  uint16_t idleDurMinMs, idleDurMaxMs;
+  uint32_t mouseDurMinMs, mouseDurMaxMs;
+  uint32_t idleDurMinMs, idleDurMaxMs;
 };
 
 struct WorkModeDef {

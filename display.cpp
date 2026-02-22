@@ -360,7 +360,7 @@ static void drawNormalMode() {
   }
 
   // Right side: BT icon + battery, right aligned
-  char batStr[8];
+  char batStr[16];
   snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
   int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
@@ -552,7 +552,7 @@ static void drawSimulationNormal() {
   }
 
   // Right side: BT icon + battery
-  char batStr[8];
+  char batStr[16];
   snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
   int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
@@ -815,7 +815,7 @@ static void drawSimulationScreensaver() {
 
   // Battery warning (y=44) — only if <15%
   if (batteryPercent < 15) {
-    char batStr[8];
+    char batStr[16];
     snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
     int bw = strlen(batStr) * 6;
     display.setCursor((128 - bw) / 2, 44);
@@ -940,7 +940,7 @@ static void drawScreensaver() {
 
   // === Battery warning (y=48) -- only if <15% ===
   if (batteryPercent < 15) {
-    char batStr[8];
+    char batStr[16];
     snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
     int batWidth = strlen(batStr) * 6;
     display.setCursor((128 - batWidth) / 2, 48);
@@ -1061,7 +1061,7 @@ static void drawNameMode() {
     display.print("DEVICE NAME");
 
     // Position indicator right aligned: [3/14]
-    char posInd[8];
+    char posInd[10];
     snprintf(posInd, sizeof(posInd), "[%d/%d]", activeNamePos + 1, NAME_MAX_LEN);
     int indWidth = strlen(posInd) * 6;
     display.setCursor(128 - indWidth, 0);
@@ -1542,7 +1542,7 @@ static void drawMenuMode() {
   }
 
   // BT/USB icon + battery right-aligned in header
-  char batStr[8];
+  char batStr[16];
   snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
   int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
