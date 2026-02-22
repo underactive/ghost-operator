@@ -130,6 +130,19 @@ bool isMenuItemHidden(int8_t idx) {
 
   bool isSim = (settings.operationMode == 1);
 
+  // Orphan heading auto-hide: headings with all children hidden.
+  // Must run BEFORE settingId checks — headings have settingId=0 which
+  // collides with SET_KEY_MIN and would be incorrectly hidden in sim mode.
+  if (item.type == MENU_HEADING) {
+    bool anyChildVisible = false;
+    for (int8_t j = idx + 1; j < MENU_ITEM_COUNT; j++) {
+      if (MENU_ITEMS[j].type == MENU_HEADING) break;
+      if (!isMenuItemHidden(j)) { anyChildVisible = true; break; }
+    }
+    if (!anyChildVisible) return true;
+    return false;  // heading visibility determined solely by orphan check
+  }
+
   // Conditional visibility (independent of mode)
   if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) return true;
   if (item.settingId == SET_CLICK_TYPE && !settings.phantomClicks) return true;
@@ -152,16 +165,6 @@ bool isMenuItemHidden(int8_t idx) {
       case SET_WINDOW_SWITCH: case SET_HOST_OS: case SET_HEADER_DISPLAY:
         return true;
     }
-  }
-
-  // Orphan heading auto-hide: headings with all children hidden
-  if (item.type == MENU_HEADING) {
-    bool anyChildVisible = false;
-    for (int8_t j = idx + 1; j < MENU_ITEM_COUNT; j++) {
-      if (MENU_ITEMS[j].type == MENU_HEADING) break;
-      if (!isMenuItemHidden(j)) { anyChildVisible = true; break; }
-    }
-    if (!anyChildVisible) return true;
   }
 
   return false;
