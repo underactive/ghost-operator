@@ -225,37 +225,38 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
   }
 }
 
-String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
+void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_t bufSize) {
   uint32_t val = getSettingValue(settingId);
   switch (format) {
-    case FMT_DURATION_MS:  return formatDuration(val);
-    case FMT_PERCENT:      return String(val) + "%";
-    case FMT_PERCENT_NEG:  return (val == 0) ? String("0%") : ("-" + String(val) + "%");
-    case FMT_SAVER_NAME:   return (val < SAVER_TIMEOUT_COUNT) ? String(SAVER_NAMES[val]) : String("???");
-    case FMT_PIXELS:       return String(val) + "px";
-    case FMT_ANIM_NAME:    return (val < ANIM_STYLE_COUNT) ? String(ANIM_NAMES[val]) : String("???");
-    case FMT_MOUSE_STYLE:  return (val < MOUSE_STYLE_COUNT) ? String(MOUSE_STYLE_NAMES[val]) : String("???");
-    case FMT_ON_OFF:       return (val < 2) ? String(ON_OFF_NAMES[val]) : String("???");
-    case FMT_SCHEDULE_MODE: return (val < SCHED_MODE_COUNT) ? String(SCHEDULE_MODE_NAMES[val]) : String("???");
+    case FMT_DURATION_MS:   formatDuration(val, buf, bufSize); return;
+    case FMT_PERCENT:       snprintf(buf, bufSize, "%lu%%", (unsigned long)val); return;
+    case FMT_PERCENT_NEG:
+      if (val == 0) snprintf(buf, bufSize, "0%%");
+      else snprintf(buf, bufSize, "-%lu%%", (unsigned long)val);
+      return;
+    case FMT_SAVER_NAME:    snprintf(buf, bufSize, "%s", (val < SAVER_TIMEOUT_COUNT) ? SAVER_NAMES[val] : "???"); return;
+    case FMT_PIXELS:        snprintf(buf, bufSize, "%lupx", (unsigned long)val); return;
+    case FMT_ANIM_NAME:     snprintf(buf, bufSize, "%s", (val < ANIM_STYLE_COUNT) ? ANIM_NAMES[val] : "???"); return;
+    case FMT_MOUSE_STYLE:   snprintf(buf, bufSize, "%s", (val < MOUSE_STYLE_COUNT) ? MOUSE_STYLE_NAMES[val] : "???"); return;
+    case FMT_ON_OFF:        snprintf(buf, bufSize, "%s", (val < 2) ? ON_OFF_NAMES[val] : "???"); return;
+    case FMT_SCHEDULE_MODE: snprintf(buf, bufSize, "%s", (val < SCHED_MODE_COUNT) ? SCHEDULE_MODE_NAMES[val] : "???"); return;
     case FMT_TIME_5MIN: {
       uint16_t totalMin = val * 5;
       uint8_t h = totalMin / 60;
       uint8_t m = totalMin % 60;
-      char buf[6];
-      snprintf(buf, sizeof(buf), "%d:%02d", h, m);
-      return String(buf);
+      snprintf(buf, bufSize, "%d:%02d", h, m);
+      return;
     }
-    case FMT_UPTIME:       return formatUptime(millis() - startTime);
+    case FMT_UPTIME:        formatUptime(millis() - startTime, buf, bufSize); return;
     case FMT_DIE_TEMP: {
       int32_t raw;
-      if (sd_temp_get(&raw) != NRF_SUCCESS) return String("---");
+      if (sd_temp_get(&raw) != NRF_SUCCESS) { snprintf(buf, bufSize, "---"); return; }
       int c = raw / 4;
       int f = c * 9 / 5 + 32;
-      char buf[10];
-      snprintf(buf, sizeof(buf), "%dC/%dF", c, f);
-      return String(buf);
+      snprintf(buf, bufSize, "%dC/%dF", c, f);
+      return;
     }
-    case FMT_VERSION:      return String("v") + String(VERSION);
-    default:               return String(val);
+    case FMT_VERSION:       snprintf(buf, bufSize, "v%s", VERSION); return;
+    default:                snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
   }
 }

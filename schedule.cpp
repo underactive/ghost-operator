@@ -15,8 +15,10 @@ void syncTime(uint32_t daySeconds) {
   wallClockDaySecs = daySeconds;
   wallClockSyncMs = millis();
   timeSynced = true;
+  char timeBuf[12];
+  formatCurrentTime(timeBuf, sizeof(timeBuf));
   Serial.print("Time synced: ");
-  Serial.println(formatCurrentTime());
+  Serial.println(timeBuf);
 }
 
 uint32_t currentDaySeconds() {
@@ -32,15 +34,13 @@ uint32_t currentDaySeconds() {
   return (wallClockDaySecs + elapsedSecs) % 86400;
 }
 
-String formatCurrentTime() {
+void formatCurrentTime(char* buf, size_t bufSize) {
   uint32_t secs = currentDaySeconds();
-  if (secs == 0xFFFFFFFF) return String("--:--:--");
+  if (secs == 0xFFFFFFFF) { snprintf(buf, bufSize, "--:--:--"); return; }
   uint8_t h = secs / 3600;
   uint8_t m = (secs % 3600) / 60;
   uint8_t s = secs % 60;
-  char buf[9];
-  snprintf(buf, sizeof(buf), "%d:%02d:%02d", h, m, s);
-  return String(buf);
+  snprintf(buf, bufSize, "%d:%02d:%02d", h, m, s);
 }
 
 // ============================================================================

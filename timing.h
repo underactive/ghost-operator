@@ -4,7 +4,7 @@
 #include "config.h"
 
 unsigned long applyRandomness(unsigned long baseValue);
-String formatDuration(unsigned long ms, bool withUnit = true);
+void formatDuration(unsigned long ms, char* buf, size_t bufSize, bool withUnit = true);
 unsigned long applyProfile(unsigned long baseValue, int direction);
 unsigned long effectiveKeyMin();
 unsigned long effectiveKeyMax();
@@ -13,6 +13,6 @@ unsigned long effectiveMouseIdle();
 void scheduleNextKey();
 void scheduleNextMouseState();
 unsigned long saverTimeoutMs();
-String formatUptime(unsigned long ms);
+void formatUptime(unsigned long ms, char* buf, size_t bufSize);
 
 #endif // GHOST_TIMING_H

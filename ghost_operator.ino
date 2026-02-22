@@ -114,7 +114,35 @@ void setupPins() {
   Serial.println("[OK] Pins configured");
 }
 
+// Bit-bang I2C bus recovery: clocks out stuck slave after WDT reset mid-transfer
+void i2cBusRecovery() {
+  pinMode(PIN_SDA, INPUT_PULLUP);
+  pinMode(PIN_SCL, OUTPUT);
+
+  // 9 SCL pulses to release stuck SDA
+  for (int i = 0; i < 9; i++) {
+    digitalWrite(PIN_SCL, LOW);
+    delayMicroseconds(5);
+    digitalWrite(PIN_SCL, HIGH);
+    delayMicroseconds(5);
+  }
+
+  // Generate STOP condition: SDA low→high while SCL high
+  pinMode(PIN_SDA, OUTPUT);
+  digitalWrite(PIN_SDA, LOW);
+  delayMicroseconds(5);
+  digitalWrite(PIN_SCL, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(PIN_SDA, HIGH);
+  delayMicroseconds(5);
+
+  // Release pins for Wire library
+  pinMode(PIN_SDA, INPUT_PULLUP);
+  pinMode(PIN_SCL, INPUT_PULLUP);
+}
+
 void setupDisplay() {
+  i2cBusRecovery();
   Wire.begin();
   Wire.setClock(400000);
 
@@ -133,8 +161,9 @@ void setupDisplay() {
   display.clearDisplay();
   display.drawBitmap(0, 0, splashBitmap, 128, 64, SSD1306_WHITE);
   // Version in lower-right corner (e.g. "v1.4.0" = 6 chars x 6px = 36px)
-  String ver = "v" + String(VERSION);
-  display.setCursor(128 - ver.length() * 6, 57);
+  char ver[12];
+  snprintf(ver, sizeof(ver), "v%s", VERSION);
+  display.setCursor(128 - strlen(ver) * 6, 57);
   display.print(ver);
   display.display();
   delay(3000);
@@ -299,6 +328,15 @@ void setup() {
   lastModeActivity = millis();
   lastScheduleCheck = millis();
 
+  // Hardware watchdog — auto-resets device after 8s hang (e.g. heap fragmentation freeze)
+  // Must be AFTER setupDisplay() (3s splash delay would trigger it if started earlier)
+  // NRF_WDT is not SoftDevice-owned — direct register access is safe
+  NRF_WDT->CONFIG = 1;  // Run in CPU sleep, pause when debugger halted
+  NRF_WDT->CRV = (WDT_TIMEOUT_MS * 32768ULL) / 1000 - 1;  // 8s at 32.768kHz LFCLK
+  NRF_WDT->RREN = 1;    // Enable reload register 0
+  NRF_WDT->TASKS_START = 1;
+  Serial.println("[OK] WDT started (8s)");
+
   Serial.println("Setup complete.");
   Serial.println("Short press func btn = open/close menu");
   Serial.println("Long press func btn = sleep");
@@ -309,6 +347,7 @@ void setup() {
 // ============================================================================
 
 void loop() {
+  NRF_WDT->RR[0] = 0x6E524635;  // Feed watchdog (WDT_RR_RR_Reload)
   unsigned long now = millis();
 
   if (sleepPending) {
