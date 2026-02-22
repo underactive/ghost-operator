@@ -88,7 +88,7 @@ do_compile() {
         --fqbn "$FQBN" \
         --build-path "$BUILD_DIR" \
         . \
-        --warnings default
+        --warnings more
 
     local hex_file="$BUILD_DIR/$SKETCH_NAME.hex"
     local zip_file="$BUILD_DIR/$SKETCH_NAME.zip"
