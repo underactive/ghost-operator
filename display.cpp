@@ -617,14 +617,31 @@ static void drawSimulationNormal() {
     display.print(timeBuf);
   }
 
-  // === Phase : Profile row (y=29) ===
+  // === Profile stint row (y=29): name left | inline bar + time right ===
   {
-    char phaseLine[22];
-    const char* phaseLabel = (orch.phase < PHASE_COUNT) ? SIM_PHASE_LABELS[orch.phase] : "???";
-    const char* profLabel = PROFILE_NAMES[orch.autoProfile];
-    snprintf(phaseLine, sizeof(phaseLine), "%s : %s", phaseLabel, profLabel);
     display.setCursor(0, 29);
-    display.print(phaseLine);
+    display.print(PROFILE_NAMES_TITLE[orch.autoProfile]);
+
+    unsigned long stintElapsed = now - orch.profileStintStartMs;
+    unsigned long stintRemain = (stintElapsed < orch.profileStintMs) ? (orch.profileStintMs - stintElapsed) : 0;
+    char timeBuf[10];
+    formatMinSec(stintRemain, timeBuf, sizeof(timeBuf));
+    int timeW = strlen(timeBuf) * 6;
+    int timeX = 128 - timeW;
+    int barW = timeX - 2 - 64;
+
+    if (barW > 4) {
+      uint8_t progress = 0;
+      if (orch.profileStintMs > 0) {
+        progress = (uint8_t)map(stintRemain, 0, orch.profileStintMs, 0, 100);
+      }
+      display.drawRect(64, 30, barW, 5, SSD1306_WHITE);
+      int fill = map(progress, 0, 100, 0, barW - 2);
+      if (fill > 0) display.fillRect(65, 31, fill, 3, SSD1306_WHITE);
+    }
+
+    display.setCursor(timeX, 29);
+    display.print(timeBuf);
   }
 
   display.drawFastHLine(0, 37, 128, SSD1306_WHITE);

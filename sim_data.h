@@ -64,7 +64,6 @@ extern const char* JOB_SIM_NAMES[];
 extern const char* HOST_OS_NAMES[];
 extern const char* HEADER_DISP_NAMES[];
 extern const char* PHASE_NAMES[];
-extern const char* SIM_PHASE_LABELS[];
 extern const char* WMODE_SHORT_NAMES[];
 
 #endif // GHOST_SIM_DATA_H

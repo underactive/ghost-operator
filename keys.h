@@ -13,6 +13,7 @@ extern const char* SAVER_NAMES[];
 extern const char NAME_CHARS[];
 extern const char* MODE_NAMES[];
 extern const char* PROFILE_NAMES[];
+extern const char* PROFILE_NAMES_TITLE[];
 extern const char* ANIM_NAMES[];
 extern const char* MOUSE_STYLE_NAMES[];
 extern const char* ON_OFF_NAMES[];
