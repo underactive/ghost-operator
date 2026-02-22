@@ -78,6 +78,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   // About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Uptime",        "Time since last boot", FMT_UPTIME, 0, 0, 0, SET_UPTIME },
+  { MENU_VALUE,   "Die temp",      "nRF52840 internal die temperature", FMT_DIE_TEMP, 0, 0, 0, SET_DIE_TEMP },
   { MENU_VALUE,   "Version",       COPYRIGHT_TEXT, FMT_VERSION, 0, 0, 0, SET_VERSION },
 };
 

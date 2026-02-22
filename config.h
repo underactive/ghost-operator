@@ -128,7 +128,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -152,7 +152,8 @@ enum SettingId {
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
   SET_VERSION,
-  SET_UPTIME
+  SET_UPTIME,
+  SET_DIE_TEMP
 };
 
 // ============================================================================
@@ -174,7 +175,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 29
+#define MENU_ITEM_COUNT 30
 
 struct Settings {
   uint32_t magic;
