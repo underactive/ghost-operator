@@ -5,6 +5,31 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1] - 2026-02-21
+
+### Added
+
+- **nRF52840 die temperature**: New "Die temp" read-only item in About menu section, displays internal temperature in both Celsius and Fahrenheit via `sd_temp_get()`
+- **Dashboard battery chart**: Real-time SVG chart showing battery percentage and voltage history over time, with localStorage persistence across sessions
+- **Battery voltage in status protocol**: `?status` response now includes `batMv` field for millivolt-level battery monitoring
+
+### Changed
+
+- **LiPo discharge curve**: Replaced linear voltage-to-percentage mapping with 11-point lookup table matching real LiPo characteristics (plateau at 3.7-3.8V, steep dropoff below 3.5V)
+- **BLE idle power management**: Connection interval negotiated from 15ms (active HID) to 60ms with slave latency 4 (idle) after 5 seconds of no HID activity; reverts on next keystroke or mouse move
+- **Adaptive display refresh**: Screensaver runs at 2 Hz (was 10 Hz) to reduce I2C bus power draw
+- **Protocol input validation**: All `setSettingValue()` paths now use `clampVal()` for bounds enforcement; array-indexed format lookups guarded against out-of-bounds access
+- **Heap fragmentation reduction**: `cmdQueryStatus()` and `cmdQuerySettings()` rewritten with `snprintf()` into stack buffers instead of `String` concatenation
+- **Symbolic menu indices**: Hardcoded `menuCursor = N` replaced with `MENU_IDX_*` defines for position-independent menu navigation
+- **BLE UART reliability**: Buffer overflow tracking with `-err:cmd too long` error response; `resetBleUartBuffer()` called on disconnect to prevent cross-session corruption; partial slot commands fill remaining slots with NONE
+- **Serial status push throttle**: 200ms minimum interval guard on `pushSerialStatus()` to prevent BLE stack saturation
+- **Copyright reference decoupled**: `COPYRIGHT_TEXT` constant replaces position-dependent `MENU_ITEMS[MENU_ITEM_COUNT - 1].helpText` references
+
+### Fixed
+
+- **Menu timeout on About items**: Read-only items (Uptime, Die temp, Version) no longer trigger 30-second mode timeout, so users can monitor uptime without being kicked back to NORMAL mode
+- **`sprintf` → `snprintf`**: Remaining `sprintf` calls in `schedule.cpp` and `settings.cpp` converted to `snprintf` for buffer safety
+
 ## [1.10.0] - 2026-02-20
 
 ### Added
