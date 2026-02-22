@@ -735,29 +735,4 @@ void handleButtons() {
     pushSerialStatus();
   }
   lastMuteBtn = muteBtn;
-
-  // Debug button (D8) - manually trigger window switch for testing
-  static bool lastDebugBtn = HIGH;
-  bool debugBtn = digitalRead(PIN_DEBUG_BTN);
-  if (debugBtn == LOW && lastDebugBtn == HIGH && (now - lastDebugBtnPress > DEBOUNCE)) {
-    lastDebugBtnPress = now;
-    lastModeActivity = now;
-
-    // Bypass overlays
-    if (sleepConfirmActive || sleepCancelActive) { lastDebugBtn = debugBtn; return; }
-
-    Serial.print("[DBG] Window switch → hostOS=");
-    Serial.print(settings.hostOS);
-    Serial.print(" winSwitch=");
-    Serial.print(settings.windowSwitching);
-    Serial.print(" connected=");
-    Serial.print(deviceConnected);
-    Serial.print(" usb=");
-    Serial.println(usbConnected);
-
-    sendWindowSwitch();
-    Serial.println("[DBG] sendWindowSwitch() returned");
-    pushSerialStatus();
-  }
-  lastDebugBtn = debugBtn;
 }

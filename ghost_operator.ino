@@ -106,7 +106,6 @@ void setupPins() {
   pinMode(PIN_FUNC_BTN, INPUT_PULLUP);
 
   pinMode(PIN_MUTE_BTN, INPUT_PULLUP);
-  pinMode(PIN_DEBUG_BTN, INPUT_PULLUP);
 
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);

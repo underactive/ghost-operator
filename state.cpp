@@ -154,8 +154,5 @@ unsigned long sleepCancelStart = 0;
 // Mute button state (D7)
 unsigned long lastMuteBtnPress = 0;
 
-// Debug button state (D8)
-unsigned long lastDebugBtnPress = 0;
-
 // Orchestrator state (simulation mode)
 OrchestratorState orch = {};
