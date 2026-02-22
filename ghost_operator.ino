@@ -209,6 +209,16 @@ void setupUSBHID() {
 // ============================================================================
 
 void setup() {
+  // Boot-time DFU: hold function button during power-on → enter Serial DFU bootloader.
+  // Hardware fallback for reflashing when USB serial or BLE stack can't respond.
+  pinMode(PIN_FUNC_BTN, INPUT_PULLUP);
+  delay(50);  // pullup settle + debounce
+  if (digitalRead(PIN_FUNC_BTN) == LOW) {
+    sd_power_gpregret_clr(0, 0xFF);
+    sd_power_gpregret_set(0, 0x4E);  // DFU_MAGIC_SERIAL_ONLY_RESET
+    NVIC_SystemReset();
+  }
+
   // Load settings before USB init — Chrome reads the WebUSB landing page during
   // USB enumeration (triggered by Serial.begin), so dashboardEnabled must be known
   // before the stack starts. Serial isn't running yet so loadSettings() output is silent.
