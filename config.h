@@ -75,6 +75,7 @@
 #define SWEEP_SPEED_MAX       200     // px/sec
 #define SWEEP_DRIFT_FACTOR    3
 #define DISPLAY_UPDATE_MS     100         // Faster for smooth countdown
+#define DISPLAY_UPDATE_SAVER_MS  500     // 2 Hz during screensaver (power saving)
 #define BATTERY_READ_MS       60000UL
 #define SLEEP_CONFIRM_THRESHOLD_MS  500   // Hold before showing confirmation
 #define SLEEP_COUNTDOWN_MS          5000  // Countdown duration on confirmation screen
@@ -94,6 +95,13 @@
 #define SCHEDULE_SLOT_SECS    300      // 5 minutes in seconds
 #define SCHEDULE_CHECK_MS     10000UL  // check schedule every 10s
 
+// BLE connection interval negotiation (power saving)
+#define BLE_INTERVAL_ACTIVE       12    // 15ms — responsive HID
+#define BLE_INTERVAL_IDLE         48    // 60ms — power saving
+#define BLE_SLAVE_LATENCY_IDLE    4     // skip up to 4 events (effective ~300ms)
+#define BLE_IDLE_THRESHOLD_MS     5000  // enter idle after 5s of no HID
+#define BLE_IDLE_CHECK_MS         2000  // check for idle transition every 2s
+
 // BLE device name character set
 #define NAME_CHAR_COUNT  65   // printable characters
 #define NAME_CHAR_END    65   // sentinel index = "end of name"
@@ -103,8 +111,6 @@
 // Battery calibration (3.0V internal reference)
 #define VBAT_MV_PER_LSB   (3000.0F / 4096.0F)
 #define VBAT_DIVIDER      (1510.0F / 510.0F)
-#define VBAT_MIN_MV       3200
-#define VBAT_MAX_MV       4200
 
 // Copyright reference (used by menu + calibration — position-independent)
 #define COPYRIGHT_TEXT     "(c) 2026 TARS Industrial Technical Solutions"

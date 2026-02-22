@@ -23,6 +23,7 @@ export const status = reactive({
   kb: true,
   ms: true,
   bat: 100,
+  batMv: 0,
   profile: 1,
   mode: 0,
   mouseState: 0,
@@ -64,6 +65,11 @@ export const saving = ref(false)
 export const statusMessage = ref('')
 export const dfuActive = ref(false)
 
+// Battery history (up to 720 entries = 1 hour at 5s polling)
+export const batteryHistory = reactive([])
+const BATTERY_HISTORY_MAX = 720
+let lastBatteryDevice = ''
+
 // Snapshot of last-saved settings for dirty detection
 let savedSnapshot = ''
 
@@ -72,6 +78,46 @@ let pollInterval = null
 
 // Pending response handler
 let pendingResolve = null
+
+// --- Battery history persistence ---
+
+function batteryStorageKey(name) {
+  return `ghost_battery_${name || 'unknown'}`
+}
+
+function saveBatteryHistory(name) {
+  try {
+    localStorage.setItem(batteryStorageKey(name), JSON.stringify(batteryHistory))
+  } catch { /* quota exceeded — silently drop */ }
+}
+
+function loadBatteryHistory(name) {
+  batteryHistory.splice(0)
+  try {
+    const raw = localStorage.getItem(batteryStorageKey(name))
+    if (raw) {
+      const arr = JSON.parse(raw)
+      if (Array.isArray(arr)) {
+        // Trim stale entries older than 1 hour
+        const cutoff = Date.now() - 3600000
+        const recent = arr.filter(e => e.t > cutoff)
+        batteryHistory.push(...recent.slice(-BATTERY_HISTORY_MAX))
+      }
+    }
+  } catch { /* corrupt data — start fresh */ }
+}
+
+function pushBatterySample(pct, mv) {
+  if (mv <= 0) return
+  batteryHistory.push({ t: Date.now(), pct, mv })
+  if (batteryHistory.length > BATTERY_HISTORY_MAX) {
+    batteryHistory.splice(0, batteryHistory.length - BATTERY_HISTORY_MAX)
+  }
+  // Persist every 12 samples (~60s at 5s polling) to reduce write frequency
+  if (batteryHistory.length % 12 === 0) {
+    saveBatteryHistory(connectionState.deviceName)
+  }
+}
 
 // --- Line handler ---
 
@@ -88,7 +134,9 @@ function handleLine(line) {
       connectionState.deviceName = s.name
     }
   } else if (parsed.type === 'status') {
-    Object.assign(status, parseStatus(parsed.data))
+    const s = parseStatus(parsed.data)
+    Object.assign(status, s)
+    pushBatterySample(s.bat, s.batMv)
   } else if (parsed.type === 'keys') {
     availableKeys.value = parsed.data
   } else if (parsed.type === 'decoys') {
@@ -113,6 +161,7 @@ export async function connectDevice() {
   try {
     transport.onLine(handleLine)
     transport.onDisconnect(() => {
+      saveBatteryHistory(connectionState.deviceName)
       connectionState.connected = false
       connectionState.deviceName = ''
       stopPolling()
@@ -123,6 +172,12 @@ export async function connectDevice() {
     connectionState.connected = true
     connectionState.deviceName = name
     statusMessage.value = 'Connected'
+
+    // Load battery history for this device (or clear if different device)
+    if (name !== lastBatteryDevice) {
+      lastBatteryDevice = name
+    }
+    loadBatteryHistory(name)
 
     // Enable real-time status push from device
     await transport.send(buildSet('statusPush', 1))

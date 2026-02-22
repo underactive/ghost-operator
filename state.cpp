@@ -109,6 +109,10 @@ uint8_t  easterEggFrame   = 0;
 int batteryPercent = 100;
 float batteryVoltage = 4.2;
 
+// BLE connection interval management
+unsigned long lastHidActivity = 0;
+bool bleIdleMode = false;
+
 // RF/ADC thermal compensation
 uint8_t  rfThermalOffset  = 0;
 uint16_t adcDriftComp     = 0;
