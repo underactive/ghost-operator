@@ -17,7 +17,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
   <div class="app">
     <header>
       <h1>👻 Ghost Operator</h1>
-      <span class="version">v1.10.1</span>
+      <span class="version">v1.10.2</span>
     </header>
 
     <ConnectButton v-if="!dfuActive || connectionState.connected" />
