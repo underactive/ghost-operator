@@ -10,7 +10,7 @@
 #define VERSION "2.0.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F52  // bumped: simulation mode fields
+#define SETTINGS_MAGIC 0x50524F53  // bumped: clickType field
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -145,7 +145,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_HOST_OS, FMT_HEADER_DISP };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_HOST_OS, FMT_HEADER_DISP, FMT_CLICK_TYPE };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -179,6 +179,7 @@ enum SettingId {
   SET_OP_MODE,
   SET_JOB_SIM,
   SET_PHANTOM_CLICKS,
+  SET_CLICK_TYPE,
   SET_WINDOW_SWITCH,
   SET_HOST_OS,
   SET_HEADER_DISPLAY,
@@ -208,7 +209,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 38
+#define MENU_ITEM_COUNT 39
 
 struct Settings {
   uint32_t magic;
@@ -239,6 +240,7 @@ struct Settings {
   uint8_t operationMode;    // 0=Simple (default), 1=Simulation
   uint8_t jobSimulation;    // 0=Staff, 1=Developer, 2=Designer (default: 0)
   uint8_t phantomClicks;    // 0=Off (default), 1=On
+  uint8_t clickType;        // 0=Middle (default), 1=Left
   uint8_t windowSwitching;  // 0=Off (default), 1=On
   uint8_t hostOS;           // 0=Disabled, 1=Windows, 2=Mac, 3=Linux (default: 0)
   uint8_t headerDisplay;    // 0=Job sim name (default), 1=Device name

@@ -160,8 +160,7 @@ static void startMode(unsigned long now) {
   orch.keyDown = false;
   orch.inBurstGap = false;
 
-  // Schedule phantom click and window switch
-  orch.nextPhantomClickMs = now + randRange(15000, 90000);
+  // Schedule window switch
   orch.nextWindowSwitchMs = now + randRange(180000, 900000);
 
   Serial.print("[SIM] Mode: ");
@@ -268,15 +267,18 @@ static void tickBurst(unsigned long now) {
 static void tickMousePhase(unsigned long now) {
   if (!mouseEnabled) return;
 
+  // Snapshot state before tick to detect transitions
+  MouseState prevState = mouseState;
+
   // Delegate to existing mouse state machine
   handleMouseStateMachine(now);
 
-  // Phantom middle-click during mouse activity
-  if (settings.phantomClicks && now >= orch.nextPhantomClickMs) {
-    if (mouseState == MOUSE_IDLE || mouseState == MOUSE_JIGGLING) {
-      sendMouseClick(0x04, (uint16_t)randRange(50, 150));  // middle button
-      orch.lastPhantomClickMs = millis();  // post-blocking timestamp for display
-      orch.nextPhantomClickMs = now + randRange(15000, 90000);
+  // Phantom click: 25% chance on RETURNING → IDLE transition
+  if (settings.phantomClicks && prevState == MOUSE_RETURNING && mouseState == MOUSE_IDLE) {
+    if (random(100) < 25) {
+      uint8_t btn = settings.clickType == 1 ? 0x01 : 0x04;  // Left or Middle
+      sendMouseClick(btn, (uint16_t)randRange(50, 150));
+      orch.lastPhantomClickMs = millis();
     }
   }
 }

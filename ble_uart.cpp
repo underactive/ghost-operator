@@ -215,9 +215,9 @@ static void cmdQuerySettings() {
 
   // Simulation mode settings
   snprintf(buf + len, sizeof(buf) - len,
-    "|opMode=%d|jobSim=%d|phantom=%d|winSwitch=%d|hostOS=%d|headerDisp=%d",
+    "|opMode=%d|jobSim=%d|phantom=%d|clickType=%d|winSwitch=%d|hostOS=%d|headerDisp=%d",
     settings.operationMode, settings.jobSimulation,
-    settings.phantomClicks, settings.windowSwitching,
+    settings.phantomClicks, settings.clickType, settings.windowSwitching,
     settings.hostOS, settings.headerDisplay);
 
   currentWriter(String(buf));
@@ -327,6 +327,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_JOB_SIM, (uint32_t)atol(valStr));
   } else if (strcmp(key, "phantom") == 0) {
     setSettingValue(SET_PHANTOM_CLICKS, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "clickType") == 0) {
+    setSettingValue(SET_CLICK_TYPE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "winSwitch") == 0) {
     setSettingValue(SET_WINDOW_SWITCH, (uint32_t)atol(valStr));
   } else if (strcmp(key, "hostOS") == 0) {

@@ -8,6 +8,7 @@ const char* OP_MODE_NAMES[]     = { "Simple", "Simulation" };
 const char* JOB_SIM_NAMES[]     = { "Staff", "Developer", "Designer" };
 const char* HOST_OS_NAMES[]     = { "Disabled", "Windows", "Mac", "Linux" };
 const char* HEADER_DISP_NAMES[] = { "Job name", "Device" };
+const char* CLICK_TYPE_NAMES[] = { "Middle", "Left" };
 const char* PHASE_NAMES[]       = { "TYPE", "MOUSE", "IDLE", "SWITCH" };
 
 // ============================================================================

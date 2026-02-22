@@ -133,6 +133,9 @@ bool isMenuItemHidden(int8_t idx) {
   // Move size hidden when Bezier (existing behavior)
   if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) return true;
 
+  // Click type hidden when phantom clicks disabled
+  if (item.settingId == SET_CLICK_TYPE && !settings.phantomClicks) return true;
+
   // --- Simple-only items: hidden when in Simulation mode ---
   // Keyboard heading (idx 0), Key min (1), Key max (2) — hidden in sim
   if (isSim && idx <= 2) return true;
@@ -142,11 +145,11 @@ bool isMenuItemHidden(int8_t idx) {
   // --- Simulation-only items: hidden when in Simple mode ---
   // Simulation heading (idx 10) — hidden in simple
   if (!isSim && idx == 10) return true;
-  // Sim items: Job profile (12), Phantom clicks (13), Window switch (14), Host OS (15), Header display (16)
-  if (!isSim && idx >= 12 && idx <= 16) return true;
+  // Sim items: Job profile (12), Phantom clicks (13), Click type (14), Window switch (15), Host OS (16), Header display (17)
+  if (!isSim && idx >= 12 && idx <= 17) return true;
 
-  // Profiles heading (idx 17), Lazy/Busy (18-19) — hidden in sim (auto-managed)
-  if (isSim && idx >= 17 && idx <= 19) return true;
+  // Profiles heading (idx 18), Lazy/Busy (19-20) — hidden in sim (auto-managed)
+  if (isSim && idx >= 18 && idx <= 20) return true;
 
   // Headings with all children hidden should be hidden too
   if (item.type == MENU_HEADING) {
