@@ -42,6 +42,8 @@
 #include "display.h"
 #include "ble_uart.h"
 #include "schedule.h"
+#include "orchestrator.h"
+#include "sim_data.h"
 
 #include <nrf_soc.h>
 #include <nrf_power.h>
@@ -102,6 +104,8 @@ void setupPins() {
   pinMode(PIN_ENCODER_B, INPUT_PULLUP);
   pinMode(PIN_ENCODER_BTN, INPUT_PULLUP);
   pinMode(PIN_FUNC_BTN, INPUT_PULLUP);
+
+  pinMode(PIN_MUTE_BTN, INPUT_PULLUP);
 
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);
@@ -164,7 +168,7 @@ void setupBLE() {
     bledis.setModel(DECOY_NAMES[settings.decoyIndex - 1]);
   } else {
     bledis.setManufacturer("TARS Industrial Technical Solutions");
-    bledis.setModel("Ghost Operator v1.10.1");
+    bledis.setModel("Ghost Operator v" VERSION);
   }
   bledis.setSoftwareRev(VERSION);
   bledis.begin();
@@ -292,6 +296,11 @@ void setup() {
   scheduleNextKey();
   scheduleNextMouseState();
   pickNextKey();
+
+  // Initialize simulation orchestrator (uses settings + RNG, so must follow loadSettings + randomSeed)
+  if (settings.operationMode == 1) {
+    initOrchestrator();
+  }
 
   startTime = millis();
   lastKeyTime = millis();
@@ -434,21 +443,24 @@ void loop() {
   // Schedule check
   checkSchedule();
 
-  // Jiggler logic runs in background regardless of mode
+  // Jiggler logic runs in background regardless of UI mode
   if ((deviceConnected || usbConnected) && !scheduleSleeping) {
-    // Keystroke logic
-    if (keyEnabled && hasPopulatedSlot()) {
-      if (now - lastKeyTime >= currentKeyInterval) {
-        sendKeystroke();
-        lastKeyTime = now;
-        scheduleNextKey();
-        pushSerialStatus();
+    if (settings.operationMode == 1) {
+      // Simulation mode — orchestrator drives all KB + mouse activity
+      tickOrchestrator(now);
+    } else {
+      // Simple mode — independent KB and mouse timers (unchanged from v1.x)
+      if (keyEnabled && hasPopulatedSlot()) {
+        if (now - lastKeyTime >= currentKeyInterval) {
+          sendKeystroke();
+          lastKeyTime = now;
+          scheduleNextKey();
+          pushSerialStatus();
+        }
       }
-    }
-
-    // Mouse logic
-    if (mouseEnabled) {
-      handleMouseStateMachine(now);
+      if (mouseEnabled) {
+        handleMouseStateMachine(now);
+      }
     }
   }
 

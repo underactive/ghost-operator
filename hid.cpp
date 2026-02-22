@@ -97,3 +97,93 @@ void sendKeystroke() {
 
   pickNextKey();
 }
+
+// ============================================================================
+// NON-BLOCKING KEY PRESS/RELEASE (for simulation burst state machine)
+// ============================================================================
+
+void sendKeyDown(uint8_t keyIndex) {
+  if (keyIndex >= NUM_KEYS) return;
+  const KeyDef& key = AVAILABLE_KEYS[keyIndex];
+  if (key.keycode == 0) return;
+  if (!rfCalOk()) return;
+  markHidActivity();
+
+  uint8_t keycodes[6] = {0};
+  if (key.isModifier) {
+    uint8_t mod = 1 << (key.keycode - HID_KEY_CONTROL_LEFT);
+    dualKeyboardReport(mod, keycodes);
+  } else {
+    keycodes[0] = key.keycode;
+    dualKeyboardReport(0, keycodes);
+  }
+}
+
+void sendKeyUp() {
+  uint8_t keycodes[6] = {0};
+  dualKeyboardReport(0, keycodes);
+}
+
+// ============================================================================
+// PHANTOM MIDDLE-CLICK (blocking — infrequent, ~50-150ms)
+// ============================================================================
+
+void sendMouseClick(uint8_t button, uint16_t holdMs) {
+  if (!rfCalOk()) return;
+  markHidActivity();
+
+  // Press
+  if (deviceConnected) {
+    blehid.mouseButtonPress(button);
+  }
+  if (TinyUSBDevice.mounted() && usb_hid.ready()) {
+    usb_hid.mouseReport(RID_MOUSE, button, 0, 0, 0, 0);
+  }
+
+  delay(holdMs);
+
+  // Release
+  if (deviceConnected) {
+    blehid.mouseButtonRelease();
+  }
+  if (TinyUSBDevice.mounted() && usb_hid.ready()) {
+    usb_hid.mouseReport(RID_MOUSE, 0, 0, 0, 0, 0);
+  }
+}
+
+// ============================================================================
+// WINDOW SWITCH (Alt-Tab / Cmd-Tab)
+// ============================================================================
+
+void sendWindowSwitch() {
+  // Double-gate: requires both windowSwitching=1 AND hostOS != Disabled
+  if (!settings.windowSwitching || settings.hostOS == HOST_OS_DISABLED) return;
+  if (!rfCalOk()) return;
+  markHidActivity();
+
+  uint8_t keycodes[6] = {0};
+  uint8_t modifier;
+
+  if (settings.hostOS == HOST_OS_MAC) {
+    modifier = KEYBOARD_MODIFIER_LEFTGUI;  // Cmd
+  } else {
+    modifier = KEYBOARD_MODIFIER_LEFTALT;  // Alt (Win/Linux)
+  }
+
+  // Press modifier
+  dualKeyboardReport(modifier, keycodes);
+  delay(30 + random(30));
+
+  // Press Tab
+  keycodes[0] = HID_KEY_TAB;
+  dualKeyboardReport(modifier, keycodes);
+  delay(50 + random(70));
+
+  // Release Tab
+  keycodes[0] = 0;
+  dualKeyboardReport(modifier, keycodes);
+  delay(20 + random(30));
+
+  // Release modifier
+  dualKeyboardReport(0, keycodes);
+}

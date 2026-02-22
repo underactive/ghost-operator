@@ -154,4 +154,42 @@ extern unsigned long sleepConfirmStart;
 extern bool     sleepCancelActive;
 extern unsigned long sleepCancelStart;
 
+// Mute button state (D7)
+extern unsigned long lastMuteBtnPress;
+
+// Orchestrator state (simulation mode)
+struct OrchestratorState {
+  // Position in hierarchy
+  uint8_t blockIdx;
+  WorkModeId modeId;
+  ActivityPhase phase;
+  Profile autoProfile;
+
+  // Timers (all millis-based, overflow-safe subtraction)
+  unsigned long blockStartMs, blockDurationMs;
+  unsigned long modeStartMs, modeDurationMs;
+  unsigned long phaseStartMs, phaseDurationMs;
+  unsigned long profileStintStartMs, profileStintMs;
+  uint16_t switchGapMs;
+
+  // Burst state (PHASE_TYPING sub-FSM)
+  uint8_t burstKeysRemaining;
+  bool keyDown;
+  unsigned long keyDownMs;
+  uint16_t currentKeyHoldMs;
+  unsigned long nextKeyMs;
+  bool inBurstGap;
+  unsigned long burstGapEndMs;
+
+  // Phantom click / window switch timers
+  unsigned long nextPhantomClickMs;
+  unsigned long nextWindowSwitchMs;
+
+  // Schedule preview overlay
+  bool previewActive;
+  unsigned long previewStartMs;
+};
+
+extern OrchestratorState orch;
+
 #endif // GHOST_STATE_H

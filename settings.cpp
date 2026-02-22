@@ -2,6 +2,7 @@
 #include "state.h"
 #include "keys.h"
 #include "timing.h"
+#include "sim_data.h"
 #include <nrf_soc.h>
 
 using namespace Adafruit_LittleFS_Namespace;
@@ -36,6 +37,13 @@ void loadDefaults() {
   settings.scheduleStart = 108;  // 9:00 (108 * 5min = 540min = 9h)
   settings.scheduleEnd = 204;    // 17:00 (204 * 5min = 1020min = 17h)
   settings.invertDial = 0;
+  // Simulation mode defaults
+  settings.operationMode = 0;     // Simple
+  settings.jobSimulation = 0;     // Staff
+  settings.phantomClicks = 0;     // Off
+  settings.windowSwitching = 0;   // Off
+  settings.hostOS = HOST_OS_DISABLED;
+  settings.headerDisplay = 0;     // Job sim name
 }
 
 uint8_t calcChecksum() {
@@ -125,6 +133,13 @@ void loadSettings() {
         if (settings.scheduleStart >= SCHEDULE_SLOTS) settings.scheduleStart = 108;
         if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 204;
         if (settings.invertDial > 1) settings.invertDial = 0;
+        // Simulation mode bounds
+        if (settings.operationMode > 1) settings.operationMode = 0;
+        if (settings.jobSimulation >= JOB_SIM_COUNT) settings.jobSimulation = 0;
+        if (settings.phantomClicks > 1) settings.phantomClicks = 0;
+        if (settings.windowSwitching > 1) settings.windowSwitching = 0;
+        if (settings.hostOS >= HOST_OS_COUNT) settings.hostOS = HOST_OS_DISABLED;
+        if (settings.headerDisplay > 1) settings.headerDisplay = 0;
 
         adcCalStart = millis();
         { const char* ref = COPYRIGHT_TEXT;
@@ -168,6 +183,12 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_SCHEDULE_MODE:  return settings.scheduleMode;
     case SET_SCHEDULE_START: return settings.scheduleStart;
     case SET_SCHEDULE_END:   return settings.scheduleEnd;
+    case SET_OP_MODE:        return settings.operationMode;
+    case SET_JOB_SIM:        return settings.jobSimulation;
+    case SET_PHANTOM_CLICKS: return settings.phantomClicks;
+    case SET_WINDOW_SWITCH:  return settings.windowSwitching;
+    case SET_HOST_OS:        return settings.hostOS;
+    case SET_HEADER_DISPLAY: return settings.headerDisplay;
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
     case SET_DIE_TEMP:       return 0;  // read-only display
@@ -222,6 +243,12 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       break;
     case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
     case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
+    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_JOB_SIM:        settings.jobSimulation = (uint8_t)clampVal(value, 0, JOB_SIM_COUNT - 1); break;
+    case SET_PHANTOM_CLICKS: settings.phantomClicks = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_WINDOW_SWITCH:  settings.windowSwitching = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_HOST_OS:        settings.hostOS = (uint8_t)clampVal(value, 0, HOST_OS_COUNT - 1); break;
+    case SET_HEADER_DISPLAY: settings.headerDisplay = (uint8_t)clampVal(value, 0, 1); break;
   }
 }
 
@@ -256,6 +283,10 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
       return String(buf);
     }
     case FMT_VERSION:      return String("v") + String(VERSION);
+    case FMT_OP_MODE:      return (val < 2) ? String(OP_MODE_NAMES[val]) : String("???");
+    case FMT_JOB_SIM:      return (val < JOB_SIM_COUNT) ? String(JOB_SIM_NAMES[val]) : String("???");
+    case FMT_HOST_OS:      return (val < HOST_OS_COUNT) ? String(HOST_OS_NAMES[val]) : String("???");
+    case FMT_HEADER_DISP:  return (val < 2) ? String(HEADER_DISP_NAMES[val]) : String("???");
     default:               return String(val);
   }
 }

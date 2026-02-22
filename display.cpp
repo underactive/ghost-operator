@@ -5,6 +5,9 @@
 #include "timing.h"
 #include "settings.h"
 #include "schedule.h"
+#include "input.h"
+#include "sim_data.h"
+#include "orchestrator.h"
 
 // ============================================================================
 // STATIC HELPERS (file-local)
@@ -517,6 +520,282 @@ static void drawNormalMode() {
         syncWaitFrames++;
       }
     }
+  }
+}
+
+// ============================================================================
+// SIMULATION MODE NORMAL SCREEN
+// ============================================================================
+
+static void drawSimulationNormal() {
+  unsigned long now = millis();
+  display.setTextSize(1);
+
+  // === Header (y=0): Job name or device name + BT/USB + battery ===
+  display.setCursor(0, 0);
+  if (settings.headerDisplay == 0) {
+    display.print(JOB_SIM_NAMES[settings.jobSimulation]);
+  } else {
+    display.print(settings.deviceName);
+  }
+
+  // Right side: BT icon + battery
+  String batStr = String(batteryPercent) + "%";
+  int batWidth = batStr.length() * 6;
+  int batX = 128 - batWidth;
+  int btX = batX - 5 - 3;
+  if (usbConnected) {
+    display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
+  } else if (deviceConnected) {
+    display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  } else {
+    if ((now / 500) % 2 == 0) display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  }
+  display.setCursor(batX, 0);
+  display.print(batStr);
+
+  display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+
+  // === Row 1 (y=10): "Block: Mode" with horizontal scroll ===
+  {
+    char label[30];
+    snprintf(label, sizeof(label), "%s: %s", currentBlockName(), currentModeName());
+    int labelLen = strlen(label);
+    int maxChars = 21;
+
+    if (labelLen <= maxChars) {
+      display.setCursor(0, 10);
+      display.print(label);
+    } else {
+      // Horizontal scroll (reuse help bar scroll pattern)
+      static int16_t simLabelScroll = 0;
+      static int8_t simLabelDir = 1;
+      static unsigned long simLabelTimer = 0;
+
+      int maxScroll = labelLen - maxChars;
+      if (now - simLabelTimer >= (unsigned long)(simLabelScroll == 0 || simLabelScroll == maxScroll ? 1500 : 300)) {
+        simLabelScroll += simLabelDir;
+        if (simLabelScroll >= maxScroll) { simLabelScroll = maxScroll; simLabelDir = -1; }
+        if (simLabelScroll <= 0) { simLabelScroll = 0; simLabelDir = 1; }
+        simLabelTimer = now;
+      }
+
+      display.setCursor(0, 10);
+      for (int i = 0; i < maxChars && (simLabelScroll + i) < labelLen; i++) {
+        display.print(label[simLabelScroll + i]);
+      }
+    }
+  }
+
+  // === Row 2 (y=18): Work mode progress bar (4px) + time ===
+  {
+    uint8_t progress = modeProgress(now);
+    int barW = 98;
+    display.drawRect(0, 18, barW, 4, SSD1306_WHITE);
+    int fill = map(100 - progress, 0, 100, 0, barW - 2);  // countdown
+    if (fill > 0) display.fillRect(1, 19, fill, 2, SSD1306_WHITE);
+
+    // Time remaining
+    unsigned long elapsed = now - orch.modeStartMs;
+    unsigned long remaining = (elapsed < orch.modeDurationMs) ? (orch.modeDurationMs - elapsed) : 0;
+    display.setCursor(100, 18);
+    display.print(formatDuration(remaining));
+  }
+
+  display.drawFastHLine(0, 23, 128, SSD1306_WHITE);
+
+  // === KB row (y=24): Profile letter + flash + progress bar + time ===
+  {
+    // Profile letter
+    const char profLetter = PROFILE_NAMES[orch.autoProfile][0];  // L, N, or B
+    display.setCursor(0, 24);
+    display.print(profLetter);
+
+    // Keypress flash icon (6px area at x=7)
+    static unsigned long lastKeyFlash = 0;
+    if (orch.keyDown) lastKeyFlash = now;
+    bool flashActive = (now - lastKeyFlash < 100);
+    if (flashActive && orch.phase == PHASE_TYPING) {
+      display.fillRect(7, 24, 5, 7, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(7, 24);
+      display.print("K");
+      display.setTextColor(SSD1306_WHITE);
+    }
+
+    // Progress bar (76px wide, x=14 to x=89, 7px tall)
+    display.drawRect(14, 24, 76, 7, SSD1306_WHITE);
+
+    if (orch.phase == PHASE_TYPING) {
+      // Show burst progress: countdown within phase
+      unsigned long phaseElapsed = now - orch.phaseStartMs;
+      if (phaseElapsed < orch.phaseDurationMs) {
+        int kbFill = map(orch.phaseDurationMs - phaseElapsed, 0, orch.phaseDurationMs, 0, 74);
+        if (kbFill > 0) display.fillRect(15, 25, kbFill, 5, SSD1306_WHITE);
+      }
+      // Time remaining
+      unsigned long kbRemain = (phaseElapsed < orch.phaseDurationMs) ? (orch.phaseDurationMs - phaseElapsed) : 0;
+      display.setCursor(92, 24);
+      display.print(formatDuration(kbRemain));
+    } else {
+      // KB not active
+      display.setCursor(92, 24);
+      if (keyEnabled) {
+        display.print("wait");
+      } else {
+        display.print("mute");
+      }
+    }
+  }
+
+  display.drawFastHLine(0, 32, 128, SSD1306_WHITE);
+
+  // === MS row (y=33): flash + progress bar + time ===
+  {
+    display.setCursor(0, 33);
+    display.print(" ");
+
+    // Mouse click flash
+    static unsigned long lastMouseFlash = 0;
+    if (mouseState == MOUSE_JIGGLING) lastMouseFlash = now;
+    bool mFlash = (now - lastMouseFlash < 100);
+    if (mFlash && orch.phase == PHASE_MOUSING) {
+      display.fillRect(7, 33, 5, 7, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(7, 33);
+      display.print("M");
+      display.setTextColor(SSD1306_WHITE);
+    }
+
+    // Progress bar
+    display.drawRect(14, 33, 76, 7, SSD1306_WHITE);
+
+    if (orch.phase == PHASE_MOUSING) {
+      unsigned long phaseElapsed = now - orch.phaseStartMs;
+      if (phaseElapsed < orch.phaseDurationMs) {
+        int msFill = map(orch.phaseDurationMs - phaseElapsed, 0, orch.phaseDurationMs, 0, 74);
+        if (msFill > 0) display.fillRect(15, 34, msFill, 5, SSD1306_WHITE);
+      }
+      unsigned long msRemain = (phaseElapsed < orch.phaseDurationMs) ? (orch.phaseDurationMs - phaseElapsed) : 0;
+      display.setCursor(92, 33);
+      display.print(formatDuration(msRemain));
+    } else {
+      display.setCursor(92, 33);
+      if (mouseEnabled) {
+        display.print("wait");
+      } else {
+        display.print("mute");
+      }
+    }
+  }
+
+  display.drawFastHLine(0, 43, 128, SSD1306_WHITE);
+
+  // === Footer (y=44): uptime/realtime + KB/MS indicators + animation ===
+  {
+    display.setCursor(0, 44);
+    if (timeSynced) {
+      display.print(formatCurrentTime());
+    } else {
+      display.print("Up:");
+      display.print(formatUptime(now - startTime));
+    }
+
+    // KB/MS mute indicators
+    display.setCursor(60, 44);
+    display.print(keyEnabled ? "KB" : "--");
+    display.setCursor(78, 44);
+    display.print(mouseEnabled ? "MS" : "--");
+
+    // Animation in corner
+    if (deviceConnected || usbConnected) {
+      drawAnimation();
+    }
+  }
+
+  // Schedule preview overlay (encoder rotation shows upcoming modes)
+  if (orch.previewActive) {
+    if (now - orch.previewStartMs < SIM_SCHEDULE_PREVIEW_MS) {
+      // Draw overlay box in center
+      display.fillRect(8, 16, 112, 32, SSD1306_BLACK);
+      display.drawRect(8, 16, 112, 32, SSD1306_WHITE);
+
+      const DayTemplate& tmpl = DAY_TEMPLATES[settings.jobSimulation];
+      display.setCursor(12, 18);
+      display.print("Next:");
+
+      // Show upcoming blocks (up to 2)
+      uint8_t nextIdx = (orch.blockIdx + 1) % tmpl.numBlocks;
+      for (int i = 0; i < 2 && i + nextIdx < tmpl.numBlocks; i++) {
+        display.setCursor(12, 28 + i * 8);
+        display.print(tmpl.blocks[nextIdx + i].name);
+      }
+    } else {
+      orch.previewActive = false;
+    }
+  }
+}
+
+// ============================================================================
+// SIMULATION MODE SCREENSAVER
+// ============================================================================
+
+static void drawSimulationScreensaver() {
+  unsigned long now = millis();
+  display.setTextSize(1);
+
+  const int barW = 83;
+  const int barX = (128 - barW) / 2;
+  const int barEndX = barX + barW - 1;
+  const int innerW = barW - 2;
+
+  // Work mode label centered (y=8)
+  {
+    const char* name = currentModeName();
+    char label[14];
+    snprintf(label, sizeof(label), "[%s]", name);
+    int w = strlen(label) * 6;
+    display.setCursor((128 - w) / 2, 8);
+    display.print(label);
+  }
+
+  // Mode progress bar 1px (y=18)
+  display.drawFastVLine(barX, 17, 3, SSD1306_WHITE);
+  display.drawFastVLine(barEndX, 17, 3, SSD1306_WHITE);
+  {
+    uint8_t progress = modeProgress(now);
+    int fill = map(100 - progress, 0, 100, 0, innerW);
+    if (fill > 0) display.drawFastHLine(barX + 1, 18, fill, SSD1306_WHITE);
+  }
+
+  // KB state centered (y=26)
+  {
+    const char* kbTag;
+    if (orch.phase == PHASE_TYPING) kbTag = "[BST]";
+    else if (!keyEnabled) kbTag = "[OFF]";
+    else kbTag = "[IDL]";
+    int w = strlen(kbTag) * 6;
+    display.setCursor((128 - w) / 2, 26);
+    display.print(kbTag);
+  }
+
+  // KB progress bar 1px (y=36)
+  display.drawFastVLine(barX, 35, 3, SSD1306_WHITE);
+  display.drawFastVLine(barEndX, 35, 3, SSD1306_WHITE);
+  if (orch.phase == PHASE_TYPING) {
+    unsigned long phaseElapsed = now - orch.phaseStartMs;
+    if (phaseElapsed < orch.phaseDurationMs) {
+      int fill = map(orch.phaseDurationMs - phaseElapsed, 0, orch.phaseDurationMs, 0, innerW);
+      if (fill > 0) display.drawFastHLine(barX + 1, 36, fill, SSD1306_WHITE);
+    }
+  }
+
+  // Battery warning (y=44) — only if <15%
+  if (batteryPercent < 15) {
+    String batStr = String(batteryPercent) + "%";
+    int bw = batStr.length() * 6;
+    display.setCursor((128 - bw) / 2, 44);
+    display.print(batStr);
   }
 }
 
@@ -1261,10 +1540,11 @@ static void drawMenuMode() {
   // === Separator ===
   display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
 
-  // === Menu viewport: 5 rows x 8px each (y=10 to y=49) ===
-  for (int row = 0; row < 5; row++) {
-    int idx = menuScrollOffset + row;
-    if (idx < 0 || idx >= MENU_ITEM_COUNT) continue;
+  // === Menu viewport: 5 visible rows x 8px each (y=10 to y=49) ===
+  // Skip hidden items — only render visible ones into row slots
+  int row = 0;
+  for (int idx = menuScrollOffset; idx < MENU_ITEM_COUNT && row < 5; idx++) {
+    if (isMenuItemHidden(idx)) continue;
 
     int y = 10 + row * 8;
     const MenuItem& item = MENU_ITEMS[idx];
@@ -1362,6 +1642,7 @@ static void drawMenuMode() {
         display.print(dispStr);
       }
     }
+    row++;
   }
 
   // === Separator ===
@@ -1403,9 +1684,11 @@ void updateDisplay() {
   } else if (sleepConfirmActive) {
     drawSleepConfirm();
   } else if (screensaverActive) {
-    drawScreensaver();
+    if (settings.operationMode == 1) drawSimulationScreensaver();
+    else drawScreensaver();
   } else if (currentMode == MODE_NORMAL) {
-    drawNormalMode();
+    if (settings.operationMode == 1) drawSimulationNormal();
+    else drawNormalMode();
   } else if (currentMode == MODE_MENU) {
     drawMenuMode();
   } else if (currentMode == MODE_SLOTS) {

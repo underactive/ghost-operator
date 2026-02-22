@@ -6,6 +6,8 @@
 #include "hid.h"
 #include "serial_cmd.h"
 #include "schedule.h"
+#include "orchestrator.h"
+#include "sim_data.h"
 
 // ============================================================================
 // NAME EDITOR HELPERS
@@ -118,35 +120,91 @@ void returnToMenuFromSchedule() {
 }
 
 // ============================================================================
+// MENU ITEM VISIBILITY
+// ============================================================================
+
+// Returns true if a menu item should be hidden in the current mode
+bool isMenuItemHidden(int8_t idx) {
+  if (idx < 0 || idx >= MENU_ITEM_COUNT) return true;
+  const MenuItem& item = MENU_ITEMS[idx];
+
+  bool isSim = (settings.operationMode == 1);
+
+  // Move size hidden when Bezier (existing behavior)
+  if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) return true;
+
+  // --- Simple-only items: hidden when in Simulation mode ---
+  // Keyboard heading (idx 0), Key min (1), Key max (2) — hidden in sim
+  if (isSim && idx <= 2) return true;
+  // Mouse heading (idx 4) and mouse items (5-9) — hidden in sim
+  if (isSim && idx >= 4 && idx <= 9) return true;
+
+  // --- Simulation-only items: hidden when in Simple mode ---
+  // Simulation heading (idx 10) — hidden in simple
+  if (!isSim && idx == 10) return true;
+  // Sim items: Job profile (12), Phantom clicks (13), Window switch (14), Host OS (15), Header display (16)
+  if (!isSim && idx >= 12 && idx <= 16) return true;
+
+  // Profiles heading (idx 17), Lazy/Busy (18-19) — hidden in sim (auto-managed)
+  if (isSim && idx >= 17 && idx <= 19) return true;
+
+  // Headings with all children hidden should be hidden too
+  if (item.type == MENU_HEADING) {
+    // Check if any child before the next heading is visible
+    bool anyChildVisible = false;
+    for (int8_t j = idx + 1; j < MENU_ITEM_COUNT; j++) {
+      if (MENU_ITEMS[j].type == MENU_HEADING) break;
+      if (!isMenuItemHidden(j)) { anyChildVisible = true; break; }
+    }
+    if (!anyChildVisible) return true;
+  }
+
+  return false;
+}
+
+// ============================================================================
 // MENU CURSOR
 // ============================================================================
 
-// Move menu cursor by direction, skipping headings
+// Move menu cursor by direction, skipping headings and hidden items
 void moveCursor(int direction) {
   int8_t next = menuCursor + direction;
-  // Skip headings and conditionally hidden items
+  // Skip headings and hidden items
   while (next >= 0 && next < MENU_ITEM_COUNT &&
-         (MENU_ITEMS[next].type == MENU_HEADING ||
-          (MENU_ITEMS[next].settingId == SET_MOUSE_AMP && settings.mouseStyle == 0))) {
+         (MENU_ITEMS[next].type == MENU_HEADING || isMenuItemHidden(next))) {
     next += direction;
   }
   // Clamp at bounds
   if (next < 0 || next >= MENU_ITEM_COUNT) return;
   menuCursor = next;
 
-  // Adjust scroll to keep cursor visible (5-row viewport)
-  // Show the heading above the cursor when scrolling down
-  int8_t viewTop = menuScrollOffset;
-  int8_t viewBottom = menuScrollOffset + 4;  // 5 rows: 0..4
+  // Adjust scroll to keep cursor visible in 5-row viewport
+  // Count visible items between scroll offset and cursor
+  int visBeforeCursor = 0;
+  for (int8_t i = menuScrollOffset; i < menuCursor && i < MENU_ITEM_COUNT; i++) {
+    if (!isMenuItemHidden(i)) visBeforeCursor++;
+  }
 
-  if (menuCursor <= viewTop) {
+  if (menuCursor < menuScrollOffset) {
+    // Cursor above viewport — scroll up
     menuScrollOffset = menuCursor;
-    // Show heading above if it exists
-    if (menuScrollOffset > 0 && MENU_ITEMS[menuScrollOffset - 1].type == MENU_HEADING) {
+    // Show heading above if it exists and is visible
+    if (menuScrollOffset > 0 && MENU_ITEMS[menuScrollOffset - 1].type == MENU_HEADING
+        && !isMenuItemHidden(menuScrollOffset - 1)) {
       menuScrollOffset--;
     }
-  } else if (menuCursor > viewBottom) {
-    menuScrollOffset = menuCursor - 4;
+  } else if (visBeforeCursor >= 5) {
+    // Cursor below viewport — scroll so cursor is the 5th visible item
+    int vis = 0;
+    for (int8_t i = menuCursor; i >= 0; i--) {
+      if (!isMenuItemHidden(i)) {
+        vis++;
+        if (vis >= 5) {
+          menuScrollOffset = i;
+          break;
+        }
+      }
+    }
   }
   if (menuScrollOffset < 0) menuScrollOffset = 0;
 
@@ -179,18 +237,23 @@ void handleEncoder() {
     if (screensaverActive) { screensaverActive = false; return; }
 
     switch (currentMode) {
-      case MODE_NORMAL: {
-        // Switch timing profile: LAZY <- NORMAL -> BUSY (clamped)
-        int p = (int)currentProfile + direction;
-        if (p < 0) p = 0;
-        if (p >= PROFILE_COUNT) p = PROFILE_COUNT - 1;
-        currentProfile = (Profile)p;
-        profileDisplayStart = millis();
-        scheduleNextKey();
-        scheduleNextMouseState();
-        pushSerialStatus();
+      case MODE_NORMAL:
+        if (settings.operationMode == 1) {
+          // Simulation mode: show schedule preview overlay
+          orch.previewActive = true;
+          orch.previewStartMs = millis();
+        } else {
+          // Simple mode: switch timing profile
+          int p = (int)currentProfile + direction;
+          if (p < 0) p = 0;
+          if (p >= PROFILE_COUNT) p = PROFILE_COUNT - 1;
+          currentProfile = (Profile)p;
+          profileDisplayStart = millis();
+          scheduleNextKey();
+          scheduleNextMouseState();
+          pushSerialStatus();
+        }
         break;
-      }
 
       case MODE_MENU:
         if (defaultsConfirming) {
@@ -324,32 +387,36 @@ void handleButtons() {
     if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
 
     switch (currentMode) {
-      case MODE_NORMAL: {
-        // Cycle KB/MS enable combos
-        bool wasKeyEnabled = keyEnabled;
-        bool wasMouseEnabled = mouseEnabled;
-        uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
-        state = (state == 0) ? 3 : state - 1;
-        keyEnabled = (state & 2) != 0;
-        mouseEnabled = (state & 1) != 0;
-        // Reset timers when toggling back on so bars start fresh
-        if (keyEnabled && !wasKeyEnabled) {
-          lastKeyTime = now;
-          scheduleNextKey();
+      case MODE_NORMAL:
+        if (settings.operationMode == 1) {
+          // Simulation mode: skip to next work mode
+          skipWorkMode();
+        } else {
+          // Simple mode: cycle KB/MS enable combos
+          bool wasKeyEnabled = keyEnabled;
+          bool wasMouseEnabled = mouseEnabled;
+          uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
+          state = (state == 0) ? 3 : state - 1;
+          keyEnabled = (state & 2) != 0;
+          mouseEnabled = (state & 1) != 0;
+          // Reset timers when toggling back on so bars start fresh
+          if (keyEnabled && !wasKeyEnabled) {
+            lastKeyTime = now;
+            scheduleNextKey();
+          }
+          if (mouseEnabled && !wasMouseEnabled) {
+            lastMouseStateChange = now;
+            mouseState = MOUSE_IDLE;
+            mouseNetX = 0;
+            mouseNetY = 0;
+            mouseReturnTotal = 0;
+            scheduleNextMouseState();
+          }
+          Serial.print("KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
+          Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
+          pushSerialStatus();
         }
-        if (mouseEnabled && !wasMouseEnabled) {
-          lastMouseStateChange = now;
-          mouseState = MOUSE_IDLE;
-          mouseNetX = 0;
-          mouseNetY = 0;
-          mouseReturnTotal = 0;
-          scheduleNextMouseState();
-        }
-        Serial.print("KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
-        Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
-        pushSerialStatus();
         break;
-      }
 
       case MODE_MENU:
         if (defaultsConfirming) {
@@ -603,4 +670,41 @@ void handleButtons() {
       funcBtnWasPressed = false;
     }
   }
+
+  // Mute button (D7) - cycles KB/MS enable combos in both modes
+  static bool lastMuteBtn = HIGH;
+  bool muteBtn = digitalRead(PIN_MUTE_BTN);
+  if (muteBtn == LOW && lastMuteBtn == HIGH && (now - lastMuteBtnPress > DEBOUNCE)) {
+    lastMuteBtnPress = now;
+    lastModeActivity = now;
+
+    // Suppress during overlays
+    if (sleepConfirmActive || sleepCancelActive) { lastMuteBtn = muteBtn; return; }
+    if (scheduleSleeping) { exitLightSleep(); lastMuteBtn = muteBtn; return; }
+    if (screensaverActive) { screensaverActive = false; lastMuteBtn = muteBtn; return; }
+
+    // Cycle KB/MS enable combos (same logic as simple mode encoder button)
+    bool wasKeyEnabled = keyEnabled;
+    bool wasMouseEnabled = mouseEnabled;
+    uint8_t mstate = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
+    mstate = (mstate == 0) ? 3 : mstate - 1;
+    keyEnabled = (mstate & 2) != 0;
+    mouseEnabled = (mstate & 1) != 0;
+    if (keyEnabled && !wasKeyEnabled) {
+      lastKeyTime = now;
+      scheduleNextKey();
+    }
+    if (mouseEnabled && !wasMouseEnabled) {
+      lastMouseStateChange = now;
+      mouseState = MOUSE_IDLE;
+      mouseNetX = 0;
+      mouseNetY = 0;
+      mouseReturnTotal = 0;
+      scheduleNextMouseState();
+    }
+    Serial.print("Mute KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
+    Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
+    pushSerialStatus();
+  }
+  lastMuteBtn = muteBtn;
 }

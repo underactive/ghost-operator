@@ -5,6 +5,8 @@
 #include "timing.h"
 #include "screenshot.h"
 #include "schedule.h"
+#include "sim_data.h"
+#include "orchestrator.h"
 
 // Line buffer for protocol commands (?/=/!) arriving over USB serial
 #define SERIAL_BUF_SIZE 128
@@ -169,6 +171,19 @@ void handleSerialCommands() {
           Serial.print("Schedule sleeping: "); Serial.println(scheduleSleeping ? "YES" : "NO");
         }
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
+        Serial.print("Operation mode: "); Serial.println(OP_MODE_NAMES[settings.operationMode]);
+        if (settings.operationMode == 1) {
+          Serial.println("--- Simulation ---");
+          Serial.print("Job: "); Serial.println(JOB_SIM_NAMES[settings.jobSimulation]);
+          Serial.print("Block: "); Serial.print(orch.blockIdx); Serial.print(" ("); Serial.print(currentBlockName()); Serial.println(")");
+          Serial.print("Mode: "); Serial.print((int)orch.modeId); Serial.print(" ("); Serial.print(currentModeName()); Serial.println(")");
+          Serial.print("Phase: "); Serial.println(PHASE_NAMES[orch.phase]);
+          Serial.print("Auto-profile: "); Serial.println(PROFILE_NAMES[orch.autoProfile]);
+          Serial.print("Phantom clicks: "); Serial.println(settings.phantomClicks ? "On" : "Off");
+          Serial.print("Window switch: "); Serial.println(settings.windowSwitching ? "On" : "Off");
+          Serial.print("Host OS: "); Serial.println(HOST_OS_NAMES[settings.hostOS]);
+          Serial.print("Header display: "); Serial.println(HEADER_DISP_NAMES[settings.headerDisplay]);
+        }
         break;
       case 'f':
         Serial.println("Entering OTA DFU mode...");

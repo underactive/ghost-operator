@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 1.10.1
+**Current Version:** 2.0.0
 **Status:** Production-ready
 
 ---
@@ -337,6 +337,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 
 | Ver | Changes |
 |-----|---------|
+| 2.0.0 | Simulation mode: realistic human work patterns (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules), mute button (D7) |
 | 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
 | 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto), schedule editor UI |
 | 1.9.1 | Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization, deferred flash save |

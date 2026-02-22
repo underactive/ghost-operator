@@ -7,10 +7,10 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "1.10.1"
+#define VERSION "2.0.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F51  // bumped: invertDial field
+#define SETTINGS_MAGIC 0x50524F52  // bumped: simulation mode fields
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -36,6 +36,7 @@
 #ifndef PIN_LED
 #define PIN_LED          6   // D6 - Activity LED
 #endif
+#define PIN_MUTE_BTN     7   // D7 - Mute button (SPST, active LOW)
 
 // Internal battery pin - use board defaults if available
 #ifndef PIN_VBAT
@@ -129,15 +130,31 @@
 // Profile display
 #define PROFILE_DISPLAY_MS 3000
 
+// Simulation mode
+#define JOB_SIM_COUNT       3       // Staff, Developer, Designer
+#define WMODE_NAME_MAX      12      // max work mode short name length
+#define MAX_BLOCK_MODES     5       // max weighted micro-modes per time block
+#define MAX_DAY_BLOCKS      12      // max time blocks per day template
+#define SIM_SCHEDULE_PREVIEW_MS 3000  // overlay display time for schedule preview
+
 // ============================================================================
 // ENUMS
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_HOST_OS, FMT_HEADER_DISP };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
+
+// Simulation mode enums
+enum ActivityPhase { PHASE_TYPING, PHASE_MOUSING, PHASE_IDLE, PHASE_SWITCHING, PHASE_COUNT };
+enum WorkModeId {
+  WMODE_EMAIL_COMPOSE, WMODE_EMAIL_READ, WMODE_PROGRAMMING, WMODE_BROWSING,
+  WMODE_CHAT_SLACK, WMODE_VIDEO_CONF, WMODE_DOC_EDITING, WMODE_COFFEE_BREAK,
+  WMODE_LUNCH_BREAK, WMODE_IRL_MEETING, WMODE_FILE_MGMT, WMODE_COUNT
+};
+enum HostOS { HOST_OS_DISABLED, HOST_OS_WINDOWS, HOST_OS_MAC, HOST_OS_LINUX, HOST_OS_COUNT };
 
 // USB HID report IDs (for composite keyboard + mouse descriptor)
 enum USBReportId { RID_KEYBOARD = 1, RID_MOUSE };
@@ -156,6 +173,12 @@ enum SettingId {
   SET_SCHEDULE_MODE,
   SET_SCHEDULE_START,
   SET_SCHEDULE_END,
+  SET_OP_MODE,
+  SET_JOB_SIM,
+  SET_PHANTOM_CLICKS,
+  SET_WINDOW_SWITCH,
+  SET_HOST_OS,
+  SET_HEADER_DISPLAY,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
   SET_VERSION,
@@ -182,7 +205,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 31
+#define MENU_ITEM_COUNT 38
 
 struct Settings {
   uint32_t magic;
@@ -209,7 +232,14 @@ struct Settings {
   uint16_t scheduleStart;  // 0-287 (5-min slots), default 108 (9:00)
   uint16_t scheduleEnd;    // 0-287 (5-min slots), default 204 (17:00)
   uint8_t invertDial;     // 0=Off (default), 1=On — reverse encoder rotation
-  uint8_t checksum;       // must remain last
+  // Simulation mode settings
+  uint8_t operationMode;    // 0=Simple (default), 1=Simulation
+  uint8_t jobSimulation;    // 0=Staff, 1=Developer, 2=Designer (default: 0)
+  uint8_t phantomClicks;    // 0=Off (default), 1=On
+  uint8_t windowSwitching;  // 0=Off (default), 1=On
+  uint8_t hostOS;           // 0=Disabled, 1=Windows, 2=Mac, 3=Linux (default: 0)
+  uint8_t headerDisplay;    // 0=Job sim name (default), 1=Device name
+  uint8_t checksum;         // MUST remain last
 };
 
 #endif // GHOST_CONFIG_H

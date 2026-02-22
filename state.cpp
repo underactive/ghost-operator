@@ -145,3 +145,9 @@ bool     sleepConfirmActive = false;
 unsigned long sleepConfirmStart = 0;
 bool     sleepCancelActive = false;
 unsigned long sleepCancelStart = 0;
+
+// Mute button state (D7)
+unsigned long lastMuteBtnPress = 0;
+
+// Orchestrator state (simulation mode)
+OrchestratorState orch = {};

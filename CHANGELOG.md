@@ -5,6 +5,39 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-22
+
+### Added
+
+- **Simulation mode**: New operation mode that replaces flat keystroke/mouse timing with realistic human work patterns — keystroke bursting with humanized press durations, mutual exclusion between keyboard and mouse activity, and auto-profiling (LAZY/NORMAL/BUSY) driven by work mode weights
+- **Job simulations**: Three pre-built daily schedule templates (Staff, Developer, Designer) with 9 time blocks each, containing weighted pools of 11 micro-modes (Email Compose, Programming, Browsing, Video Conference, etc.)
+- **Keystroke bursting**: Non-blocking burst state machine sends rapid key sequences (5-100 keys per burst) with variable inter-key delays and humanized hold durations, replacing uniform single-key timing
+- **Phantom middle-clicks**: Optional middle mouse button clicks injected at random intervals during mouse idle phases, simulating tab switching behavior
+- **Window switching**: Optional Alt-Tab (Windows/Linux) or Cmd-Tab (Mac) keystrokes at configurable intervals, double-gated behind both `windowSwitching` and `hostOS` settings for safety
+- **Activity orchestrator**: Unified `tickOrchestrator()` replaces independent KB and mouse timers, cycling through PHASE_TYPING → PHASE_SWITCHING → PHASE_MOUSING → PHASE_IDLE with mutual exclusion
+- **Mute button (D7)**: New SPST momentary button on pin D7 cycles KB/MS enable combos in both Simple and Simulation modes
+- **Simulation display**: Dedicated normal screen showing block/mode labels, progress bars for KB bursts and mouse phases, auto-profile indicator, and schedule preview overlay via encoder rotation
+- **Simulation screensaver**: Minimal pixel layout with centered mode label, KB state indicator, and 1px progress bars
+- **6 new settings**: Operation mode (Simple/Simulation), Job profile (Staff/Dev/Designer), Phantom clicks (On/Off), Window switch (On/Off), Host OS (Disabled/Win/Mac/Linux), Header display (Job name/Device name)
+- **6 new BLE/serial commands**: `=opMode`, `=jobSim`, `=phantom`, `=winSwitch`, `=hostOS`, `=headerDisp`
+- **Non-blocking HID functions**: `sendKeyDown()` / `sendKeyUp()` for burst state machine, `sendMouseClick()` for phantom clicks, `sendWindowSwitch()` for Alt/Cmd-Tab
+- **Conditional menu visibility**: `isMenuItemHidden()` dynamically shows/hides menu sections based on operation mode (Keyboard/Mouse hidden in Simulation, Simulation section hidden in Simple)
+
+### Changed
+
+- **Settings struct**: +6 bytes (operationMode, jobSimulation, phantomClicks, windowSwitching, hostOS, headerDisplay); SETTINGS_MAGIC bumped to 0x50524F52
+- **Menu items**: Expanded from 31 to 38 entries with new Simulation section (7 items inserted at index 10-16)
+- **Menu viewport**: Now skips hidden items during rendering, properly tracking visible row count for scroll offset calculation
+- **Protocol responses**: `?settings` and `?status` extended with simulation-specific fields
+- **Serial dump**: `d` command now prints orchestrator state (block, mode, phase, profile) when in Simulation mode
+- **BLE model string**: Now uses VERSION define instead of hardcoded string
+
+### Notes
+
+- Simple mode (default) is 100% unchanged from v1.10.1 — zero behavior change on upgrade
+- First boot after upgrade resets settings due to SETTINGS_MAGIC bump (operationMode defaults to Simple)
+- New files: `orchestrator.h/.cpp`, `sim_data.h/.cpp`
+
 ## [1.10.1] - 2026-02-21
 
 ### Added

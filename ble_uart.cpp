@@ -6,6 +6,8 @@
 #include "timing.h"
 #include "hid.h"
 #include "schedule.h"
+#include "sim_data.h"
+#include "orchestrator.h"
 
 // Line buffer for accumulating UART bytes
 #define UART_BUF_SIZE 128
@@ -156,7 +158,7 @@ void processCommand(const char* line, ResponseWriter writer) {
 static void cmdQueryStatus() {
   unsigned long uptime = millis() - startTime;
 
-  char buf[208];
+  char buf[280];
   int len = snprintf(buf, sizeof(buf),
     "!status|connected=%d|usb=%d|kb=%d|ms=%d|bat=%d|batMv=%d|profile=%d|mode=%d"
     "|mouseState=%d|uptime=%lu|kbNext=%s|timeSynced=%d|schedSleeping=%d",
@@ -168,7 +170,14 @@ static void cmdQueryStatus() {
     timeSynced ? 1 : 0, scheduleSleeping ? 1 : 0);
 
   if (timeSynced) {
-    snprintf(buf + len, sizeof(buf) - len, "|daySecs=%lu", (unsigned long)currentDaySeconds());
+    len += snprintf(buf + len, sizeof(buf) - len, "|daySecs=%lu", (unsigned long)currentDaySeconds());
+  }
+
+  // Simulation mode status
+  if (settings.operationMode == 1) {
+    snprintf(buf + len, sizeof(buf) - len,
+      "|simBlock=%d|simMode=%d|simPhase=%d|simProfile=%d",
+      orch.blockIdx, (int)orch.modeId, (int)orch.phase, (int)orch.autoProfile);
   }
 
   currentWriter(String(buf));
@@ -178,7 +187,7 @@ static void cmdQueryStatus() {
 // ?settings — all persistent settings
 // ----------------------------------------------------------------------------
 static void cmdQuerySettings() {
-  char buf[320];
+  char buf[400];
   int len = snprintf(buf, sizeof(buf),
     "!settings|keyMin=%lu|keyMax=%lu|mouseJig=%lu|mouseIdle=%lu"
     "|mouseAmp=%d|mouseStyle=%d|lazyPct=%d|busyPct=%d"
@@ -203,6 +212,13 @@ static void cmdQuerySettings() {
     len += snprintf(buf + len, sizeof(buf) - len, "%s%d",
                     (i > 0) ? "," : "", settings.keySlots[i]);
   }
+
+  // Simulation mode settings
+  snprintf(buf + len, sizeof(buf) - len,
+    "|opMode=%d|jobSim=%d|phantom=%d|winSwitch=%d|hostOS=%d|headerDisp=%d",
+    settings.operationMode, settings.jobSimulation,
+    settings.phantomClicks, settings.windowSwitching,
+    settings.hostOS, settings.headerDisplay);
 
   currentWriter(String(buf));
 }
@@ -305,6 +321,18 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SCHEDULE_START, (uint32_t)atol(valStr));
   } else if (strcmp(key, "schedEnd") == 0) {
     setSettingValue(SET_SCHEDULE_END, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "opMode") == 0) {
+    setSettingValue(SET_OP_MODE, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "jobSim") == 0) {
+    setSettingValue(SET_JOB_SIM, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "phantom") == 0) {
+    setSettingValue(SET_PHANTOM_CLICKS, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "winSwitch") == 0) {
+    setSettingValue(SET_WINDOW_SWITCH, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "hostOS") == 0) {
+    setSettingValue(SET_HOST_OS, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "headerDisp") == 0) {
+    setSettingValue(SET_HEADER_DISPLAY, (uint32_t)atol(valStr));
   } else if (strcmp(key, "time") == 0) {
     syncTime((uint32_t)atol(valStr));
   } else if (strcmp(key, "statusPush") == 0) {
