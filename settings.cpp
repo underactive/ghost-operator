@@ -2,6 +2,7 @@
 #include "state.h"
 #include "keys.h"
 #include "timing.h"
+#include <nrf_soc.h>
 
 using namespace Adafruit_LittleFS_Namespace;
 
@@ -166,6 +167,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_SCHEDULE_END:   return settings.scheduleEnd;
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
+    case SET_DIE_TEMP:       return 0;  // read-only display
     default:                 return 0;
   }
 }
@@ -240,6 +242,15 @@ String formatMenuValue(uint8_t settingId, MenuValueFormat format) {
       return String(buf);
     }
     case FMT_UPTIME:       return formatUptime(millis() - startTime);
+    case FMT_DIE_TEMP: {
+      int32_t raw;
+      if (sd_temp_get(&raw) != NRF_SUCCESS) return String("---");
+      int c = raw / 4;
+      int f = c * 9 / 5 + 32;
+      char buf[10];
+      snprintf(buf, sizeof(buf), "%dC/%dF", c, f);
+      return String(buf);
+    }
     case FMT_VERSION:      return String("v") + String(VERSION);
     default:               return String(val);
   }
