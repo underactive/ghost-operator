@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First boot after upgrade resets settings due to SETTINGS_MAGIC bump (operationMode defaults to Simple)
 - New files: `orchestrator.h/.cpp`, `sim_data.h/.cpp`
 
+## [1.10.2] - 2026-02-22
+
 ## [1.10.1] - 2026-02-21
 
 ### Added

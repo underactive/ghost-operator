@@ -9,6 +9,6 @@ bool isScheduleActive();
 void checkSchedule();
 void enterLightSleep();
 void exitLightSleep();
-String formatCurrentTime();
+void formatCurrentTime(char* buf, size_t bufSize);
 
 #endif // GHOST_SCHEDULE_H

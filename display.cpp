@@ -360,8 +360,9 @@ static void drawNormalMode() {
   }
 
   // Right side: BT icon + battery, right aligned
-  String batStr = String(batteryPercent) + "%";
-  int batWidth = batStr.length() * 6;
+  char batStr[8];
+  snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
+  int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
   int btX = batX - 5 - 3;  // icon width + gap
   if (usbConnected) {
@@ -384,9 +385,12 @@ static void drawNormalMode() {
   display.print("KB [");
   display.print(AVAILABLE_KEYS[nextKeyIndex].name);
   display.print("] ");
-  display.print(formatDuration(effectiveKeyMin(), false));
+  char durBuf[12];
+  formatDuration(effectiveKeyMin(), durBuf, sizeof(durBuf), false);
+  display.print(durBuf);
   display.print("-");
-  display.print(formatDuration(effectiveKeyMax()));
+  formatDuration(effectiveKeyMax(), durBuf, sizeof(durBuf));
+  display.print(durBuf);
 
   // ON/OFF icon right aligned
   display.drawBitmap(123, 12, keyEnabled ? iconOn : iconOff, 5, 7, SSD1306_WHITE);
@@ -411,7 +415,8 @@ static void drawNormalMode() {
     }
     display.setCursor(102, 21);
     if (keyEnabled) {
-      display.print(formatDuration(keyRemaining));
+      formatDuration(keyRemaining, durBuf, sizeof(durBuf));
+      display.print(durBuf);
     } else {
       display.print("mute");
     }
@@ -432,9 +437,11 @@ static void drawNormalMode() {
   }
 
   display.print(" ");
-  display.print(formatDuration(effectiveMouseJiggle()));
+  formatDuration(effectiveMouseJiggle(), durBuf, sizeof(durBuf));
+  display.print(durBuf);
   display.print("/");
-  display.print(formatDuration(effectiveMouseIdle()));
+  formatDuration(effectiveMouseIdle(), durBuf, sizeof(durBuf));
+  display.print(durBuf);
 
   // ON/OFF icon right aligned
   display.drawBitmap(123, 32, mouseEnabled ? iconOn : iconOff, 5, 7, SSD1306_WHITE);
@@ -473,7 +480,8 @@ static void drawNormalMode() {
     }
     display.setCursor(102, 41);
     if (mouseEnabled) {
-      display.print(formatDuration(mouseRemaining));
+      formatDuration(mouseRemaining, durBuf, sizeof(durBuf));
+      display.print(durBuf);
     } else {
       display.print("mute");
     }
@@ -493,11 +501,15 @@ static void drawNormalMode() {
       display.setCursor(0, 54);
       if (timeSynced) {
         // Show real-time clock when synced
-        display.print(formatCurrentTime());
+        char timeBuf[12];
+        formatCurrentTime(timeBuf, sizeof(timeBuf));
+        display.print(timeBuf);
       } else {
         // Fall back to uptime when not synced
+        char uptimeBuf[20];
+        formatUptime(now - startTime, uptimeBuf, sizeof(uptimeBuf));
         display.print("Up: ");
-        display.print(formatUptime(now - startTime));
+        display.print(uptimeBuf);
       }
     }
 
@@ -540,8 +552,9 @@ static void drawSimulationNormal() {
   }
 
   // Right side: BT icon + battery
-  String batStr = String(batteryPercent) + "%";
-  int batWidth = batStr.length() * 6;
+  char batStr[8];
+  snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
+  int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
   int btX = batX - 5 - 3;
   if (usbConnected) {
@@ -598,8 +611,10 @@ static void drawSimulationNormal() {
     // Time remaining
     unsigned long elapsed = now - orch.modeStartMs;
     unsigned long remaining = (elapsed < orch.modeDurationMs) ? (orch.modeDurationMs - elapsed) : 0;
+    char durBuf[12];
+    formatDuration(remaining, durBuf, sizeof(durBuf));
     display.setCursor(100, 18);
-    display.print(formatDuration(remaining));
+    display.print(durBuf);
   }
 
   display.drawFastHLine(0, 23, 128, SSD1306_WHITE);
@@ -635,8 +650,10 @@ static void drawSimulationNormal() {
       }
       // Time remaining
       unsigned long kbRemain = (phaseElapsed < orch.phaseDurationMs) ? (orch.phaseDurationMs - phaseElapsed) : 0;
+      char kbDurBuf[12];
+      formatDuration(kbRemain, kbDurBuf, sizeof(kbDurBuf));
       display.setCursor(92, 24);
-      display.print(formatDuration(kbRemain));
+      display.print(kbDurBuf);
     } else {
       // KB not active
       display.setCursor(92, 24);
@@ -677,8 +694,10 @@ static void drawSimulationNormal() {
         if (msFill > 0) display.fillRect(15, 34, msFill, 5, SSD1306_WHITE);
       }
       unsigned long msRemain = (phaseElapsed < orch.phaseDurationMs) ? (orch.phaseDurationMs - phaseElapsed) : 0;
+      char msDurBuf[12];
+      formatDuration(msRemain, msDurBuf, sizeof(msDurBuf));
       display.setCursor(92, 33);
-      display.print(formatDuration(msRemain));
+      display.print(msDurBuf);
     } else {
       display.setCursor(92, 33);
       if (mouseEnabled) {
@@ -695,10 +714,14 @@ static void drawSimulationNormal() {
   {
     display.setCursor(0, 44);
     if (timeSynced) {
-      display.print(formatCurrentTime());
+      char timeBuf[12];
+      formatCurrentTime(timeBuf, sizeof(timeBuf));
+      display.print(timeBuf);
     } else {
+      char uptimeBuf[20];
+      formatUptime(now - startTime, uptimeBuf, sizeof(uptimeBuf));
       display.print("Up:");
-      display.print(formatUptime(now - startTime));
+      display.print(uptimeBuf);
     }
 
     // KB/MS mute indicators
@@ -792,8 +815,9 @@ static void drawSimulationScreensaver() {
 
   // Battery warning (y=44) — only if <15%
   if (batteryPercent < 15) {
-    String batStr = String(batteryPercent) + "%";
-    int bw = batStr.length() * 6;
+    char batStr[8];
+    snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
+    int bw = strlen(batStr) * 6;
     display.setCursor((128 - bw) / 2, 44);
     display.print(batStr);
   }
@@ -823,8 +847,10 @@ static void drawSleepConfirm() {
   }
 
   // Time remaining label at (102, 28)
+  char durBuf[12];
+  formatDuration(remaining, durBuf, sizeof(durBuf));
   display.setCursor(102, 28);
-  display.print(formatDuration(remaining));
+  display.print(durBuf);
 
   // "Release to cancel" centered at y=40
   const char* cancelMsg = "Release to cancel";
@@ -858,8 +884,9 @@ static void drawScreensaver() {
   const int innerW = barW - 2;         // 81 (fill area between caps)
 
   // === KB label centered (y=11) ===
-  String kbLabel = "[" + String(AVAILABLE_KEYS[nextKeyIndex].name) + "]";
-  int kbWidth = kbLabel.length() * 6;
+  char kbLabel[24];
+  snprintf(kbLabel, sizeof(kbLabel), "[%s]", AVAILABLE_KEYS[nextKeyIndex].name);
+  int kbWidth = strlen(kbLabel) * 6;
   display.setCursor((128 - kbWidth) / 2, 11);
   display.print(kbLabel);
 
@@ -913,8 +940,9 @@ static void drawScreensaver() {
 
   // === Battery warning (y=48) -- only if <15% ===
   if (batteryPercent < 15) {
-    String batStr = String(batteryPercent) + "%";
-    int batWidth = batStr.length() * 6;
+    char batStr[8];
+    snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
+    int batWidth = strlen(batStr) * 6;
     display.setCursor((128 - batWidth) / 2, 48);
     display.print(batStr);
   }
@@ -932,7 +960,7 @@ static void drawSlotsMode() {
 
   // Slot indicator right aligned: [3/8]
   char slotIndicator[8];
-  sprintf(slotIndicator, "[%d/%d]", activeSlot + 1, NUM_SLOTS);
+  snprintf(slotIndicator, sizeof(slotIndicator), "[%d/%d]", activeSlot + 1, NUM_SLOTS);
   int indWidth = strlen(slotIndicator) * 6;
   display.setCursor(128 - indWidth, 0);
   display.print(slotIndicator);
@@ -987,7 +1015,7 @@ static void drawNameMode() {
 
     // Show new name in quotes, centered
     char nameBuf[NAME_MAX_LEN + 3];
-    sprintf(nameBuf, "\"%s\"", settings.deviceName);
+    snprintf(nameBuf, sizeof(nameBuf), "\"%s\"", settings.deviceName);
     int nameW = strlen(nameBuf) * 6;
     display.setCursor((128 - nameW) / 2, 18);
     display.print(nameBuf);
@@ -1034,7 +1062,7 @@ static void drawNameMode() {
 
     // Position indicator right aligned: [3/14]
     char posInd[8];
-    sprintf(posInd, "[%d/%d]", activeNamePos + 1, NAME_MAX_LEN);
+    snprintf(posInd, sizeof(posInd), "[%d/%d]", activeNamePos + 1, NAME_MAX_LEN);
     int indWidth = strlen(posInd) * 6;
     display.setCursor(128 - indWidth, 0);
     display.print(posInd);
@@ -1230,26 +1258,26 @@ static void drawScheduleMode() {
 
   // Mode row
   {
-    String valStr = formatMenuValue(SET_SCHEDULE_MODE, FMT_SCHEDULE_MODE);
+    char valStr[20];
+    formatMenuValue(SET_SCHEDULE_MODE, FMT_SCHEDULE_MODE, valStr, sizeof(valStr));
     bool atMin = (settings.scheduleMode == 0);
     bool atMax = (settings.scheduleMode >= SCHED_MODE_COUNT - 1);
     bool isSelected = (scheduleCursor == 0);
+
+    char arrowStr[32];
+    snprintf(arrowStr, sizeof(arrowStr), "%s%s%s",
+             !atMin ? "< " : "  ", valStr, !atMax ? " >" : "  ");
+    int arrowW = strlen(arrowStr) * 6;
 
     if (isSelected && scheduleEditing) {
       display.setCursor(2, rowY[0]);
       display.print(rowLabels[0]);
 
-      String editStr = "";
-      if (!atMin) editStr += "< "; else editStr += "  ";
-      editStr += valStr;
-      if (!atMax) editStr += " >"; else editStr += "  ";
-
-      int editW = editStr.length() * 6;
-      int editX = 128 - editW - 1;
-      display.fillRect(editX, rowY[0], editW + 1, 8, SSD1306_WHITE);
+      int editX = 128 - arrowW - 1;
+      display.fillRect(editX, rowY[0], arrowW + 1, 8, SSD1306_WHITE);
       display.setTextColor(SSD1306_BLACK);
       display.setCursor(editX, rowY[0]);
-      display.print(editStr);
+      display.print(arrowStr);
       display.setTextColor(SSD1306_WHITE);
     } else if (isSelected) {
       display.fillRect(0, rowY[0], 128, 8, SSD1306_WHITE);
@@ -1257,19 +1285,13 @@ static void drawScheduleMode() {
       display.setCursor(2, rowY[0]);
       display.print(rowLabels[0]);
 
-      String dispStr = "";
-      if (!atMin) dispStr += "< "; else dispStr += "  ";
-      dispStr += valStr;
-      if (!atMax) dispStr += " >"; else dispStr += "  ";
-
-      int dw = dispStr.length() * 6;
-      display.setCursor(128 - dw - 1, rowY[0]);
-      display.print(dispStr);
+      display.setCursor(128 - arrowW - 1, rowY[0]);
+      display.print(arrowStr);
       display.setTextColor(SSD1306_WHITE);
     } else {
       display.setCursor(2, rowY[0]);
       display.print(rowLabels[0]);
-      int vw = valStr.length() * 6;
+      int vw = strlen(valStr) * 6;
       display.setCursor(128 - vw - 1, rowY[0]);
       display.print(valStr);
     }
@@ -1280,27 +1302,31 @@ static void drawScheduleMode() {
     uint8_t settingId = (row == 1) ? SET_SCHEDULE_START : SET_SCHEDULE_END;
     bool isOff = (settings.scheduleMode == SCHED_OFF);
     bool isHidden = isOff || (row == 1 && settings.scheduleMode == SCHED_AUTO_SLEEP);
-    String valStr = isHidden ? "---" : formatMenuValue(settingId, FMT_TIME_5MIN);
+    char valStr[20];
+    if (isHidden) {
+      snprintf(valStr, sizeof(valStr), "---");
+    } else {
+      formatMenuValue(settingId, FMT_TIME_5MIN, valStr, sizeof(valStr));
+    }
     uint16_t rawVal = (row == 1) ? settings.scheduleStart : settings.scheduleEnd;
     bool atMin = isHidden || (rawVal == 0);
     bool atMax = isHidden || (rawVal >= SCHEDULE_SLOTS - 1);
     bool isSelected = (scheduleCursor == row);
 
+    char arrowStr[32];
+    snprintf(arrowStr, sizeof(arrowStr), "%s%s%s",
+             !atMin ? "< " : "  ", valStr, !atMax ? " >" : "  ");
+    int arrowW = strlen(arrowStr) * 6;
+
     if (isSelected && scheduleEditing) {
       display.setCursor(2, rowY[row]);
       display.print(rowLabels[row]);
 
-      String editStr = "";
-      if (!atMin) editStr += "< "; else editStr += "  ";
-      editStr += valStr;
-      if (!atMax) editStr += " >"; else editStr += "  ";
-
-      int editW = editStr.length() * 6;
-      int editX = 128 - editW - 1;
-      display.fillRect(editX, rowY[row], editW + 1, 8, SSD1306_WHITE);
+      int editX = 128 - arrowW - 1;
+      display.fillRect(editX, rowY[row], arrowW + 1, 8, SSD1306_WHITE);
       display.setTextColor(SSD1306_BLACK);
       display.setCursor(editX, rowY[row]);
-      display.print(editStr);
+      display.print(arrowStr);
       display.setTextColor(SSD1306_WHITE);
     } else if (isSelected) {
       display.fillRect(0, rowY[row], 128, 8, SSD1306_WHITE);
@@ -1308,19 +1334,13 @@ static void drawScheduleMode() {
       display.setCursor(2, rowY[row]);
       display.print(rowLabels[row]);
 
-      String dispStr = "";
-      if (!atMin) dispStr += "< "; else dispStr += "  ";
-      dispStr += valStr;
-      if (!atMax) dispStr += " >"; else dispStr += "  ";
-
-      int dw = dispStr.length() * 6;
-      display.setCursor(128 - dw - 1, rowY[row]);
-      display.print(dispStr);
+      display.setCursor(128 - arrowW - 1, rowY[row]);
+      display.print(arrowStr);
       display.setTextColor(SSD1306_WHITE);
     } else {
       display.setCursor(2, rowY[row]);
       display.print(rowLabels[row]);
-      int vw = valStr.length() * 6;
+      int vw = strlen(valStr) * 6;
       display.setCursor(128 - vw - 1, rowY[row]);
       display.print(valStr);
     }
@@ -1522,8 +1542,9 @@ static void drawMenuMode() {
   }
 
   // BT/USB icon + battery right-aligned in header
-  String batStr = String(batteryPercent) + "%";
-  int batWidth = batStr.length() * 6;
+  char batStr[8];
+  snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
+  int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
   int btX = batX - 5 - 3;
   if (usbConnected) {
@@ -1552,8 +1573,9 @@ static void drawMenuMode() {
 
     if (item.type == MENU_HEADING) {
       // Heading: centered "- Label -" style
-      String heading = "- " + String(item.label) + " -";
-      int hw = heading.length() * 6;
+      char heading[32];
+      snprintf(heading, sizeof(heading), "- %s -", item.label);
+      int hw = strlen(heading) * 6;
       display.setCursor((128 - hw) / 2, y);
       display.print(heading);
 
@@ -1571,38 +1593,36 @@ static void drawMenuMode() {
 
     } else {
       // Value item
-      String valStr = formatMenuValue(item.settingId, item.format);
+      char valStr[20];
+      formatMenuValue(item.settingId, item.format, valStr, sizeof(valStr));
       uint32_t curVal = getSettingValue(item.settingId);
       bool atMin = (curVal <= item.minVal);
       bool atMax = (curVal >= item.maxVal);
       // Hide Move size value when Bezier mode is active (radius is auto-randomized)
       if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) {
-        valStr = "---";
+        snprintf(valStr, sizeof(valStr), "---");
         atMin = true;
         atMax = true;
       }
       // Negative-display: displayed range is inverted (raw max = displayed min)
       if (item.format == FMT_PERCENT_NEG) { bool tmp = atMin; atMin = atMax; atMax = tmp; }
 
+      // Build arrow-wrapped value string once for all three branches
+      char arrowStr[32];
+      snprintf(arrowStr, sizeof(arrowStr), "%s%s%s",
+               !atMin ? "< " : "  ", valStr, !atMax ? " >" : "  ");
+      int arrowW = strlen(arrowStr) * 6;
+
       if (isSelected && menuEditing) {
         // Editing: label normal, value portion inverted with < >
         display.setCursor(2, y);
         display.print(item.label);
 
-        // Build value display string with arrows
-        String editStr = "";
-        if (!atMin) editStr += "< ";
-        else editStr += "  ";
-        editStr += valStr;
-        if (!atMax) editStr += " >";
-        else editStr += "  ";
-
-        int editW = editStr.length() * 6;
-        int editX = 128 - editW - 1;
-        display.fillRect(editX, y, editW + 1, 8, SSD1306_WHITE);
+        int editX = 128 - arrowW - 1;
+        display.fillRect(editX, y, arrowW + 1, 8, SSD1306_WHITE);
         display.setTextColor(SSD1306_BLACK);
         display.setCursor(editX, y);
-        display.print(editStr);
+        display.print(arrowStr);
         display.setTextColor(SSD1306_WHITE);
 
       } else if (isSelected) {
@@ -1612,17 +1632,8 @@ static void drawMenuMode() {
         display.setCursor(2, y);
         display.print(item.label);
 
-        // Value with arrows right-aligned
-        String dispStr = "";
-        if (!atMin) dispStr += "< ";
-        else dispStr += "  ";
-        dispStr += valStr;
-        if (!atMax) dispStr += " >";
-        else dispStr += "  ";
-
-        int dw = dispStr.length() * 6;
-        display.setCursor(128 - dw - 1, y);
-        display.print(dispStr);
+        display.setCursor(128 - arrowW - 1, y);
+        display.print(arrowStr);
         display.setTextColor(SSD1306_WHITE);
 
       } else {
@@ -1630,16 +1641,8 @@ static void drawMenuMode() {
         display.setCursor(2, y);
         display.print(item.label);
 
-        String dispStr = "";
-        if (!atMin) dispStr += "< ";
-        else dispStr += "  ";
-        dispStr += valStr;
-        if (!atMax) dispStr += " >";
-        else dispStr += "  ";
-
-        int dw = dispStr.length() * 6;
-        display.setCursor(128 - dw - 1, y);
-        display.print(dispStr);
+        display.setCursor(128 - arrowW - 1, y);
+        display.print(arrowStr);
       }
     }
     row++;
