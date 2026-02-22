@@ -188,6 +188,7 @@ static void startPhase(ActivityPhase phase, unsigned long now) {
   if (phase == PHASE_MOUSING) {
     mouseState = MOUSE_IDLE;
     lastMouseStateChange = now;
+    currentMouseIdle = 0;  // start jiggling immediately (orchestrator owns phase timing)
     mouseNetX = 0;
     mouseNetY = 0;
     mouseReturnTotal = 0;
@@ -274,6 +275,7 @@ static void tickMousePhase(unsigned long now) {
   if (settings.phantomClicks && now >= orch.nextPhantomClickMs) {
     if (mouseState == MOUSE_IDLE) {
       sendMouseClick(0x04, (uint16_t)randRange(50, 150));  // middle button
+      orch.lastPhantomClickMs = millis();  // post-blocking timestamp for display
       orch.nextPhantomClickMs = now + randRange(15000, 90000);
     }
   }

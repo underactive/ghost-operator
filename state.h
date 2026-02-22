@@ -183,6 +183,7 @@ struct OrchestratorState {
 
   // Phantom click / window switch timers
   unsigned long nextPhantomClickMs;
+  unsigned long lastPhantomClickMs;   // timestamp of last click (display flash)
   unsigned long nextWindowSwitchMs;
 
   // Schedule preview overlay

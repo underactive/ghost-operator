@@ -648,9 +648,11 @@ static void drawSimulationNormal() {
 
   // === Activity row (y=38..49): label + outlined bar + time ===
   {
-    // Activity label (3 chars)
+    // Activity label (3 chars) — three visual states:
+    //   plain = idle/default, outlined = active movement, inverted = HID event
     const char* actLabel;
     bool invertLabel = false;
+    bool outlineLabel = false;
 
     switch (orch.phase) {
       case PHASE_TYPING:
@@ -659,7 +661,8 @@ static void drawSimulationNormal() {
         break;
       case PHASE_MOUSING:
         actLabel = "MSE";
-        invertLabel = (mouseState == MOUSE_JIGGLING);
+        invertLabel = (now - orch.lastPhantomClickMs < 200);
+        outlineLabel = !invertLabel && (mouseState == MOUSE_JIGGLING);
         break;
       case PHASE_IDLE:
         actLabel = "IDL";
@@ -675,6 +678,10 @@ static void drawSimulationNormal() {
       display.setCursor(0, 40);
       display.print(actLabel);
       display.setTextColor(SSD1306_WHITE);
+    } else if (outlineLabel) {
+      display.drawRect(0, 39, 18, 9, SSD1306_WHITE);
+      display.setCursor(0, 40);
+      display.print(actLabel);
     } else {
       display.setCursor(0, 40);
       display.print(actLabel);
