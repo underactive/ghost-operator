@@ -183,7 +183,7 @@ static void cmdQuerySettings() {
     "!settings|keyMin=%lu|keyMax=%lu|mouseJig=%lu|mouseIdle=%lu"
     "|mouseAmp=%d|mouseStyle=%d|lazyPct=%d|busyPct=%d"
     "|dispBright=%d|saverBright=%d|saverTimeout=%d|animStyle=%d"
-    "|name=%s|btWhileUsb=%d|scroll=%d|dashboard=%d"
+    "|name=%s|btWhileUsb=%d|scroll=%d|dashboard=%d|invertDial=%d"
     "|decoy=%d|schedMode=%d|schedStart=%d|schedEnd=%d",
     settings.keyIntervalMin, settings.keyIntervalMax,
     settings.mouseJiggleDuration, settings.mouseIdleDuration,
@@ -193,6 +193,7 @@ static void cmdQuerySettings() {
     settings.saverTimeout, settings.animStyle,
     settings.deviceName, settings.btWhileUsb,
     settings.scrollEnabled, settings.dashboardEnabled,
+    settings.invertDial,
     settings.decoyIndex, settings.scheduleMode,
     settings.scheduleStart, settings.scheduleEnd);
 
@@ -283,6 +284,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SCROLL, (uint32_t)atol(valStr));
   } else if (strcmp(key, "dashboard") == 0) {
     setSettingValue(SET_DASHBOARD, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "invertDial") == 0) {
+    setSettingValue(SET_INVERT_DIAL, (uint32_t)atol(valStr));
   } else if (strcmp(key, "name") == 0) {
     // Device name — up to 14 chars
     strncpy(settings.deviceName, valStr, NAME_MAX_LEN);

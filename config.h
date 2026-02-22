@@ -10,7 +10,7 @@
 #define VERSION "1.10.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F50  // bumped: schedule 5-min slots (uint16_t)
+#define SETTINGS_MAGIC 0x50524F51  // bumped: invertDial field
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -152,6 +152,7 @@ enum SettingId {
   SET_BT_WHILE_USB,
   SET_SCROLL,
   SET_DASHBOARD,
+  SET_INVERT_DIAL,
   SET_SCHEDULE_MODE,
   SET_SCHEDULE_START,
   SET_SCHEDULE_END,
@@ -181,7 +182,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 30
+#define MENU_ITEM_COUNT 31
 
 struct Settings {
   uint32_t magic;
@@ -207,6 +208,7 @@ struct Settings {
   uint8_t scheduleMode;   // 0=Off, 1=Auto-sleep, 2=Full auto
   uint16_t scheduleStart;  // 0-287 (5-min slots), default 108 (9:00)
   uint16_t scheduleEnd;    // 0-287 (5-min slots), default 204 (17:00)
+  uint8_t invertDial;     // 0=Off (default), 1=On — reverse encoder rotation
   uint8_t checksum;       // must remain last
 };
 
