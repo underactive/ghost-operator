@@ -22,7 +22,7 @@ Settings settings;
 
 // Profile
 Profile currentProfile = PROFILE_NORMAL;
-unsigned long profileDisplayUntil = 0;
+unsigned long profileDisplayStart = 0;
 
 // Encoder
 volatile int encoderPos = 0;

@@ -31,7 +31,8 @@ static int32_t bzLastX, bzLastY; // last evaluated position (fractional)
 
 static uint16_t sweepStepCount;    // total steps for this sweep
 static uint16_t sweepStepCurrent;  // current step index
-static unsigned long sweepPauseEnd;
+static unsigned long sweepPauseStart;
+static unsigned long sweepPauseDuration;
 
 // Pick a random sweep radius with weighted distribution:
 // ~40% small (20-60px), ~40% medium (60-180px), ~20% large (150-350px)
@@ -216,13 +217,14 @@ void handleMouseStateMachine(unsigned long now) {
                 } else {
                   pauseLen = SWEEP_PAUSE_MIN_MS + random(SWEEP_PAUSE_MAX_MS - SWEEP_PAUSE_MIN_MS + 1);
                 }
-                sweepPauseEnd = now + pauseLen;
+                sweepPauseStart = now;
+                sweepPauseDuration = pauseLen;
               }
             }
             break;
 
           case SWEEP_PAUSING:
-            if (now >= sweepPauseEnd) {
+            if (now - sweepPauseStart >= sweepPauseDuration) {
               sweepPhase = SWEEP_PLANNING;  // Plan next sweep
             }
             break;

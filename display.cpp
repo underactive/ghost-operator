@@ -396,7 +396,8 @@ static void drawNormalMode() {
     display.print("---");
   } else {
     unsigned long keyElapsed = now - lastKeyTime;
-    int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
+    if (keyElapsed > currentKeyInterval) keyElapsed = currentKeyInterval;
+    int keyRemaining = (int)(currentKeyInterval - keyElapsed);
     int keyProgress = 0;
     if (currentKeyInterval > 0) {
       keyProgress = map(keyRemaining, 0, currentKeyInterval, 0, 100);
@@ -452,7 +453,8 @@ static void drawNormalMode() {
   } else {
     unsigned long mouseElapsed = now - lastMouseStateChange;
     unsigned long mouseDuration = (mouseState == MOUSE_IDLE) ? currentMouseIdle : currentMouseJiggle;
-    int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
+    if (mouseElapsed > mouseDuration) mouseElapsed = mouseDuration;
+    int mouseRemaining = (int)(mouseDuration - mouseElapsed);
     int mouseProgress = 0;
     if (mouseDuration > 0) {
       if (mouseState == MOUSE_IDLE) {
@@ -480,7 +482,7 @@ static void drawNormalMode() {
   if (easterEggActive && easterEggFrame > 0) {
     drawEasterEgg();
   } else {
-    if (millis() < profileDisplayUntil) {
+    if (millis() - profileDisplayStart < PROFILE_DISPLAY_MS) {
       // Show profile name left-justified
       display.setCursor(0, 54);
       display.print(PROFILE_NAMES[currentProfile]);
@@ -587,7 +589,8 @@ static void drawScreensaver() {
   display.drawFastVLine(barEndX, 20, 3, SSD1306_WHITE);
   if (deviceConnected || usbConnected) {
     unsigned long keyElapsed = now - lastKeyTime;
-    int keyRemaining = max(0L, (long)currentKeyInterval - (long)keyElapsed);
+    if (keyElapsed > currentKeyInterval) keyElapsed = currentKeyInterval;
+    int keyRemaining = (int)(currentKeyInterval - keyElapsed);
     int kbFill = 0;
     if (currentKeyInterval > 0) {
       kbFill = map(keyRemaining, 0, currentKeyInterval, 0, innerW);
@@ -619,7 +622,8 @@ static void drawScreensaver() {
       if (mouseState == MOUSE_IDLE) {
         msFill = map(min(mouseElapsed, mouseDuration), 0, mouseDuration, 0, innerW);
       } else {
-        int mouseRemaining = max(0L, (long)mouseDuration - (long)mouseElapsed);
+        if (mouseElapsed > mouseDuration) mouseElapsed = mouseDuration;
+        int mouseRemaining = (int)(mouseDuration - mouseElapsed);
         msFill = map(mouseRemaining, 0, mouseDuration, 0, innerW);
       }
     }

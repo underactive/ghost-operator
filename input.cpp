@@ -165,6 +165,7 @@ void handleEncoder() {
 
   if (abs(change) >= 4) {  // Full detent
     int direction = (change > 0) ? 1 : -1;
+    if (settings.invertDial) direction = -direction;
     lastEncoderPos = encoderPos;
     lastModeActivity = millis();
 
@@ -184,7 +185,7 @@ void handleEncoder() {
         if (p < 0) p = 0;
         if (p >= PROFILE_COUNT) p = PROFILE_COUNT - 1;
         currentProfile = (Profile)p;
-        profileDisplayUntil = millis() + PROFILE_DISPLAY_MS;
+        profileDisplayStart = millis();
         scheduleNextKey();
         scheduleNextMouseState();
         pushSerialStatus();
