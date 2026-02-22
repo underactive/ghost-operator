@@ -164,7 +164,9 @@ void handleSerialCommands() {
           Serial.print(" - "); Serial.print(eh); Serial.print(":"); if(em<10)Serial.print("0"); Serial.println(em);
           Serial.print("Time synced: "); Serial.println(timeSynced ? "YES" : "NO");
           if (timeSynced) {
-            Serial.print("Current time: "); Serial.println(formatCurrentTime());
+            char timeBuf[12];
+            formatCurrentTime(timeBuf, sizeof(timeBuf));
+            Serial.print("Current time: "); Serial.println(timeBuf);
           }
           Serial.print("Schedule sleeping: "); Serial.println(scheduleSleeping ? "YES" : "NO");
         }

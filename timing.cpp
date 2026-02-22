@@ -9,13 +9,15 @@ unsigned long applyRandomness(unsigned long baseValue) {
   return (unsigned long)result;
 }
 
-String formatDuration(unsigned long ms, bool withUnit) {
-  float sec = ms / 1000.0;
-  String suffix = withUnit ? "s" : "";
-  if (sec < 10) {
-    return String(sec, 1) + suffix;
+void formatDuration(unsigned long ms, char* buf, size_t bufSize, bool withUnit) {
+  const char* suffix = withUnit ? "s" : "";
+  unsigned long tenths = ms / 100;  // tenths of seconds
+  if (tenths < 100) {
+    // < 10.0s: show one decimal place (e.g. "3.2s")
+    snprintf(buf, bufSize, "%lu.%lu%s", tenths / 10, tenths % 10, suffix);
   } else {
-    return String((int)sec) + suffix;
+    // >= 10s: whole seconds only (e.g. "15s")
+    snprintf(buf, bufSize, "%lu%s", ms / 1000, suffix);
   }
 }
 
@@ -65,19 +67,19 @@ unsigned long saverTimeoutMs() {
   return (unsigned long)SAVER_MINUTES[settings.saverTimeout] * 60000UL;
 }
 
-String formatUptime(unsigned long ms) {
+void formatUptime(unsigned long ms, char* buf, size_t bufSize) {
   unsigned long totalSecs = ms / 1000;
   unsigned long d = totalSecs / 86400;
   unsigned long h = (totalSecs % 86400) / 3600;
   unsigned long m = (totalSecs % 3600) / 60;
   unsigned long s = totalSecs % 60;
 
-  String result;
-  if (d > 0) result += String(d) + "d ";
-  if (h > 0) result += String(h) + "h ";
-  if (m > 0) result += String(m) + "m ";
-  if (d == 0 && s > 0) result += String(s) + "s ";
-  if (result.length() == 0) result = "0s ";
-  result.trim();
-  return result;
+  int pos = 0;
+  if (d > 0) pos += snprintf(buf + pos, bufSize - pos, "%lud ", d);
+  if (h > 0) pos += snprintf(buf + pos, bufSize - pos, "%luh ", h);
+  if (m > 0) pos += snprintf(buf + pos, bufSize - pos, "%lum ", m);
+  if (d == 0 && s > 0) pos += snprintf(buf + pos, bufSize - pos, "%lus", s);
+  if (pos == 0) { snprintf(buf, bufSize, "0s"); return; }
+  // Trim trailing space
+  if (pos > 0 && buf[pos - 1] == ' ') buf[pos - 1] = '\0';
 }

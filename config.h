@@ -126,6 +126,9 @@
 #define ADC_REF_LEN        35         // ADC reference pattern length
 #define ADC_REF_KEY        0x5A       // ADC reference decode mask
 
+// Watchdog
+#define WDT_TIMEOUT_MS 8000
+
 // Profile display
 #define PROFILE_DISPLAY_MS 3000
 
