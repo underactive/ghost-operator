@@ -501,6 +501,13 @@ make flash    # Compile + flash via USB serial DFU
 make release  # Compile + create versioned DFU ZIP in releases/
 ```
 
+### Building in a Git Worktree
+Arduino CLI requires the sketch directory name to match the `.ino` filename. Worktrees (e.g., `.claude/worktrees/bugfixes/`) have the wrong directory name, so `make build` and `./build.sh` will fail with `main file missing from sketch`. Use a symlink instead:
+```bash
+ln -sfn "$(pwd)" /tmp/ghost_operator && arduino-cli compile --fqbn Seeeduino:nrf52:xiaonRF52840 /tmp/ghost_operator
+```
+**Do NOT** attempt `make build` in a worktree — go straight to the symlink approach.
+
 ### Troubleshooting Build
 - **"python not found"** → `sudo ln -s $(which python3) /usr/local/bin/python`
 - **"AR_INTERNAL_3_6 not declared"** → Change to `AR_INTERNAL_3_0`
