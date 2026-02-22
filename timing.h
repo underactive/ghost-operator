@@ -14,5 +14,6 @@ void scheduleNextKey();
 void scheduleNextMouseState();
 unsigned long saverTimeoutMs();
 void formatUptime(unsigned long ms, char* buf, size_t bufSize);
+void formatMinSec(unsigned long ms, char* buf, size_t bufSize);
 
 #endif // GHOST_TIMING_H

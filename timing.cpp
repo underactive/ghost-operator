@@ -67,6 +67,25 @@ unsigned long saverTimeoutMs() {
   return (unsigned long)SAVER_MINUTES[settings.saverTimeout] * 60000UL;
 }
 
+void formatMinSec(unsigned long ms, char* buf, size_t bufSize) {
+  unsigned long totalSecs = ms / 1000;
+  unsigned long h = totalSecs / 3600;
+  unsigned long m = (totalSecs % 3600) / 60;
+  unsigned long s = totalSecs % 60;
+
+  if (h > 0 && m > 0) {
+    snprintf(buf, bufSize, "%luh%lum", h, m);
+  } else if (h > 0) {
+    snprintf(buf, bufSize, "%luh", h);
+  } else if (m > 0 && s > 0) {
+    snprintf(buf, bufSize, "%lum%lus", m, s);
+  } else if (m > 0) {
+    snprintf(buf, bufSize, "%lum", m);
+  } else {
+    snprintf(buf, bufSize, "%lus", s);
+  }
+}
+
 void formatUptime(unsigned long ms, char* buf, size_t bufSize) {
   unsigned long totalSecs = ms / 1000;
   unsigned long d = totalSecs / 86400;

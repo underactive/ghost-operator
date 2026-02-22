@@ -551,7 +551,7 @@ static void drawSimulationNormal() {
     display.print(settings.deviceName);
   }
 
-  // Right side: BT icon + battery
+  // Right side: BT/USB icon + battery
   char batStr[16];
   snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
   int batWidth = strlen(batStr) * 6;
@@ -567,152 +567,125 @@ static void drawSimulationNormal() {
   display.setCursor(batX, 0);
   display.print(batStr);
 
-  display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+  display.drawFastHLine(0, 10, 128, SSD1306_WHITE);  // matches simple mode
 
-  // === Row 1 (y=10): "Block: Mode" with horizontal scroll ===
+  // === Block row (y=11): name left | inline bar + time right ===
   {
-    char label[30];
-    snprintf(label, sizeof(label), "%s: %s", currentBlockName(), currentModeName());
-    int labelLen = strlen(label);
-    int maxChars = 21;
+    display.setCursor(0, 11);
+    display.print(currentBlockName());
 
-    if (labelLen <= maxChars) {
-      display.setCursor(0, 10);
-      display.print(label);
-    } else {
-      // Horizontal scroll (reuse help bar scroll pattern)
-      static int16_t simLabelScroll = 0;
-      static int8_t simLabelDir = 1;
-      static unsigned long simLabelTimer = 0;
+    unsigned long blockElapsed = now - orch.blockStartMs;
+    unsigned long blockRemain = (blockElapsed < orch.blockDurationMs) ? (orch.blockDurationMs - blockElapsed) : 0;
+    char timeBuf[10];
+    formatMinSec(blockRemain, timeBuf, sizeof(timeBuf));
+    int timeW = strlen(timeBuf) * 6;
+    int timeX = 128 - timeW;
+    int barW = timeX - 2 - 64;
 
-      int maxScroll = labelLen - maxChars;
-      if (now - simLabelTimer >= (unsigned long)(simLabelScroll == 0 || simLabelScroll == maxScroll ? 1500 : 300)) {
-        simLabelScroll += simLabelDir;
-        if (simLabelScroll >= maxScroll) { simLabelScroll = maxScroll; simLabelDir = -1; }
-        if (simLabelScroll <= 0) { simLabelScroll = 0; simLabelDir = 1; }
-        simLabelTimer = now;
-      }
-
-      display.setCursor(0, 10);
-      for (int i = 0; i < maxChars && (simLabelScroll + i) < labelLen; i++) {
-        display.print(label[simLabelScroll + i]);
-      }
+    if (barW > 4) {
+      uint8_t progress = blockProgress(now);
+      display.drawRect(64, 12, barW, 5, SSD1306_WHITE);
+      int fill = map(100 - progress, 0, 100, 0, barW - 2);
+      if (fill > 0) display.fillRect(65, 13, fill, 3, SSD1306_WHITE);
     }
+
+    display.setCursor(timeX, 11);
+    display.print(timeBuf);
   }
 
-  // === Row 2 (y=18): Work mode progress bar (4px) + time ===
+  // === Mode row (y=20): name left | inline bar + time right ===
   {
-    uint8_t progress = modeProgress(now);
-    int barW = 98;
-    display.drawRect(0, 18, barW, 4, SSD1306_WHITE);
-    int fill = map(100 - progress, 0, 100, 0, barW - 2);  // countdown
-    if (fill > 0) display.fillRect(1, 19, fill, 2, SSD1306_WHITE);
+    display.setCursor(0, 20);
+    display.print(currentModeName());
+
+    unsigned long modeElapsed = now - orch.modeStartMs;
+    unsigned long modeRemain = (modeElapsed < orch.modeDurationMs) ? (orch.modeDurationMs - modeElapsed) : 0;
+    char timeBuf[10];
+    formatMinSec(modeRemain, timeBuf, sizeof(timeBuf));
+    int timeW = strlen(timeBuf) * 6;
+    int timeX = 128 - timeW;
+    int barW = timeX - 2 - 64;
+
+    if (barW > 4) {
+      uint8_t progress = modeProgress(now);
+      display.drawRect(64, 21, barW, 5, SSD1306_WHITE);
+      int fill = map(100 - progress, 0, 100, 0, barW - 2);
+      if (fill > 0) display.fillRect(65, 22, fill, 3, SSD1306_WHITE);
+    }
+
+    display.setCursor(timeX, 20);
+    display.print(timeBuf);
+  }
+
+  // === Phase : Profile row (y=29) ===
+  {
+    char phaseLine[22];
+    const char* phaseLabel = (orch.phase < PHASE_COUNT) ? SIM_PHASE_LABELS[orch.phase] : "???";
+    const char* profLabel = PROFILE_NAMES[orch.autoProfile];
+    snprintf(phaseLine, sizeof(phaseLine), "%s : %s", phaseLabel, profLabel);
+    display.setCursor(0, 29);
+    display.print(phaseLine);
+  }
+
+  display.drawFastHLine(0, 37, 128, SSD1306_WHITE);
+
+  // === Activity row (y=38..49): label + outlined bar + time ===
+  {
+    // Activity label (3 chars)
+    const char* actLabel;
+    bool invertLabel = false;
+
+    switch (orch.phase) {
+      case PHASE_TYPING:
+        actLabel = "KBD";
+        invertLabel = orch.keyDown;
+        break;
+      case PHASE_MOUSING:
+        actLabel = "MSE";
+        invertLabel = (mouseState == MOUSE_JIGGLING);
+        break;
+      case PHASE_IDLE:
+        actLabel = "IDL";
+        break;
+      default:
+        actLabel = "SWT";
+        break;
+    }
+
+    if (invertLabel) {
+      display.fillRect(0, 39, 18, 9, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(0, 40);
+      display.print(actLabel);
+      display.setTextColor(SSD1306_WHITE);
+    } else {
+      display.setCursor(0, 40);
+      display.print(actLabel);
+    }
+
+    // Progress bar (7px tall outlined, x=21..96)
+    display.drawRect(21, 40, 76, 7, SSD1306_WHITE);
+
+    unsigned long phaseElapsed = now - orch.phaseStartMs;
+    unsigned long phaseRemain = (phaseElapsed < orch.phaseDurationMs) ? (orch.phaseDurationMs - phaseElapsed) : 0;
+
+    if (orch.phaseDurationMs > 0) {
+      int fill = map(phaseRemain, 0, orch.phaseDurationMs, 0, 74);
+      if (fill > 0) display.fillRect(22, 41, fill, 5, SSD1306_WHITE);
+    }
 
     // Time remaining
-    unsigned long elapsed = now - orch.modeStartMs;
-    unsigned long remaining = (elapsed < orch.modeDurationMs) ? (orch.modeDurationMs - elapsed) : 0;
     char durBuf[12];
-    formatDuration(remaining, durBuf, sizeof(durBuf));
-    display.setCursor(100, 18);
+    formatDuration(phaseRemain, durBuf, sizeof(durBuf));
+    display.setCursor(99, 40);
     display.print(durBuf);
   }
 
-  display.drawFastHLine(0, 23, 128, SSD1306_WHITE);
+  display.drawFastHLine(0, 50, 128, SSD1306_WHITE);  // matches simple mode
 
-  // === KB row (y=24): Profile letter + flash + progress bar + time ===
+  // === Footer (y=54): uptime/realtime + KB/MS indicators + animation ===
   {
-    // Profile letter
-    const char profLetter = PROFILE_NAMES[orch.autoProfile][0];  // L, N, or B
-    display.setCursor(0, 24);
-    display.print(profLetter);
-
-    // Keypress flash icon (6px area at x=7)
-    static unsigned long lastKeyFlash = 0;
-    if (orch.keyDown) lastKeyFlash = now;
-    bool flashActive = (now - lastKeyFlash < 100);
-    if (flashActive && orch.phase == PHASE_TYPING) {
-      display.fillRect(7, 24, 5, 7, SSD1306_WHITE);
-      display.setTextColor(SSD1306_BLACK);
-      display.setCursor(7, 24);
-      display.print("K");
-      display.setTextColor(SSD1306_WHITE);
-    }
-
-    // Progress bar (76px wide, x=14 to x=89, 7px tall)
-    display.drawRect(14, 24, 76, 7, SSD1306_WHITE);
-
-    if (orch.phase == PHASE_TYPING) {
-      // Show burst progress: countdown within phase
-      unsigned long phaseElapsed = now - orch.phaseStartMs;
-      if (phaseElapsed < orch.phaseDurationMs) {
-        int kbFill = map(orch.phaseDurationMs - phaseElapsed, 0, orch.phaseDurationMs, 0, 74);
-        if (kbFill > 0) display.fillRect(15, 25, kbFill, 5, SSD1306_WHITE);
-      }
-      // Time remaining
-      unsigned long kbRemain = (phaseElapsed < orch.phaseDurationMs) ? (orch.phaseDurationMs - phaseElapsed) : 0;
-      char kbDurBuf[12];
-      formatDuration(kbRemain, kbDurBuf, sizeof(kbDurBuf));
-      display.setCursor(92, 24);
-      display.print(kbDurBuf);
-    } else {
-      // KB not active
-      display.setCursor(92, 24);
-      if (keyEnabled) {
-        display.print("wait");
-      } else {
-        display.print("mute");
-      }
-    }
-  }
-
-  display.drawFastHLine(0, 32, 128, SSD1306_WHITE);
-
-  // === MS row (y=33): flash + progress bar + time ===
-  {
-    display.setCursor(0, 33);
-    display.print(" ");
-
-    // Mouse click flash
-    static unsigned long lastMouseFlash = 0;
-    if (mouseState == MOUSE_JIGGLING) lastMouseFlash = now;
-    bool mFlash = (now - lastMouseFlash < 100);
-    if (mFlash && orch.phase == PHASE_MOUSING) {
-      display.fillRect(7, 33, 5, 7, SSD1306_WHITE);
-      display.setTextColor(SSD1306_BLACK);
-      display.setCursor(7, 33);
-      display.print("M");
-      display.setTextColor(SSD1306_WHITE);
-    }
-
-    // Progress bar
-    display.drawRect(14, 33, 76, 7, SSD1306_WHITE);
-
-    if (orch.phase == PHASE_MOUSING) {
-      unsigned long phaseElapsed = now - orch.phaseStartMs;
-      if (phaseElapsed < orch.phaseDurationMs) {
-        int msFill = map(orch.phaseDurationMs - phaseElapsed, 0, orch.phaseDurationMs, 0, 74);
-        if (msFill > 0) display.fillRect(15, 34, msFill, 5, SSD1306_WHITE);
-      }
-      unsigned long msRemain = (phaseElapsed < orch.phaseDurationMs) ? (orch.phaseDurationMs - phaseElapsed) : 0;
-      char msDurBuf[12];
-      formatDuration(msRemain, msDurBuf, sizeof(msDurBuf));
-      display.setCursor(92, 33);
-      display.print(msDurBuf);
-    } else {
-      display.setCursor(92, 33);
-      if (mouseEnabled) {
-        display.print("wait");
-      } else {
-        display.print("mute");
-      }
-    }
-  }
-
-  display.drawFastHLine(0, 43, 128, SSD1306_WHITE);
-
-  // === Footer (y=44): uptime/realtime + KB/MS indicators + animation ===
-  {
-    display.setCursor(0, 44);
+    display.setCursor(0, 54);
     if (timeSynced) {
       char timeBuf[12];
       formatCurrentTime(timeBuf, sizeof(timeBuf));
@@ -725,9 +698,9 @@ static void drawSimulationNormal() {
     }
 
     // KB/MS mute indicators
-    display.setCursor(60, 44);
+    display.setCursor(60, 54);
     display.print(keyEnabled ? "KB" : "--");
-    display.setCursor(78, 44);
+    display.setCursor(78, 54);
     display.print(mouseEnabled ? "MS" : "--");
 
     // Animation in corner

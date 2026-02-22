@@ -9,6 +9,7 @@ const char* JOB_SIM_NAMES[]     = { "Staff", "Developer", "Designer" };
 const char* HOST_OS_NAMES[]     = { "Disabled", "Windows", "Mac", "Linux" };
 const char* HEADER_DISP_NAMES[] = { "Job name", "Device" };
 const char* PHASE_NAMES[]       = { "TYPE", "MOUSE", "IDLE", "SWITCH" };
+const char* SIM_PHASE_LABELS[] = { "TYPING", "MOUSING", "IDLE", "SWITCHING" };
 
 // ============================================================================
 // WORK MODE DEFINITIONS (11 micro-modes)
