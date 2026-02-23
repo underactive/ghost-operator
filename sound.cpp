@@ -6,65 +6,59 @@ void initSound() {
   digitalWrite(PIN_SOUND, LOW);
 }
 
-// Random frequency variation: ±10% for realism
-static uint16_t varyFreq(uint16_t freq) {
-  int16_t variation = (int16_t)(freq / 10);
-  return (uint16_t)(freq + random(-variation, variation + 1));
+// Rapid pulse burst — percussive noise texture
+static void noiseBurst(uint8_t pulses, uint16_t minUs, uint16_t maxUs) {
+  for (uint8_t i = 0; i < pulses; i++) {
+    digitalWrite(PIN_SOUND, HIGH);
+    delayMicroseconds(random(minUs, maxUs + 1));
+    digitalWrite(PIN_SOUND, LOW);
+    delayMicroseconds(random(minUs, maxUs + 1));
+  }
 }
 
-// MX Blue: sharp click with high-frequency snap
+// Single sharp pulse
+static void tick(uint16_t widthUs) {
+  digitalWrite(PIN_SOUND, HIGH);
+  delayMicroseconds(widthUs);
+  digitalWrite(PIN_SOUND, LOW);
+}
+
+// MX Blue: crisp double-click (tactile bump + bottom-out)
 static void soundMxBlue() {
-  tone(PIN_SOUND, varyFreq(4500), 3);
-  delay(3);
-  tone(PIN_SOUND, varyFreq(6000), 2);
-  delay(2);
-  tone(PIN_SOUND, varyFreq(3500), 4);
-  delay(4);
-  noTone(PIN_SOUND);
+  noiseBurst(6, 15, 35);
+  delayMicroseconds(random(400, 700));
+  noiseBurst(4, 20, 40);
 }
 
-// MX Brown: softer bump, lower pitch
+// MX Brown: softer single bump
 static void soundMxBrown() {
-  tone(PIN_SOUND, varyFreq(3200), 4);
-  delay(4);
-  tone(PIN_SOUND, varyFreq(2400), 5);
-  delay(5);
-  tone(PIN_SOUND, varyFreq(1800), 3);
-  delay(3);
-  noTone(PIN_SOUND);
+  noiseBurst(5, 30, 60);
 }
 
-// Membrane: muted thud, low frequency
+// Membrane: muted thud
 static void soundMembrane() {
-  tone(PIN_SOUND, varyFreq(1500), 6);
-  delay(6);
-  tone(PIN_SOUND, varyFreq(1000), 8);
-  delay(8);
-  noTone(PIN_SOUND);
+  tick(random(60, 120));
+  delayMicroseconds(random(100, 200));
+  tick(random(30, 60));
 }
 
-// Buckling Spring: sharp metallic ping
+// Buckling Spring: sharp snap with brief metallic ring
 static void soundBuckling() {
-  tone(PIN_SOUND, varyFreq(5500), 2);
-  delay(2);
-  tone(PIN_SOUND, varyFreq(7000), 2);
-  delay(2);
-  tone(PIN_SOUND, varyFreq(4000), 3);
-  delay(3);
-  tone(PIN_SOUND, varyFreq(2500), 5);
-  delay(5);
-  noTone(PIN_SOUND);
+  noiseBurst(8, 10, 25);
+  // Quick tonal ring (~7kHz for ~1.7ms) — single frequency, no chirp
+  for (uint8_t i = 0; i < 12; i++) {
+    digitalWrite(PIN_SOUND, HIGH);
+    delayMicroseconds(70);
+    digitalWrite(PIN_SOUND, LOW);
+    delayMicroseconds(70);
+  }
 }
 
-// Deep Thock: bass-heavy low thud
+// Thock: deep satisfying thud
 static void soundThock() {
-  tone(PIN_SOUND, varyFreq(800), 5);
-  delay(5);
-  tone(PIN_SOUND, varyFreq(600), 8);
-  delay(8);
-  tone(PIN_SOUND, varyFreq(400), 5);
-  delay(5);
-  noTone(PIN_SOUND);
+  tick(random(150, 250));
+  delayMicroseconds(random(200, 400));
+  noiseBurst(3, 40, 80);
 }
 
 static void playOnce(uint8_t type) {
