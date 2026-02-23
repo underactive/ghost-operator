@@ -24,7 +24,7 @@
 |-----|-----------|---------|
 | U1 | XIAO nRF52840 | MCU + BLE |
 | DISP1 | SSD1306 OLED 128x64 | Display (I2C) |
-| ENC1 | KY-040 Rotary Encoder | Input + key selection |
+| ENC1 | EC11 Rotary Encoder | Input + key selection |
 | SW1 | Tactile button 6x6mm | Mode cycle / sleep |
 | SW2 | Tactile button 6x6mm | Mute (KB/MS toggle) |
 | BT1 | LiPo 3.7V 1000mAh | Power |
@@ -273,6 +273,7 @@ WEB → DEVICE                    DEVICE → WEB
 - **Web Bluetooth not supported:** Chrome blocklists legacy DFU UUID — use nRF Connect mobile app or `adafruit-nrfutil dfu ble` instead
 
 ### Encoder Handling
+- **EC11 bare encoder** — no onboard pull-ups; uses nRF52840 internal pull-ups via `INPUT_PULLUP` on D0, D1, D2 (configured in `setupPins()`)
 - Hybrid ISR + polling architecture:
   - **Primary:** GPIOTE interrupt (`encoderISR`) catches every pin edge in real-time, including during blocking I2C display transfers
   - **Fallback:** `pollEncoder()` in main loop catches edges missed during SoftDevice radio blackouts

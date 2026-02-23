@@ -254,7 +254,7 @@
             <h3>Electromechanical</h3>
             <table>
                 <tr><th>Ref</th><th>Qty</th><th>Part</th><th>Description</th><th>Price</th></tr>
-                <tr><td>ENC1</td><td>1</td><td>Rotary Encoder</td><td>KY-040 with pushbutton</td><td>$1.50</td></tr>
+                <tr><td>ENC1</td><td>1</td><td>Rotary Encoder</td><td>EC11 with pushbutton (internal pull-ups)</td><td>$1.50</td></tr>
                 <tr><td>SW1</td><td>1</td><td>Tactile Button</td><td>6x6mm momentary (Function/Mode/Sleep)</td><td>$0.10</td></tr>
             </table>
             
@@ -361,12 +361,12 @@
                 </div>
                 
                 <div class="wiring-card">
-                    <h4>Rotary Encoder (ENC1)</h4>
+                    <h4>Rotary Encoder (ENC1 — EC11)</h4>
                     <div class="wire"><span class="wire-from">GND</span><span class="wire-arrow">→</span><span class="wire-to">GND Rail</span></div>
-                    <div class="wire"><span class="wire-from">+</span><span class="wire-arrow">→</span><span class="wire-to">3V3 Rail</span></div>
                     <div class="wire"><span class="wire-from">SW</span><span class="wire-arrow">→</span><span class="wire-to">D2</span></div>
                     <div class="wire"><span class="wire-from">DT (B)</span><span class="wire-arrow">→</span><span class="wire-to">D1</span></div>
                     <div class="wire"><span class="wire-from">CLK (A)</span><span class="wire-arrow">→</span><span class="wire-to">D0</span></div>
+                    <div class="note" style="margin-top: 10px;">No VCC needed — nRF52840 internal pull-ups via INPUT_PULLUP</div>
                 </div>
                 
                 <div class="wiring-card">

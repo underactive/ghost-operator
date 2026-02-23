@@ -42,7 +42,7 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 |-----|-----|------|-------------|-------|
 | U1 | 1 | Seeed XIAO nRF52840 | BLE 5.0 MCU, USB-C, LiPo charger | $9.90 |
 | DISP1 | 1 | SSD1306 OLED 0.96" | 128x64 I2C Display | $3.50 |
-| ENC1 | 1 | Rotary Encoder | KY-040 with pushbutton | $1.50 |
+| ENC1 | 1 | Rotary Encoder | EC11 with pushbutton (internal pull-ups) | $1.50 |
 | SW1 | 1 | Tactile Button | 6x6mm momentary | $0.10 |
 | BT1 | 1 | LiPo Battery | 3.7V 1000mAh, JST-SH 1.25mm | $6.00 |
 | C1 | 1 | Ceramic Capacitor | 100nF | $0.05 |
@@ -257,14 +257,13 @@ SCL → D5
 SDA → D4
 ```
 
-### Rotary Encoder
+### Rotary Encoder (EC11)
 
 ```
 GND → GND Rail
-+   → 3V3 Rail
-SW  → D2
-DT  → D1
-CLK → D0
+SW  → D2 (internal pull-up)
+DT  → D1 (internal pull-up)
+CLK → D0 (internal pull-up)
 ```
 
 ### Function Button
