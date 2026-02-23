@@ -1690,6 +1690,91 @@ static void drawModePickerPage() {
 }
 
 // ============================================================================
+// SET CLOCK MODE
+// ============================================================================
+
+static void drawSetClockMode() {
+  display.setTextSize(1);
+
+  // === Header (y=0) ===
+  display.setCursor(0, 0);
+  display.print("SET CLOCK");
+  display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+
+  // === Large HH:MM preview at size 2, centered (y=12..27) ===
+  {
+    char timeBuf[8];
+    snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d", clockHour, clockMinute);
+    display.setTextSize(2);
+    int tw = strlen(timeBuf) * 12;  // size 2 = 12px per char
+    display.setCursor((128 - tw) / 2, 14);
+    display.print(timeBuf);
+    display.setTextSize(1);
+  }
+
+  // === Editable rows (y=32, y=40) ===
+  const char* rowLabels[] = { "Hour", "Minute" };
+  const int rowY[] = { 32, 40 };
+
+  for (int row = 0; row < 2; row++) {
+    bool isSelected = (clockCursor == row);
+    uint8_t val = (row == 0) ? clockHour : clockMinute;
+
+    char valStr[8];
+    snprintf(valStr, sizeof(valStr), "%d", val);
+
+    // Always show arrows (values wrap)
+    char arrowStr[16];
+    snprintf(arrowStr, sizeof(arrowStr), "< %s >", valStr);
+    int arrowW = strlen(arrowStr) * 6;
+
+    if (isSelected && clockEditing) {
+      // Editing: label normal, value inverted with arrows
+      display.setCursor(2, rowY[row]);
+      display.print(rowLabels[row]);
+
+      int editX = 128 - arrowW - 1;
+      display.fillRect(editX, rowY[row], arrowW + 1, 8, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(editX, rowY[row]);
+      display.print(arrowStr);
+      display.setTextColor(SSD1306_WHITE);
+    } else if (isSelected) {
+      // Selected but not editing: full row inverted
+      display.fillRect(0, rowY[row], 128, 8, SSD1306_WHITE);
+      display.setTextColor(SSD1306_BLACK);
+      display.setCursor(2, rowY[row]);
+      display.print(rowLabels[row]);
+
+      display.setCursor(128 - arrowW - 1, rowY[row]);
+      display.print(arrowStr);
+      display.setTextColor(SSD1306_WHITE);
+    } else {
+      // Unselected: label left, value right
+      display.setCursor(2, rowY[row]);
+      display.print(rowLabels[row]);
+      int vw = strlen(valStr) * 6;
+      display.setCursor(128 - vw - 1, rowY[row]);
+      display.print(valStr);
+    }
+  }
+
+  // === Separator + help text ===
+  display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
+
+  const char* help;
+  if (clockCursor == 0) {
+    help = "Set hour (0-23)";
+  } else {
+    help = "Set minute (0-59)";
+  }
+  display.setCursor(0, 52);
+  display.print(help);
+  display.setCursor(0, 60);
+  display.print("Func=confirm");
+}
+
+// ============================================================================
 // HELP BAR
 // ============================================================================
 
@@ -2010,6 +2095,8 @@ void updateDisplay() {
     drawDecoyMode();
   } else if (currentMode == MODE_SCHEDULE) {
     drawScheduleMode();
+  } else if (currentMode == MODE_SET_CLOCK) {
+    drawSetClockMode();
   } else if (currentMode == MODE_MODE) {
     drawModePickerPage();
   }

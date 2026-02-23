@@ -145,7 +145,7 @@ export function parseStatus(data) {
 export const PROFILE_NAMES = ['LAZY', 'NORMAL', 'BUSY']
 
 /** Mode index to name mapping (matches firmware MODE_NAMES[]) */
-export const MODE_NAMES = ['NORMAL', 'MENU', 'SLOTS', 'NAME', 'DECOY']
+export const MODE_NAMES = ['NORMAL', 'MENU', 'SLOTS', 'NAME', 'DECOY', 'SCHED', 'MODE', 'CLOCK']
 
 /** Mouse state index to name mapping */
 export const MOUSE_STATE_NAMES = ['IDLE', 'MOVING', 'RETURNING']

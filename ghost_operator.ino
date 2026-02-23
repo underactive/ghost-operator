@@ -395,6 +395,10 @@ void loop() {
     if (currentMode == MODE_DECOY) {
       decoyConfirming = false;
     }
+    if (currentMode == MODE_SET_CLOCK) {
+      // Discard unsaved clock edits on timeout — don't call syncTime
+      clockEditing = false;
+    }
     if (currentMode == MODE_SCHEDULE) {
       // Revert unsaved edits — don't persist schedule changes on timeout
       scheduleEditing = false;

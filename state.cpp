@@ -140,6 +140,12 @@ uint8_t  scheduleOrigMode = 0;
 uint16_t scheduleOrigStart = 0;
 uint16_t scheduleOrigEnd = 0;
 
+// Clock editor state (MODE_SET_CLOCK)
+int8_t  clockCursor   = 0;
+bool    clockEditing  = false;
+uint8_t clockHour     = 12;
+uint8_t clockMinute   = 0;
+
 // Schedule / wall clock
 bool timeSynced = false;
 uint32_t wallClockDaySecs = 0;

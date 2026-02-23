@@ -148,6 +148,12 @@ extern uint8_t  scheduleOrigMode;   // snapshot for revert on timeout
 extern uint16_t scheduleOrigStart;
 extern uint16_t scheduleOrigEnd;
 
+// Clock editor state (MODE_SET_CLOCK)
+extern int8_t  clockCursor;     // 0=Hour, 1=Minute
+extern bool    clockEditing;
+extern uint8_t clockHour;       // 0-23
+extern uint8_t clockMinute;     // 0-59
+
 // Schedule / wall clock
 extern bool timeSynced;
 extern uint32_t wallClockDaySecs;

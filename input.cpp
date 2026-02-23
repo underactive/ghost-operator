@@ -125,6 +125,34 @@ void returnToMenuFromSchedule() {
 }
 
 // ============================================================================
+// CLOCK EDITOR HELPERS
+// ============================================================================
+
+void initClockEditor() {
+  clockCursor = 0;
+  clockEditing = false;
+  // Pre-fill from current time if synced, else default 12:00
+  if (timeSynced) {
+    uint32_t secs = currentDaySeconds();
+    clockHour = (uint8_t)(secs / 3600);
+    clockMinute = (uint8_t)((secs % 3600) / 60);
+  } else {
+    clockHour = 12;
+    clockMinute = 0;
+  }
+}
+
+void returnToMenuFromClock() {
+  currentMode = MODE_MENU;
+  menuCursor = MENU_IDX_SET_CLOCK;
+  menuEditing = false;
+  clockEditing = false;
+  menuScrollOffset = (MENU_IDX_SET_CLOCK > 4) ? MENU_IDX_SET_CLOCK - 4 : 0;
+  markDisplayDirty();
+  Serial.println("Mode: MENU (from CLOCK)");
+}
+
+// ============================================================================
 // MODE PICKER HELPERS
 // ============================================================================
 
@@ -397,6 +425,24 @@ void handleEncoder() {
         }
         break;
 
+      case MODE_SET_CLOCK:
+        if (clockEditing) {
+          if (clockCursor == 0) {
+            // Hour: wrap 0-23
+            clockHour = (uint8_t)((clockHour + direction + 24) % 24);
+          } else {
+            // Minute: wrap 0-59
+            clockMinute = (uint8_t)((clockMinute + direction + 60) % 60);
+          }
+        } else {
+          // Navigate cursor 0↔1 (clamp)
+          int8_t next = clockCursor + direction;
+          if (next < 0) next = 0;
+          if (next > 1) next = 1;
+          clockCursor = next;
+        }
+        break;
+
       case MODE_MODE:
         if (modeConfirming) {
           modeRebootYes = !modeRebootYes;
@@ -492,6 +538,10 @@ void handleButtons() {
               currentMode = MODE_MODE;
               initModePicker();
               Serial.println("Mode: MODE");
+            } else if (item.settingId == SET_SET_CLOCK) {
+              currentMode = MODE_SET_CLOCK;
+              initClockEditor();
+              Serial.println("Mode: SET_CLOCK");
             } else if (item.settingId == SET_SCHEDULE_MODE) {
               currentMode = MODE_SCHEDULE;
               initScheduleEditor();
@@ -537,6 +587,16 @@ void handleButtons() {
         } else {
           // Advance cursor to next position (wraps)
           activeNamePos = (activeNamePos + 1) % NAME_MAX_LEN;
+        }
+        break;
+
+      case MODE_SET_CLOCK:
+        // Toggle editing on/off
+        clockEditing = !clockEditing;
+        if (clockEditing) {
+          Serial.print("Clock: editing row "); Serial.println(clockCursor);
+        } else {
+          Serial.println("Clock: edit done");
         }
         break;
 
@@ -726,6 +786,14 @@ void handleButtons() {
               // From reboot prompt -- func button = "No" (skip reboot)
               returnToMenuFromName();
             }
+            break;
+
+          case MODE_SET_CLOCK:
+            // Confirm: sync time and return to menu
+            syncTime((uint32_t)clockHour * 3600 + (uint32_t)clockMinute * 60);
+            clockEditing = false;
+            returnToMenuFromClock();
+            Serial.println("Clock set via manual editor");
             break;
 
           case MODE_SCHEDULE:

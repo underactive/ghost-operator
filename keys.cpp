@@ -78,10 +78,11 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_HEADING, "Sound",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Sound",        "Mechanical keyboard sound on keystroke", FMT_ON_OFF, 0, 1, 1, SET_SOUND_ENABLED },
   { MENU_VALUE,   "Key sound",    "Keyboard switch sound profile", FMT_KEY_SOUND, 0, 4, 1, SET_SOUND_TYPE },
-  // idx 29-30: Schedule
+  // idx 29-31: Schedule
   { MENU_HEADING, "Schedule",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_ACTION,  "Set clock",     "Set device time manually", FMT_DURATION_MS, 0, 0, 0, SET_SET_CLOCK },
   { MENU_ACTION,  "Schedule",      "Configure schedule mode & times", FMT_DURATION_MS, 0, 0, 0, SET_SCHEDULE_MODE },
-  // idx 31-38: Device
+  // idx 32-39: Device
   { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Mode",          "Select operation mode (reboot required)", FMT_DURATION_MS, 0, 0, 0, SET_OP_MODE },
   { MENU_ACTION,  "BLE identity",  "BLE device name preset (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_BLE_IDENTITY },
@@ -90,7 +91,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Invert dial",   "Reverse encoder rotation direction", FMT_ON_OFF, 0, 1, 1, SET_INVERT_DIAL },
   { MENU_ACTION,  "Restore defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
   { MENU_ACTION,  "Reboot",        "Restart device (applies pending changes)", FMT_DURATION_MS, 0, 0, 0, SET_REBOOT },
-  // idx 39-42: About
+  // idx 40-43: About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Uptime",        "Time since last boot", FMT_UPTIME, 0, 0, 0, SET_UPTIME },
   { MENU_VALUE,   "Die temp",      "nRF52840 internal die temperature", FMT_DIE_TEMP, 0, 0, 0, SET_DIE_TEMP },
@@ -108,7 +109,7 @@ const char*   SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min",
 
 const char NAME_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_";
 
-const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY", "SCHED", "MODE" };
+const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY", "SCHED", "MODE", "CLOCK" };
 const char* PROFILE_NAMES[] = { "LAZY", "NORMAL", "BUSY" };
 const char* PROFILE_NAMES_TITLE[] = { "Lazy", "Normal", "Busy" };
 const char* ANIM_NAMES[] = { "ECG", "EQ", "Ghost", "Matrix", "Radar", "None" };
