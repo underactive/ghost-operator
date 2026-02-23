@@ -100,7 +100,7 @@ Four modes, accessed via function button:
 | Encoder Turn | Switch profile (LAZY/NORMAL/BUSY) | Navigate items / adjust value | Cycle key for active slot | Cycle character / toggle Yes-No |
 | Encoder Button | Cycle KB/MS combos | Select item / confirm edit | Advance slot cursor (1-8) | Advance position / confirm |
 | Func Short | Open menu | Close menu (save) | Back to menu (save) | Save name (reboot prompt) |
-| Func Hold (5s) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) |
+| Func Hold (3.5s) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) |
 | Func (sleeping) | Wake up | - | - | - |
 
 ### Menu Items
@@ -123,11 +123,17 @@ Settings organized under headings in the scrollable menu:
 | | Saver bright | 10% - 100% (10% steps) |
 | | Saver time | Never / 1 / 5 / 10 / 15 / 30 min |
 | | Animation | ECG / EQ / Ghost / Matrix / Radar / None |
+| **Schedule** | Schedule | → opens schedule editor (Off / Auto-sleep / Full auto) |
 | **Device** | Device name | → opens NAME mode (14 char max) |
+| | BLE identity | → opens BLE identity picker (10 presets + Custom) |
 | | BT while USB | Off / On (keep BLE active when USB plugged in) |
+| | Dashboard | On / Off (Chrome notification linking to web dashboard on USB) |
+| | Invert dial | Off / On (reverse encoder rotation direction) |
 | | Reset defaults | → confirmation prompt (restores factory settings) |
 | | Reboot | → confirmation prompt (restarts device) |
-| **About** | Version | Read-only firmware version |
+| **About** | Uptime | Current device uptime (read-only) |
+| | Die temp | Internal MCU temperature (read-only) |
+| | Version | Read-only firmware version |
 
 ### Timing Profiles
 
@@ -358,7 +364,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **1.10.1** | **LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening** |
+| **1.10.2** | **Invert dial, boot-time DFU entry, hardware watchdog, I2C recovery, heap fragmentation fix, millis() overflow fix** |
+| 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
 | 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto) |
 | 1.9.1 | Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization |
 | 1.9.0 | USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard |

@@ -18,7 +18,7 @@
 | **Encoder Turn** | Switch profile | Navigate / adjust value | Cycle slot key | Cycle character / Yes-No |
 | **Encoder Press** | Cycle KB/MS enable | Select / confirm | Advance slot cursor | Advance position / confirm |
 | **Button Short** | Open menu | Close menu (save) | Back to menu (save) | Save name (reboot prompt) |
-| **Button Hold (5s)** | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) |
+| **Button Hold (3.5s)** | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) |
 | **Button (sleeping)** | Wake up | - | - | - |
 
 ---
@@ -116,12 +116,17 @@
 | | Saver bright | Screensaver dimmed brightness (10-100%, default 20%) |
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
 | | Animation | Status animation style (ECG / EQ / Ghost / Matrix / Radar / None, default Ghost) |
+| **Schedule** | Schedule | Opens schedule editor: Off / Auto-sleep / Full auto (sync clock via USB dashboard first) |
 | **Device** | Device name | Device name editor (press encoder to enter) |
+| | BLE identity | BLE device name preset picker — 10 commercial device presets + Custom (reboot to apply) |
 | | BT while USB | Keep Bluetooth active when USB plugged in (Off / On, default Off) |
 | | Dashboard | Show Chrome notification linking to web dashboard on USB connect (On / Off, default On — auto-disables after 3 boots if untouched) |
+| | Invert dial | Reverse encoder rotation direction (Off / On, default Off) |
 | | Reset defaults | Restore all settings to factory defaults (confirmation required) |
 | | Reboot | Restart the device (confirmation required) |
-| **About** | Version | Firmware version (read-only) |
+| **About** | Uptime | Current device uptime (read-only) |
+| | Die temp | Internal MCU temperature in °C/°F (read-only) |
+| | Version | Firmware version (read-only) |
 
 **Help bar:** The bottom line shows context-sensitive help for the selected item. Long text scrolls automatically.
 
@@ -347,7 +352,7 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 ## Sleep Mode
 
 ### Enter Sleep
-- **Hold function button** — after 0.5 seconds, a "Hold to sleep..." overlay appears with a 5-second countdown bar
+- **Hold function button** — after 0.5 seconds, a "Hold to sleep..." overlay appears with a 3.5-second countdown bar
 - **Keep holding** to complete the countdown — display briefly shows "SLEEPING..." then enters deep sleep (~3µA)
 - **Release during countdown** to cancel — shows "Cancelled" briefly and returns to the previous screen
 - Bluetooth disconnects when sleep begins
@@ -466,6 +471,8 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 - If the device is stuck in DFU mode, power cycle it (unplug USB and battery, then replug)
 - DFU mode has no timeout — the device stays in DFU mode until a transfer completes or it's power cycled
 - Your settings are preserved through firmware updates (stored in a separate flash region)
+
+**Hardware DFU fallback:** If the device is unresponsive and you can't enter DFU mode via the dashboard or serial commands, hold the **function button** while powering on (plug in USB while holding the button). This enters Serial DFU bootloader mode directly, bypassing the firmware entirely.
 
 ---
 

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.10.2] - 2026-02-22
 
+### Added
+
+- **Invert dial setting**: New "Invert dial" toggle in Device menu reverses encoder rotation direction for left-handed or inverted-mount use
+  - Persisted to flash, exposed via BLE UART/serial protocol (`=invertDial:N`), serial dump, and dashboard
+  - Settings struct: added `invertDial` field; bumped `SETTINGS_MAGIC` to `0x50524F51`; `MENU_ITEM_COUNT` increased to 31
+- **Boot-time DFU entry**: Hold function button during power-on to enter Serial DFU bootloader mode, providing a hardware fallback for reflashing when USB/BLE stacks can't respond
+- **Hardware watchdog (WDT)**: 8-second NRF_WDT timeout auto-resets device on hang; fed in main loop
+- **I2C bus recovery**: 9 SCL clock pulses + STOP condition before `Wire.begin()` recovers OLED I2C bus after WDT reset mid-transaction
+
+### Changed
+
+- **Hold-to-sleep countdown**: Reduced from 5 seconds to 3.5 seconds for faster sleep entry
+- **Heap fragmentation elimination**: All Arduino `String` objects in the 10Hz display loop replaced with stack-allocated `char[]` buffers and `snprintf()` — the ~25 String alloc/free cycles per frame were progressively fragmenting the 256KB heap, causing device freeze after ~90 minutes
+  - `formatDuration`, `formatUptime`, `formatMenuValue`, `formatCurrentTime` now write to caller-provided buffers instead of returning `String`
+  - All `String` locals in `display.cpp` replaced with `char[]` + `snprintf`
+  - Remaining `sprintf` calls converted to `snprintf` (dev rule #7)
+
+### Fixed
+
+- **`millis()` overflow after 49.7 days**: Replaced 4 unsafe `millis()` comparison patterns with subtraction-based overflow-safe equivalents
+  - Wall clock re-anchoring every 24h in `currentDaySeconds()`
+  - `profileDisplayUntil` → `profileDisplayStart` (subtraction-based)
+  - `sweepPauseEnd` → `sweepPauseStart + sweepPauseDuration`
+  - Progress bar elapsed clamp before signed cast (KB + mouse, both display modes)
+
 ## [1.10.1] - 2026-02-21
 
 ### Added

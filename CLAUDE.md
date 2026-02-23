@@ -48,7 +48,7 @@
 ## Firmware Architecture
 
 ### Core Files
-Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
+Modular architecture — 17 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 - `ghost_operator.ino` - Entry point: setup(), loop(), BLE + USB HID setup/callbacks
 - `config.h` - All `#define` constants, enums, structs (header-only)
@@ -177,10 +177,13 @@ enum MouseStyle { MOUSE_BEZIER, MOUSE_BROWNIAN, MOUSE_STYLE_COUNT };
 #### 7. Power Management
 - `sd_power_system_off()` for deep sleep
 - Wake via GPIO sense on function button (P0.29)
-- Sleep uses hold-to-confirm flow: after 500ms hold, overlay shows "Hold to sleep..." with 5-second countdown bar
+- Sleep uses hold-to-confirm flow: after 500ms hold, overlay shows "Hold to sleep..." with 3.5-second countdown bar
 - Release during countdown cancels sleep ("Cancelled" shown for 400ms)
 - Input suppressed during confirmation and cancellation overlays
 - Works from any mode and from screensaver
+- **Boot-time DFU entry**: Hold function button during power-on to enter Serial DFU bootloader (hardware fallback when USB/BLE stacks can't respond)
+- **Hardware watchdog (WDT)**: 8-second NRF_WDT timeout auto-resets device on hang; fed in main `loop()`
+- **I2C bus recovery**: 9 SCL clock pulses + STOP condition before `Wire.begin()` recovers OLED after WDT reset mid-transaction
 
 #### 8. Screensaver
 - Overlay state (`screensaverActive` flag), not a UIMode — gates display rendering
@@ -337,6 +340,7 @@ On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
 
 | Ver | Changes |
 |-----|---------|
+| 1.10.2 | Invert dial, boot-time DFU entry, hardware watchdog, I2C recovery, heap fragmentation fix, millis() overflow fix, 3.5s sleep countdown |
 | 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
 | 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto), schedule editor UI |
 | 1.9.1 | Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization, deferred flash save |
@@ -546,7 +550,7 @@ ln -sfn "$(pwd)" /tmp/ghost_operator && arduino-cli compile --fqbn Seeeduino:nrf
 - [ ] SLOTS mode: bottom shows "Func=back" (not "Func=exit")
 - [ ] All menu values persist after close → reopen menu
 - [ ] Settings persist after sleep
-- [ ] Hold function button → "Hold to sleep..." overlay with 5s countdown bar appears after 500ms
+- [ ] Hold function button → "Hold to sleep..." overlay with 3.5s countdown bar appears after 500ms
 - [ ] Keep holding through countdown → device enters sleep
 - [ ] Release during countdown → "Cancelled" shown, returns to previous screen
 - [ ] Encoder and button input suppressed during confirmation and cancellation overlays
