@@ -32,6 +32,11 @@ export const status = reactive({
   timeSynced: false,
   daySecs: 0,
   schedSleeping: false,
+  // Simulation mode runtime status
+  simBlock: 0,
+  simMode: 0,
+  simPhase: 0,
+  simProfile: 0,
 })
 
 export const settings = reactive({
@@ -56,6 +61,14 @@ export const settings = reactive({
   schedStart: 18,
   schedEnd: 34,
   slots: [2, 28, 28, 28, 28, 28, 28, 28],
+  // Simulation mode
+  opMode: 0,
+  jobSim: 0,
+  phantom: 0,
+  clickType: 0,
+  winSwitch: 0,
+  switchKeys: 0,
+  headerDisp: 0,
 })
 
 export const availableKeys = ref([])

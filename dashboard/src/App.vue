@@ -1,5 +1,5 @@
 <script setup>
-import { connectionState, dirty, saving, saveToFlash, statusMessage, dfuActive } from './lib/store.js'
+import { connectionState, settings, dirty, saving, saveToFlash, statusMessage, dfuActive } from './lib/store.js'
 import ConnectButton from './components/ConnectButton.vue'
 import StatusBar from './components/StatusBar.vue'
 import BatteryChart from './components/BatteryChart.vue'
@@ -7,6 +7,7 @@ import TimingSection from './components/TimingSection.vue'
 import KeySlotEditor from './components/KeySlotEditor.vue'
 import MouseSection from './components/MouseSection.vue'
 import ProfileSection from './components/ProfileSection.vue'
+import SimulationSection from './components/SimulationSection.vue'
 import ScheduleSection from './components/ScheduleSection.vue'
 import DisplaySection from './components/DisplaySection.vue'
 import DeviceSection from './components/DeviceSection.vue'
@@ -28,10 +29,16 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
 
       <div class="settings-grid">
         <template v-if="connectionState.connected">
-          <TimingSection />
-          <MouseSection />
+          <!-- Simulation mode only -->
+          <SimulationSection v-if="settings.opMode === 1" />
+          <!-- Simple mode only -->
+          <TimingSection v-if="settings.opMode === 0" />
+          <MouseSection v-if="settings.opMode === 0" />
+          <!-- Both modes -->
           <KeySlotEditor />
-          <ProfileSection />
+          <!-- Simple mode only -->
+          <ProfileSection v-if="settings.opMode === 0" />
+          <!-- Both modes -->
           <ScheduleSection />
           <DisplaySection />
           <DeviceSection />

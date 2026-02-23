@@ -99,6 +99,14 @@ export function parseSettings(data) {
     schedStart: parseInt(data.schedStart ?? '108'),
     schedEnd: parseInt(data.schedEnd ?? '204'),
     slots: (data.slots || '2,28,28,28,28,28,28,28').split(',').map(Number),
+    // Simulation mode settings
+    opMode: parseInt(data.opMode) || 0,
+    jobSim: parseInt(data.jobSim) || 0,
+    phantom: parseInt(data.phantom) || 0,
+    clickType: parseInt(data.clickType) || 0,
+    winSwitch: parseInt(data.winSwitch) || 0,
+    switchKeys: parseInt(data.switchKeys) || 0,
+    headerDisp: parseInt(data.headerDisp) || 0,
   }
 }
 
@@ -121,6 +129,11 @@ export function parseStatus(data) {
     timeSynced: data.timeSynced === '1',
     daySecs: parseInt(data.daySecs) || 0,
     schedSleeping: data.schedSleeping === '1',
+    // Simulation mode runtime status (only present when opMode=1)
+    simBlock: parseInt(data.simBlock) || 0,
+    simMode: parseInt(data.simMode) || 0,
+    simPhase: parseInt(data.simPhase) || 0,
+    simProfile: parseInt(data.simProfile) || 0,
   }
 }
 
@@ -144,6 +157,30 @@ export const SAVER_NAMES = ['Never', '1 min', '5 min', '10 min', '15 min', '30 m
 
 /** Schedule mode index to name mapping (matches firmware SCHEDULE_MODE_NAMES[]) */
 export const SCHEDULE_MODE_NAMES = ['Off', 'Sleep', 'Full auto']
+
+/** Operation mode index to name mapping (matches firmware OP_MODE_NAMES[]) */
+export const OP_MODE_NAMES = ['Simple', 'Simulation']
+
+/** Job simulation index to name mapping (matches firmware JOB_SIM_NAMES[]) */
+export const JOB_SIM_NAMES = ['Staff', 'Developer', 'Designer']
+
+/** Simulation phase index to name mapping (matches firmware PHASE_NAMES[]) */
+export const PHASE_NAMES = ['TYPE', 'MOUSE', 'IDLE', 'SWITCH']
+
+/** Click type index to name mapping (matches firmware CLICK_TYPE_NAMES[]) */
+export const CLICK_TYPE_NAMES = ['Middle', 'Left']
+
+/** Switch keys index to name mapping (matches firmware SWITCH_KEYS_NAMES[]) */
+export const SWITCH_KEYS_NAMES = ['Alt-Tab', 'Cmd-Tab']
+
+/** Header display index to name mapping (matches firmware HEADER_DISP_NAMES[]) */
+export const HEADER_DISP_NAMES = ['Job name', 'Device name']
+
+/** Work mode index to short name mapping (matches firmware WORK_MODES[].shortName) */
+export const WORK_MODE_NAMES = [
+  'Email', 'Read', 'Code', 'Browse', 'Chat',
+  'Meeting', 'Docs', 'Coffee', 'Lunch', 'IRL Mtg', 'Files'
+]
 
 /** Format a 5-minute slot index (0-287) as H:MM */
 export function formatTime5(slot) {
