@@ -72,6 +72,7 @@ uint8_t modeOriginalValue = 0;
 UIMode currentMode = MODE_NORMAL;
 unsigned long lastModeActivity = 0;
 bool screensaverActive = false;
+FooterMode footerMode = FOOTER_UPTIME;
 
 // Menu state
 int8_t   menuCursor = -1;

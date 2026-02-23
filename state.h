@@ -80,6 +80,7 @@ extern uint8_t modeOriginalValue;
 extern UIMode currentMode;
 extern unsigned long lastModeActivity;
 extern bool screensaverActive;
+extern FooterMode footerMode;
 
 // Menu state
 extern int8_t   menuCursor;

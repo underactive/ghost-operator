@@ -8,6 +8,7 @@
 #include "input.h"
 #include "sim_data.h"
 #include "orchestrator.h"
+#include <nrf_soc.h>
 
 // ============================================================================
 // STATIC HELPERS (file-local)
@@ -499,17 +500,45 @@ static void drawNormalMode() {
       display.print(PROFILE_NAMES[currentProfile]);
     } else {
       display.setCursor(0, 54);
-      if (timeSynced) {
-        // Show real-time clock when synced
-        char timeBuf[12];
-        formatCurrentTime(timeBuf, sizeof(timeBuf));
-        display.print(timeBuf);
-      } else {
-        // Fall back to uptime when not synced
-        char uptimeBuf[20];
-        formatUptime(now - startTime, uptimeBuf, sizeof(uptimeBuf));
-        display.print("Up: ");
-        display.print(uptimeBuf);
+      switch (footerMode) {
+        case FOOTER_CLOCK: {
+          if (timeSynced) {
+            char timeBuf[12];
+            formatCurrentTime(timeBuf, sizeof(timeBuf));
+            display.print(timeBuf);
+          } else {
+            char uptimeBuf[20];
+            formatUptime(now - startTime, uptimeBuf, sizeof(uptimeBuf));
+            display.print("Up: ");
+            display.print(uptimeBuf);
+          }
+          break;
+        }
+        case FOOTER_UPTIME: {
+          char uptimeBuf[20];
+          formatUptime(now - startTime, uptimeBuf, sizeof(uptimeBuf));
+          display.print("Up: ");
+          display.print(uptimeBuf);
+          break;
+        }
+        case FOOTER_VERSION:
+          display.print("v");
+          display.print(VERSION);
+          break;
+        case FOOTER_DIETEMP: {
+          int32_t raw;
+          if (sd_temp_get(&raw) == NRF_SUCCESS) {
+            int c = raw / 4;
+            int f = c * 9 / 5 + 32;
+            char tempBuf[16];
+            snprintf(tempBuf, sizeof(tempBuf), "%dC/%dF", c, f);
+            display.print(tempBuf);
+          } else {
+            display.print("---");
+          }
+          break;
+        }
+        default: break;
       }
     }
 

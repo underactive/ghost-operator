@@ -430,29 +430,13 @@ void handleButtons() {
           // Simulation mode: skip to next work mode
           skipWorkMode();
         } else {
-          // Simple mode: cycle KB/MS enable combos
-          bool wasKeyEnabled = keyEnabled;
-          bool wasMouseEnabled = mouseEnabled;
-          uint8_t state = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
-          state = (state == 0) ? 3 : state - 1;
-          keyEnabled = (state & 2) != 0;
-          mouseEnabled = (state & 1) != 0;
-          // Reset timers when toggling back on so bars start fresh
-          if (keyEnabled && !wasKeyEnabled) {
-            lastKeyTime = now;
-            scheduleNextKey();
-          }
-          if (mouseEnabled && !wasMouseEnabled) {
-            lastMouseStateChange = now;
-            mouseState = MOUSE_IDLE;
-            mouseNetX = 0;
-            mouseNetY = 0;
-            mouseReturnTotal = 0;
-            scheduleNextMouseState();
-          }
-          Serial.print("KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
-          Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
-          pushSerialStatus();
+          // Simple mode: cycle footer display mode
+          uint8_t next = (uint8_t)footerMode;
+          do {
+            next = (next + 1) % FOOTER_MODE_COUNT;
+          } while (next == (uint8_t)FOOTER_CLOCK && !timeSynced);
+          footerMode = (FooterMode)next;
+          profileDisplayStart = 0;  // clear profile overlay so change is visible immediately
         }
         break;
 
