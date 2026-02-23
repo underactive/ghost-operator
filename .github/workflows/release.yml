@@ -72,8 +72,17 @@ jobs:
           cp build/Seeeduino.nrf52.xiaonRF52840/ghost_operator.ino.zip \
              "releases/ghost_operator_dfu-v${VERSION}.zip"
 
+      - name: Extract changelog entry
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Extract everything between ## [VERSION] and the next ## [ heading
+          BODY=$(sed -n "/^## \[${VERSION}\]/,/^## \[/{/^## \[${VERSION}\]/d;/^## \[/d;p;}" CHANGELOG.md)
+          # Write to file to preserve multiline formatting
+          echo "$BODY" > /tmp/release_body.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: ghost_operator/releases/ghost_operator_dfu-*.zip
-          generate_release_notes: true
+          body_path: /tmp/release_body.md
