@@ -512,7 +512,7 @@ void loop() {
     }
   }
 
-  // Display update (adaptive: 2 Hz during screensaver, 10 Hz otherwise)
+  // Display update (adaptive: 5 Hz during screensaver, 10 Hz otherwise)
   if (displayInitialized && !scheduleSleeping) {
     unsigned long displayInterval = (screensaverActive && !sleepConfirmActive && !sleepCancelActive)
                                     ? DISPLAY_UPDATE_SAVER_MS : DISPLAY_UPDATE_MS;

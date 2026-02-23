@@ -839,9 +839,12 @@ static void drawSimulationScreensaver() {
   int16_t kbX = startX;
   int16_t msX = showKb ? (startX + iconSz + gap) : startX;
 
-  // Keycap: depressed when key is held
+  // Keycap: depressed when key is held, with visual hold so short presses
+  // are visible at 5 Hz refresh (orch.keyDownMs is set in the main loop,
+  // so it catches presses that start and end between frames)
   if (showKb) {
-    if (orch.keyDown) {
+    bool showDepressed = orch.keyDown || (now - orch.keyDownMs < 200);
+    if (showDepressed) {
       // Pressed: 9x9 bitmap → 27x27, offset +1x,+3y within 30x30 footprint
       drawBitmapScaled(kbX + scale, iconY + scale * 3, iconKeycapPressed,
                        9, 9, scale, SSD1306_WHITE);

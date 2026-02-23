@@ -76,7 +76,7 @@
 #define SWEEP_SPEED_MAX       200     // px/sec
 #define SWEEP_DRIFT_FACTOR    3
 #define DISPLAY_UPDATE_MS     100         // Faster for smooth countdown
-#define DISPLAY_UPDATE_SAVER_MS  500     // 2 Hz during screensaver (power saving)
+#define DISPLAY_UPDATE_SAVER_MS  200     // 5 Hz during screensaver (power saving)
 #define BATTERY_READ_MS       60000UL
 #define SLEEP_CONFIRM_THRESHOLD_MS  500   // Hold before showing confirmation
 #define SLEEP_COUNTDOWN_MS          3500  // Countdown duration on confirmation screen
