@@ -91,17 +91,20 @@ Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 #### 2. UI Modes
 ```cpp
-enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_COUNT };
 ```
 - **NORMAL**: Live status; encoder switches profile, button cycles KB/MS combos
 - **MENU**: Scrollable settings menu; encoder navigates/edits, button selects/confirms
 - **SLOTS**: 8-key slot editor; encoder cycles key, button advances slot
 - **NAME**: Device name editor; encoder cycles character, button advances position
-- Function button toggles NORMAL ↔ MENU; from SLOTS/NAME returns to MENU
+- **DECOY**: BLE identity picker; encoder navigates presets (with active marker `*`), button selects, reboot confirmation on change
+- **SCHEDULE**: Schedule editor; 3-row layout (Mode/Start/End) with contextual help; rows hidden based on mode selection
+- **MODE**: Operation mode picker (Simple/Simulation) with descriptions and reboot confirmation
+- Function button toggles NORMAL ↔ MENU; from SLOTS/NAME/DECOY/SCHEDULE/MODE returns to MENU
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (38 entries: 7 headings + 31 items):
+Data-driven architecture using `MenuItem` struct array (39 entries: 8 headings + 31 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE };
@@ -190,10 +193,14 @@ enum MouseStyle { MOUSE_BEZIER, MOUSE_BROWNIAN, MOUSE_STYLE_COUNT };
 #### 7. Power Management
 - `sd_power_system_off()` for deep sleep
 - Wake via GPIO sense on function button (P0.29)
-- Sleep uses hold-to-confirm flow: after 500ms hold, overlay shows "Hold to sleep..." with 5-second countdown bar
-- Release during countdown cancels sleep ("Cancelled" shown for 400ms)
+- **Two-stage sleep**: after 500ms hold, overlay shows "Hold to sleep..." with 6-second segmented countdown bar
+  - **Light sleep** (0–3s): Release enters light sleep — display shows breathing circle animation (radius 2→6px, 4s sinusoidal cycle), BLE advertising stopped
+  - **Deep sleep** (3–6s): Release or completion enters deep sleep via `sd_power_system_off()` (~3µA)
+  - Bar has two labeled segments ("Light" and "Deep") with dynamic hint: "Release to cancel" → "Release = light sleep" at 3s midpoint
+- Release before 500ms threshold cancels sleep ("Cancelled" shown for 400ms)
 - Input suppressed during confirmation and cancellation overlays
 - Works from any mode and from screensaver
+- **Hardware watchdog (WDT)**: 8-second timeout with I2C bus recovery on restart
 
 #### 8. Screensaver
 - Overlay state (`screensaverActive` flag), not a UIMode — gates display rendering
@@ -219,6 +226,7 @@ WEB → DEVICE                    DEVICE → WEB
 =dashboard:1                →   +ok
 =invertDial:1               →   +ok
 =switchKeys:N               →   +ok
+=clickType:N                →   +ok
 =statusPush:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok
@@ -398,6 +406,9 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `input.h/.cpp` | Encoder dispatch, buttons, name editor |
 | `display.h/.cpp` | All rendering (~800 lines, largest module) |
 | `ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `orchestrator.h/.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
+| `sim_data.h/.cpp` | Simulation data tables (job templates, work modes, phase timing) |
+| `schedule.h/.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |
 | `dashboard/` | Vue 3 web dashboard (Vite + Web Serial config + Web Serial DFU) |
 | `dashboard/src/lib/serial.js` | Web Serial config transport (same API as `ble.js`) |
 | `dashboard/src/lib/dfu/` | Web Serial DFU library (SLIP, CRC16, serial transport, protocol, ZIP parser) |
@@ -407,6 +418,7 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `docs/USER_MANUAL.md` | End-user guide |
 | `CHANGELOG.md` | Version history (semver) |
 | `CLAUDE.md` | This file |
+| `docs/CLAUDE.md/` | Reference docs (display-layout, testing-checklist, future-improvements, version-history) |
 | `docs/images/` | OLED screenshot PNGs for README |
 | `build.sh` | Build automation: compile, setup, release (DFU ZIP), flash |
 | `Makefile` | Convenience targets wrapping build.sh |

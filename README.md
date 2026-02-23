@@ -340,6 +340,9 @@ Connect via USB at 115200 baud:
 | `input.h/.cpp` | Encoder dispatch, buttons, name editor |
 | `display.h/.cpp` | All rendering (~800 lines) |
 | `ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `orchestrator.h/.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
+| `sim_data.h/.cpp` | Simulation data tables (job templates, work modes, phase timing) |
+| `schedule.h/.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |
 | `dashboard/` | Vue 3 web dashboard (USB serial config + Web Serial DFU) |
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
@@ -358,7 +361,7 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **2.0.0** | **Simulation mode: realistic human work patterns (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules)** |
+| **2.0.0** | **Simulation mode: realistic human work patterns (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules); hardware watchdog (WDT); two-stage sleep (light/deep); click type setting; mode picker UI; pixel art icons; dashboard simulation support** |
 | 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
 | 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto) |
 | 1.9.1 | Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization |

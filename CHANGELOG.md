@@ -12,29 +12,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Simulation mode**: New operation mode that replaces flat keystroke/mouse timing with realistic human work patterns — keystroke bursting with humanized press durations, mutual exclusion between keyboard and mouse activity, and auto-profiling (LAZY/NORMAL/BUSY) driven by work mode weights
 - **Job simulations**: Three pre-built daily schedule templates (Staff, Developer, Designer) with 9 time blocks each, containing weighted pools of 11 micro-modes (Email Compose, Programming, Browsing, Video Conference, etc.)
 - **Keystroke bursting**: Non-blocking burst state machine sends rapid key sequences (5-100 keys per burst) with variable inter-key delays and humanized hold durations, replacing uniform single-key timing
-- **Phantom middle-clicks**: Optional middle mouse button clicks injected at random intervals during mouse idle phases, simulating tab switching behavior
-- **Window switching**: Optional Alt-Tab (Windows/Linux) or Cmd-Tab (Mac) keystrokes at configurable intervals, double-gated behind both `windowSwitching` and `hostOS` settings for safety
+- **Phantom clicks**: Optional mouse button clicks injected at transition points during mouse phases (25% chance per transition), simulating tab switching behavior
+- **Click type setting**: Configurable phantom click button — Middle (default) or Left
+- **Window switching**: Optional Alt-Tab or Cmd-Tab keystrokes at configurable intervals, gated behind `windowSwitching` toggle
 - **Activity orchestrator**: Unified `tickOrchestrator()` replaces independent KB and mouse timers, cycling through PHASE_TYPING → PHASE_SWITCHING → PHASE_MOUSING → PHASE_IDLE with mutual exclusion
-- **Mute button (D7)**: New SPST momentary button on pin D7 cycles KB/MS enable combos in both Simple and Simulation modes
-- **Simulation display**: Dedicated normal screen showing block/mode labels, progress bars for KB bursts and mouse phases, auto-profile indicator, and schedule preview overlay via encoder rotation
-- **Simulation screensaver**: Minimal pixel layout with centered mode label, KB state indicator, and 1px progress bars
-- **6 new settings**: Operation mode (Simple/Simulation), Job profile (Staff/Dev/Designer), Phantom clicks (On/Off), Window switch (On/Off), Host OS (Disabled/Win/Mac/Linux), Header display (Job name/Device name)
-- **6 new BLE/serial commands**: `=opMode`, `=jobSim`, `=phantom`, `=winSwitch`, `=hostOS`, `=headerDisp`
+- **Mute button (D7)**: New SPST momentary button on pin D7 cycles KB/MS enable combos in Simple mode; cycles clock/uptime/version/die temp footer info in Simulation mode
+- **Mode picker (MODE_MODE)**: Dedicated sub-page for switching between Simple and Simulation with descriptions ("Direct timing" / "Human work patterns") and reboot confirmation prompt
+- **Two-stage sleep**: Hold-to-sleep now has two thresholds — light sleep at 3s, deep sleep at 6s; segmented progress bar with "Light" and "Deep" labels; dynamic hint changes from "Release to cancel" → "Release = light sleep" at midpoint
+- **Light sleep breathing animation**: Manual light sleep shows a breathing circle (radius 2→6px, 4s cycle) in the lower-right corner, evoking MacBook sleep LED
+- **Hardware watchdog (WDT)**: 8-second timeout with I2C bus recovery on restart — prevents permanent hang from I2C lockup
+- **Pixel art icons**: 10×10 keycap and mouse bitmaps in simulation footer and screensaver, with distinct states for key press, mouse click, and mouse scroll
+- **Footer info cycling**: Mute button (SW2) cycles through clock/uptime/version/die temp in simulation mode footer
+- **Dashboard simulation support**: New SimulationSection component for job type and simulation-specific settings; StatusBar shows mode selector with reboot warning
+- **8 new settings**: Operation mode (Simple/Simulation), Job type (Staff/Dev/Designer), Auto-clicks (On/Off), Click type (Middle/Left), Window switch (On/Off), Switch keys (Alt-Tab/Cmd-Tab), Header txt (Job name/Device name), and Invert dial (Off/On)
+- **8 new BLE/serial commands**: `=opMode`, `=jobSim`, `=phantom`, `=clickType`, `=winSwitch`, `=switchKeys`, `=headerDisp`, `=invertDial`
 - **Non-blocking HID functions**: `sendKeyDown()` / `sendKeyUp()` for burst state machine, `sendMouseClick()` for phantom clicks, `sendWindowSwitch()` for Alt/Cmd-Tab
-- **Conditional menu visibility**: `isMenuItemHidden()` dynamically shows/hides menu sections based on operation mode (Keyboard/Mouse hidden in Simulation, Simulation section hidden in Simple)
+- **Conditional menu visibility**: `isMenuItemHidden()` dynamically shows/hides menu sections based on operation mode (Keyboard min/max and Profiles hidden in Simulation, Simulation heading hidden in Simple)
 
 ### Changed
 
-- **Settings struct**: +6 bytes (operationMode, jobSimulation, phantomClicks, windowSwitching, hostOS, headerDisplay); SETTINGS_MAGIC bumped to 0x50524F52
-- **Menu items**: Expanded from 31 to 38 entries with new Simulation section (7 items inserted at index 10-16)
+- **Settings struct**: +7 bytes (operationMode, jobSimulation, phantomClicks, clickType, windowSwitching, switchKeys, headerDisplay); SETTINGS_MAGIC bumped to `0x50524F54`
+- **Host OS → Switch Keys**: `hostOS` (4-value: Disabled/Win/Mac/Linux) replaced with `switchKeys` (2-value: Alt-Tab/Cmd-Tab); window switching is now gated only by `windowSwitching` toggle
+- **Menu items**: 39 entries (8 headings + 31 items) — Simulation heading at top; "Mode" moved to Device section as action item; renames: "Phantom clicks" → "Auto-clicks", "Job profile" → "Job type", "Header display" → "Header txt"
 - **Menu viewport**: Now skips hidden items during rendering, properly tracking visible row count for scroll offset calculation
+- **Heap fragmentation elimination**: All `String`-returning functions converted to `snprintf()` with caller-provided buffers — `formatDuration()`, `formatUptime()`, `formatCurrentTime()`, `formatMenuValue()`
+- **Simulation display redesign**: 4-row hierarchy (block → mode → profile stint → activity) with inline progress bars and scrolling long names; pixel art keycap/mouse icons in footer replace text indicators
+- **Simulation screensaver**: 3× scaled centered keycap/mouse icons with state feedback (press, click, scroll) — replaces text-and-bars layout
+- **Phantom clicks**: Transition-based 25% chance per mouse phase transition (was timer-based fixed interval)
+- **Screensaver refresh**: 5 Hz (was 2 Hz) with keycap visual hold for short key presses
+- **Sleep confirmation**: 6s total with segmented bar showing Light (0-3s) and Deep (3-6s) zones (was 5s single bar)
 - **Protocol responses**: `?settings` and `?status` extended with simulation-specific fields
 - **Serial dump**: `d` command now prints orchestrator state (block, mode, phase, profile) when in Simulation mode
-- **BLE model string**: Now uses VERSION define instead of hardcoded string
+- **BLE model string**: Now uses `VERSION` define instead of hardcoded string
+- **Build**: `-Wall` warnings enabled and resolved
+- **CI**: `CHANGELOG.md` used for release notes instead of auto-generated notes
 
 ### Notes
 
-- Simple mode (default) is 100% unchanged from v1.10.1 — zero behavior change on upgrade
+- Simple mode (default) is 100% unchanged from v1.10.2 — zero behavior change on upgrade
 - First boot after upgrade resets settings due to SETTINGS_MAGIC bump (operationMode defaults to Simple)
 - New files: `orchestrator.h/.cpp`, `sim_data.h/.cpp`
 
