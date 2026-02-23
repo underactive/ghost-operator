@@ -108,7 +108,7 @@ const char* PROFILE_NAMES[] = { "LAZY", "NORMAL", "BUSY" };
 const char* PROFILE_NAMES_TITLE[] = { "Lazy", "Normal", "Busy" };
 const char* ANIM_NAMES[] = { "ECG", "EQ", "Ghost", "Matrix", "Radar", "None" };
 const char* MOUSE_STYLE_NAMES[] = { "Bezier", "Brownian" };
-const char* SWITCH_KEYS_NAMES[] = { "Alt-Tab", "Cmd-Tab" };
+const char* SWITCH_KEYS_NAMES[] = { "AltTab", "CmdTab" };
 const char* ON_OFF_NAMES[] = { "Off", "On" };
 const char* SCHEDULE_MODE_NAMES[] = { "Off", "Sleep", "Full auto" };
 
