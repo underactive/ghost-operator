@@ -7,7 +7,7 @@ void syncTime(uint32_t daySeconds);
 uint32_t currentDaySeconds();
 bool isScheduleActive();
 void checkSchedule();
-void enterLightSleep();
+void enterLightSleep(bool scheduled = true);
 void exitLightSleep();
 void formatCurrentTime(char* buf, size_t bufSize);
 

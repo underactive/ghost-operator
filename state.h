@@ -159,6 +159,7 @@ extern unsigned long lastScheduleCheck;
 extern unsigned long funcBtnPressStart;
 extern bool funcBtnWasPressed;
 extern bool sleepPending;
+extern bool lightSleepPending;
 extern bool     sleepConfirmActive;
 extern unsigned long sleepConfirmStart;
 extern bool     sleepCancelActive;

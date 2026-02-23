@@ -106,7 +106,7 @@ void checkSchedule() {
 // LIGHT SLEEP (Full Auto mode)
 // ============================================================================
 
-void enterLightSleep() {
+void enterLightSleep(bool scheduled) {
   scheduleSleeping = true;
 
   // Stop BLE advertising
@@ -122,20 +122,28 @@ void enterLightSleep() {
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
 
-    const char* msg1 = "Scheduled Sleep";
+    const char* msg1 = scheduled ? "Scheduled Sleep" : "LIGHT SLEEP";
     int w1 = strlen(msg1) * 6;
     display.setCursor((128 - w1) / 2, 18);
     display.print(msg1);
 
-    // Show wake time
-    uint32_t wakeSecs = (uint32_t)settings.scheduleStart * SCHEDULE_SLOT_SECS;
-    uint8_t wh = wakeSecs / 3600;
-    uint8_t wm = (wakeSecs % 3600) / 60;
-    char wakeBuf[16];
-    snprintf(wakeBuf, sizeof(wakeBuf), "Wake: %d:%02d", wh, wm);
-    int w2 = strlen(wakeBuf) * 6;
-    display.setCursor((128 - w2) / 2, 34);
-    display.print(wakeBuf);
+    if (scheduled) {
+      // Show wake time for scheduled sleep
+      uint32_t wakeSecs = (uint32_t)settings.scheduleStart * SCHEDULE_SLOT_SECS;
+      uint8_t wh = wakeSecs / 3600;
+      uint8_t wm = (wakeSecs % 3600) / 60;
+      char wakeBuf[16];
+      snprintf(wakeBuf, sizeof(wakeBuf), "Wake: %d:%02d", wh, wm);
+      int w2 = strlen(wakeBuf) * 6;
+      display.setCursor((128 - w2) / 2, 34);
+      display.print(wakeBuf);
+    } else {
+      // Manual light sleep — show wake instruction
+      const char* msg2 = "Press btn to wake";
+      int w2 = strlen(msg2) * 6;
+      display.setCursor((128 - w2) / 2, 34);
+      display.print(msg2);
+    }
 
     display.display();
 
@@ -144,7 +152,7 @@ void enterLightSleep() {
     display.ssd1306_command(0x01);
   }
 
-  Serial.println("[Schedule] Light sleep entered");
+  Serial.println(scheduled ? "[Schedule] Light sleep entered" : "[Manual] Light sleep entered");
 }
 
 void exitLightSleep() {

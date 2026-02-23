@@ -151,6 +151,7 @@ unsigned long lastScheduleCheck = 0;
 unsigned long funcBtnPressStart = 0;
 bool funcBtnWasPressed = false;
 bool sleepPending = false;
+bool lightSleepPending = false;
 bool     sleepConfirmActive = false;
 unsigned long sleepConfirmStart = 0;
 bool     sleepCancelActive = false;

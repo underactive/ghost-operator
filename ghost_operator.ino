@@ -363,6 +363,11 @@ void loop() {
     enterDeepSleep();
   }
 
+  if (lightSleepPending) {
+    lightSleepPending = false;
+    enterLightSleep(false);  // manual, not scheduled
+  }
+
   if (sleepCancelActive && (now - sleepCancelStart >= SLEEP_CANCEL_DISPLAY_MS)) {
     sleepCancelActive = false;
   }

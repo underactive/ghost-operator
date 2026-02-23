@@ -896,30 +896,53 @@ static void drawSleepConfirm() {
 
   display.setTextSize(1);
 
-  // "Hold to sleep..." centered at y=18
+  // "Hold to sleep..." centered at y=10
   const char* holdMsg = "Hold to sleep...";
   int holdWidth = strlen(holdMsg) * 6;
-  display.setCursor((128 - holdWidth) / 2, 18);
+  display.setCursor((128 - holdWidth) / 2, 10);
   display.print(holdMsg);
 
-  // Progress bar (same style as KB bar): border + fill, drains from full to empty
-  display.drawRect(0, 28, 100, 7, SSD1306_WHITE);
-  int barWidth = map(remaining, 0, SLEEP_COUNTDOWN_MS, 0, 98);
-  if (barWidth > 0) {
-    display.fillRect(1, 29, barWidth, 5, SSD1306_WHITE);
+  // Segment labels at y=20
+  // "Light" (5 chars = 30px) centered over segment 1 (0-47)
+  display.setCursor((48 - 30) / 2, 20);
+  display.print("Light");
+  // "Deep" (4 chars = 24px) centered over segment 2 (50-97)
+  display.setCursor(50 + (48 - 24) / 2, 20);
+  display.print("Deep");
+
+  // Segmented progress bar at y=28: two 48px segments with 2px gap
+  // Segment 1: x=0, w=48 (fill area 1-46)
+  display.drawRect(0, 28, 48, 7, SSD1306_WHITE);
+  int fill1 = (elapsed >= SLEEP_LIGHT_THRESHOLD_MS) ? 46
+              : map(elapsed, 0, SLEEP_LIGHT_THRESHOLD_MS, 0, 46);
+  if (fill1 > 0) {
+    display.fillRect(1, 29, fill1, 5, SSD1306_WHITE);
   }
 
-  // Time remaining label at (102, 28)
+  // Segment 2: x=50, w=48 (fill area 51-96)
+  display.drawRect(50, 28, 48, 7, SSD1306_WHITE);
+  int fill2 = (elapsed <= SLEEP_LIGHT_THRESHOLD_MS) ? 0
+              : map(elapsed, SLEEP_LIGHT_THRESHOLD_MS, SLEEP_COUNTDOWN_MS, 0, 46);
+  if (fill2 > 0) {
+    display.fillRect(51, 29, fill2, 5, SSD1306_WHITE);
+  }
+
+  // Time remaining at x=102
   char durBuf[12];
   formatDuration(remaining, durBuf, sizeof(durBuf));
   display.setCursor(102, 28);
   display.print(durBuf);
 
-  // "Release to cancel" centered at y=40
-  const char* cancelMsg = "Release to cancel";
-  int cancelWidth = strlen(cancelMsg) * 6;
-  display.setCursor((128 - cancelWidth) / 2, 40);
-  display.print(cancelMsg);
+  // Dynamic message at y=40
+  const char* msg;
+  if (elapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
+    msg = "Release = light sleep";
+  } else {
+    msg = "Release to cancel";
+  }
+  int msgWidth = strlen(msg) * 6;
+  display.setCursor((128 - msgWidth) / 2, 40);
+  display.print(msg);
 }
 
 static void drawSleepCancelled() {

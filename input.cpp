@@ -624,11 +624,20 @@ void handleButtons() {
     if (funcBtnWasPressed) {
       unsigned long holdTime = now - funcBtnPressStart;
       if (sleepConfirmActive) {
-        // Released during countdown -- cancel
+        unsigned long confirmElapsed = now - sleepConfirmStart;
         sleepConfirmActive = false;
-        sleepCancelActive = true;
-        sleepCancelStart = now;
-        Serial.println("Sleep confirm: cancelled");
+        if (confirmElapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
+          // Held past midpoint — light sleep
+          lightSleepPending = true;
+          Serial.println("Sleep confirm: light sleep");
+        } else {
+          // Released before midpoint — cancel
+          sleepCancelActive = true;
+          sleepCancelStart = now;
+          Serial.println("Sleep confirm: cancelled");
+        }
+        funcBtnWasPressed = false;
+        return;  // prevent fall-through to short-press handler
       } else if (holdTime > 50) {
         // Short press -- mode switching
         lastModeActivity = now;

@@ -79,7 +79,8 @@
 #define DISPLAY_UPDATE_SAVER_MS  200     // 5 Hz during screensaver (power saving)
 #define BATTERY_READ_MS       60000UL
 #define SLEEP_CONFIRM_THRESHOLD_MS  500   // Hold before showing confirmation
-#define SLEEP_COUNTDOWN_MS          3500  // Countdown duration on confirmation screen
+#define SLEEP_COUNTDOWN_MS          6000  // Total countdown duration (light + deep)
+#define SLEEP_LIGHT_THRESHOLD_MS    3000  // Midpoint: release after this = light sleep
 #define SLEEP_CANCEL_DISPLAY_MS     400   // "Cancelled" display duration
 #define SLEEP_DISPLAY_MS            500   // Brief "SLEEPING..." before power-off
 #define MODE_TIMEOUT_MS       30000       // Return to NORMAL after 30s inactivity
