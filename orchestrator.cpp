@@ -121,6 +121,7 @@ static void startBlock(uint8_t blockIdx, unsigned long now) {
 
   orch.blockIdx = blockIdx;
   orch.blockStartMs = now;
+  orch.scrollPos[0] = 0; orch.scrollDir[0] = 1; orch.scrollTimer[0] = now;
 
   // Duration with ±20% randomness
   unsigned long baseDur = (unsigned long)currentBlock().durationMinutes * 60000UL;
@@ -134,6 +135,7 @@ static void startMode(unsigned long now) {
   const TimeBlock& block = currentBlock();
   orch.modeId = selectWeightedMode(block);
   orch.modeStartMs = now;
+  orch.scrollPos[1] = 0; orch.scrollDir[1] = 1; orch.scrollTimer[1] = now;
 
   const WorkModeDef& mode = currentWorkMode();
   orch.modeDurationMs = randRange(
@@ -145,6 +147,7 @@ static void startMode(unsigned long now) {
   orch.autoProfile = selectAutoProfile(mode);
   currentProfile = orch.autoProfile;
   orch.profileStintStartMs = now;
+  orch.scrollPos[2] = 0; orch.scrollDir[2] = 1; orch.scrollTimer[2] = now;
   orch.profileStintMs = randRange(
     (unsigned long)mode.profileStintMinSec * 1000UL,
     (unsigned long)mode.profileStintMaxSec * 1000UL
@@ -331,6 +334,7 @@ void tickOrchestrator(unsigned long now) {
     orch.autoProfile = selectAutoProfile(mode);
     currentProfile = orch.autoProfile;
     orch.profileStintStartMs = now;
+    orch.scrollPos[2] = 0; orch.scrollDir[2] = 1; orch.scrollTimer[2] = now;
     orch.profileStintMs = randRange(
       (unsigned long)mode.profileStintMinSec * 1000UL,
       (unsigned long)mode.profileStintMaxSec * 1000UL

@@ -508,7 +508,6 @@ static void drawNormalMode() {
           } else {
             char uptimeBuf[20];
             formatUptime(now - startTime, uptimeBuf, sizeof(uptimeBuf));
-            display.print("Up: ");
             display.print(uptimeBuf);
           }
           break;
@@ -516,7 +515,6 @@ static void drawNormalMode() {
         case FOOTER_UPTIME: {
           char uptimeBuf[20];
           formatUptime(now - startTime, uptimeBuf, sizeof(uptimeBuf));
-          display.print("Up: ");
           display.print(uptimeBuf);
           break;
         }
@@ -563,6 +561,35 @@ static void drawNormalMode() {
 }
 
 // ============================================================================
+// SCROLLING NAME HELPER (simulation info rows)
+// ============================================================================
+
+static void drawScrollName(const char* name, int x, int y, int maxChars, int rowIdx) {
+  int len = strlen(name);
+  if (len <= maxChars) {
+    display.setCursor(x, y);
+    display.print(name);
+    return;
+  }
+  unsigned long now = millis();
+  int maxScroll = len - maxChars;
+  if (orch.scrollDir[rowIdx] == 0) orch.scrollDir[rowIdx] = 1;
+
+  unsigned long pause = (orch.scrollPos[rowIdx] == 0 || orch.scrollPos[rowIdx] == maxScroll) ? 1500 : 300;
+  if (now - orch.scrollTimer[rowIdx] >= pause) {
+    orch.scrollPos[rowIdx] += orch.scrollDir[rowIdx];
+    if (orch.scrollPos[rowIdx] >= maxScroll) { orch.scrollPos[rowIdx] = maxScroll; orch.scrollDir[rowIdx] = -1; }
+    if (orch.scrollPos[rowIdx] <= 0) { orch.scrollPos[rowIdx] = 0; orch.scrollDir[rowIdx] = 1; }
+    orch.scrollTimer[rowIdx] = now;
+  }
+
+  display.setCursor(x, y);
+  for (int i = 0; i < maxChars && (orch.scrollPos[rowIdx] + i) < len; i++) {
+    display.print(name[orch.scrollPos[rowIdx] + i]);
+  }
+}
+
+// ============================================================================
 // SIMULATION MODE NORMAL SCREEN
 // ============================================================================
 
@@ -598,8 +625,7 @@ static void drawSimulationNormal() {
 
   // === Block row (y=11): name left | inline bar + time right ===
   {
-    display.setCursor(0, 11);
-    display.print(currentBlockName());
+    drawScrollName(currentBlockName(), 0, 11, 10, 0);
 
     unsigned long blockElapsed = now - orch.blockStartMs;
     unsigned long blockRemain = (blockElapsed < orch.blockDurationMs) ? (orch.blockDurationMs - blockElapsed) : 0;
@@ -622,8 +648,7 @@ static void drawSimulationNormal() {
 
   // === Mode row (y=20): name left | inline bar + time right ===
   {
-    display.setCursor(0, 20);
-    display.print(currentModeName());
+    drawScrollName(currentModeName(), 0, 20, 10, 1);
 
     unsigned long modeElapsed = now - orch.modeStartMs;
     unsigned long modeRemain = (modeElapsed < orch.modeDurationMs) ? (orch.modeDurationMs - modeElapsed) : 0;
@@ -646,8 +671,7 @@ static void drawSimulationNormal() {
 
   // === Profile stint row (y=29): name left | inline bar + time right ===
   {
-    display.setCursor(0, 29);
-    display.print(PROFILE_NAMES_TITLE[orch.autoProfile]);
+    drawScrollName(PROFILE_NAMES_TITLE[orch.autoProfile], 0, 29, 10, 2);
 
     unsigned long stintElapsed = now - orch.profileStintStartMs;
     unsigned long stintRemain = (stintElapsed < orch.profileStintMs) ? (orch.profileStintMs - stintElapsed) : 0;
@@ -718,7 +742,6 @@ static void drawSimulationNormal() {
     } else {
       char uptimeBuf[20];
       formatUptime(now - startTime, uptimeBuf, sizeof(uptimeBuf));
-      display.print("Up:");
       display.print(uptimeBuf);
     }
 

@@ -198,6 +198,11 @@ struct OrchestratorState {
   // Schedule preview overlay
   bool previewActive;
   unsigned long previewStartMs;
+
+  // Scroll state for sim info rows (0=block, 1=mode, 2=profile)
+  int8_t  scrollPos[3];
+  int8_t  scrollDir[3];
+  unsigned long scrollTimer[3];
 };
 
 extern OrchestratorState orch;
