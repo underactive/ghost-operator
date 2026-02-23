@@ -3,6 +3,7 @@
 #include "keys.h"
 #include "timing.h"
 #include "sim_data.h"
+#include "display.h"
 #include <nrf_soc.h>
 
 using namespace Adafruit_LittleFS_Namespace;
@@ -60,6 +61,7 @@ void loadDefaults() {
   settings.windowSwitching = 0;   // Off
   settings.switchKeys = SWITCH_KEYS_ALT_TAB;
   settings.headerDisplay = 0;     // Job sim name
+  markDisplayDirty();
 }
 
 uint8_t calcChecksum() {
@@ -269,6 +271,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_SWITCH_KEYS:    settings.switchKeys = (uint8_t)clampVal(value, 0, SWITCH_KEYS_COUNT - 1); break;
     case SET_HEADER_DISPLAY: settings.headerDisplay = (uint8_t)clampVal(value, 0, 1); break;
   }
+  markDisplayDirty();
 }
 
 void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_t bufSize) {

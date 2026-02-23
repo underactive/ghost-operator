@@ -5,6 +5,7 @@ using namespace Adafruit_LittleFS_Namespace;
 // Display
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 bool displayInitialized = false;
+volatile bool displayDirty = true;  // first frame always renders
 
 // File system
 File settingsFile(InternalFS);

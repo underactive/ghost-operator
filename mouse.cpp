@@ -4,6 +4,7 @@
 #include "timing.h"
 #include "hid.h"
 #include "serial_cmd.h"
+#include "display.h"
 #include <math.h>
 
 // ============================================================================
@@ -179,6 +180,7 @@ void handleMouseStateMachine(unsigned long now) {
         sweepPhase = SWEEP_PLANNING;  // Bezier starts fresh
         pickNewDirection();            // Brownian needs initial direction
         scheduleNextMouseState();
+        markDisplayDirty();
         pushSerialStatus();
       }
       break;
@@ -195,6 +197,7 @@ void handleMouseStateMachine(unsigned long now) {
         mouseReturnTotal = abs(mouseNetX) + abs(mouseNetY);
         lastMouseStateChange = now;
         lastMouseStep = now;
+        markDisplayDirty();
         pushSerialStatus();
       } else if (settings.mouseStyle == 0) {
         // ---- Bezier sweep mode ----
@@ -254,6 +257,7 @@ void handleMouseStateMachine(unsigned long now) {
         mouseState = MOUSE_IDLE;
         lastMouseStateChange = now;
         scheduleNextMouseState();
+        markDisplayDirty();
         pushSerialStatus();
         mouseJiggleCount++;
         if (mouseJiggleCount % EASTER_EGG_INTERVAL == 0

@@ -5,5 +5,7 @@
 
 void updateDisplay();
 void drawLightSleepBreathing();
+void markDisplayDirty();
+void invalidateDisplayShadow();
 
 #endif // GHOST_DISPLAY_H

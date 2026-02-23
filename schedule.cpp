@@ -5,6 +5,7 @@
 #include "hid.h"
 #include "sleep.h"
 #include "serial_cmd.h"
+#include "display.h"
 
 // ============================================================================
 // TIME SYNC
@@ -15,6 +16,7 @@ void syncTime(uint32_t daySeconds) {
   wallClockDaySecs = daySeconds;
   wallClockSyncMs = millis();
   timeSynced = true;
+  markDisplayDirty();
   char timeBuf[12];
   formatCurrentTime(timeBuf, sizeof(timeBuf));
   Serial.print("Time synced: ");
@@ -141,6 +143,7 @@ void enterLightSleep(bool scheduled) {
       display.print(wakeBuf);
 
       display.display();
+      invalidateDisplayShadow();  // Shadow is stale after direct display.display()
     }
     // Manual: leave display blank — breathing animation renders from main loop
 
@@ -178,6 +181,7 @@ void exitLightSleep() {
   mouseReturnTotal = 0;
   scheduleNextKey();
   scheduleNextMouseState();
+  markDisplayDirty();
 
   Serial.println("[Schedule] Light sleep exited");
   pushSerialStatus();

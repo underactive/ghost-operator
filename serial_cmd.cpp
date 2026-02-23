@@ -7,6 +7,7 @@
 #include "schedule.h"
 #include "sim_data.h"
 #include "orchestrator.h"
+#include "display.h"
 
 // Line buffer for protocol commands (?/=/!) arriving over USB serial
 #define SERIAL_BUF_SIZE 128
@@ -103,6 +104,7 @@ void handleSerialCommands() {
           currentMode = MODE_NORMAL;
         }
         screensaverActive = true;
+        markDisplayDirty();
         Serial.println("Screensaver activated");
         break;
       case 's':
@@ -208,6 +210,7 @@ void handleSerialCommands() {
           currentMode = MODE_NORMAL;
         }
         screensaverActive = false;
+        markDisplayDirty();
         Serial.println("Easter egg triggered!");
         break;
     }

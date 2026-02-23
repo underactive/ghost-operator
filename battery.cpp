@@ -1,5 +1,6 @@
 #include "battery.h"
 #include "state.h"
+#include "display.h"
 
 // LiPo discharge curve lookup table (11 inflection points)
 // Matches real LiPo characteristics: plateau at 3.7-3.8V, steep dropoff below 3.5V
@@ -37,5 +38,9 @@ void readBattery() {
 
   float mv = (sum / 8) * VBAT_MV_PER_LSB * VBAT_DIVIDER;
   batteryVoltage = mv / 1000.0;
-  batteryPercent = mvToPercent(mv);
+  int newPercent = mvToPercent(mv);
+  if (newPercent != batteryPercent) {
+    batteryPercent = newPercent;
+    markDisplayDirty();
+  }
 }

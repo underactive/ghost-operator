@@ -13,6 +13,7 @@
 // Display
 extern Adafruit_SSD1306 display;
 extern bool displayInitialized;
+extern volatile bool displayDirty;
 
 // File system
 extern Adafruit_LittleFS_Namespace::File settingsFile;

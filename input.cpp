@@ -8,6 +8,7 @@
 #include "schedule.h"
 #include "orchestrator.h"
 #include "sim_data.h"
+#include "display.h"
 
 // ============================================================================
 // NAME EDITOR HELPERS
@@ -63,6 +64,7 @@ void returnToMenuFromName() {
   menuEditing = false;
   nameConfirming = false;
   menuScrollOffset = (MENU_IDX_BLE_IDENTITY > 4) ? MENU_IDX_BLE_IDENTITY - 4 : 0;
+  markDisplayDirty();
   Serial.println("Mode: MENU (from NAME)");
 }
 
@@ -76,6 +78,7 @@ void returnToMenuFromDecoy() {
   menuEditing = false;
   decoyConfirming = false;
   menuScrollOffset = (MENU_IDX_BLE_IDENTITY > 4) ? MENU_IDX_BLE_IDENTITY - 4 : 0;
+  markDisplayDirty();
   Serial.println("Mode: MENU (from DECOY)");
 }
 
@@ -116,6 +119,7 @@ void returnToMenuFromSchedule() {
   menuCursor = MENU_IDX_SCHEDULE;
   menuEditing = false;
   menuScrollOffset = (MENU_IDX_SCHEDULE > 4) ? MENU_IDX_SCHEDULE - 4 : 0;
+  markDisplayDirty();
   Serial.println("Mode: MENU (from SCHEDULE)");
 }
 
@@ -136,6 +140,7 @@ void returnToMenuFromMode() {
   menuEditing = false;
   modeConfirming = false;
   menuScrollOffset = (MENU_IDX_OP_MODE > 4) ? MENU_IDX_OP_MODE - 4 : 0;
+  markDisplayDirty();
   Serial.println("Mode: MENU (from MODE)");
 }
 
@@ -255,6 +260,7 @@ void handleEncoder() {
     if (settings.invertDial) direction = -direction;
     lastEncoderPos = encoderPos;
     lastModeActivity = millis();
+    markDisplayDirty();
 
     // Suppress input during sleep confirm/cancel overlay
     if (sleepConfirmActive || sleepCancelActive) return;
@@ -414,6 +420,7 @@ void handleButtons() {
   if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
     lastEncPress = now;
     lastModeActivity = now;
+    markDisplayDirty();
 
     // Suppress input during sleep confirm/cancel overlay
     if (sleepConfirmActive || sleepCancelActive) { lastEncBtn = encBtn; return; }
@@ -550,6 +557,7 @@ void handleButtons() {
             settings.decoyIndex = 0;
             currentMode = MODE_NAME;
             initNameEditor();
+            markDisplayDirty();
             Serial.println("Mode: NAME (from DECOY)");
           } else {
             // Preset selected
@@ -611,6 +619,7 @@ void handleButtons() {
         sleepConfirmActive = true;
         sleepConfirmStart = now;
         if (screensaverActive) screensaverActive = false;
+        markDisplayDirty();
         Serial.println("Sleep confirm: started");
       }
       // Countdown elapsed -- trigger sleep
@@ -626,6 +635,7 @@ void handleButtons() {
       if (sleepConfirmActive) {
         unsigned long confirmElapsed = now - sleepConfirmStart;
         sleepConfirmActive = false;
+        markDisplayDirty();
         if (confirmElapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
           // Held past midpoint — light sleep
           lightSleepPending = true;
@@ -641,6 +651,7 @@ void handleButtons() {
       } else if (holdTime > 50) {
         // Short press -- mode switching
         lastModeActivity = now;
+        markDisplayDirty();
 
         // Wake from scheduled light sleep -- consume input
         if (scheduleSleeping) { exitLightSleep(); funcBtnWasPressed = false; return; }
@@ -747,6 +758,7 @@ void handleButtons() {
   if (muteBtn == LOW && lastMuteBtn == HIGH && (now - lastMuteBtnPress > DEBOUNCE)) {
     lastMuteBtnPress = now;
     lastModeActivity = now;
+    markDisplayDirty();
 
     // Suppress during overlays
     if (sleepConfirmActive || sleepCancelActive) { lastMuteBtn = muteBtn; return; }

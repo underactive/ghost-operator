@@ -82,6 +82,7 @@ void connect_callback(uint16_t conn_handle) {
   conn->requestConnectionParameter(BLE_INTERVAL_ACTIVE);
   lastHidActivity = millis();
   bleIdleMode = false;
+  markDisplayDirty();
 }
 
 void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
@@ -93,6 +94,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   easterEggActive = false;
   bleIdleMode = false;
   resetBleUartBuffer();  // discard stale partial commands
+  markDisplayDirty();
 }
 
 // ============================================================================
@@ -370,6 +372,7 @@ void loop() {
 
   if (sleepCancelActive && (now - sleepCancelStart >= SLEEP_CANCEL_DISPLAY_MS)) {
     sleepCancelActive = false;
+    markDisplayDirty();
   }
 
   pollEncoder();
@@ -412,6 +415,7 @@ void loop() {
     rebootConfirming = false;
     menuEditing = false;
     currentMode = MODE_NORMAL;
+    markDisplayDirty();
     saveSettings();  // Save when leaving settings
   }
 
@@ -420,6 +424,7 @@ void loop() {
     unsigned long saverMs = saverTimeoutMs();
     if (saverMs > 0 && (now - lastModeActivity > saverMs)) {
       screensaverActive = true;
+      markDisplayDirty();
     }
   }
 
@@ -463,6 +468,11 @@ void loop() {
     mouseReturnTotal = 0;
     scheduleNextKey();
     scheduleNextMouseState();
+    markDisplayDirty();
+  }
+  // USB unmount edge
+  if (!usbConnected && wasUsbConnected) {
+    markDisplayDirty();
   }
 
   // BLE disable/enable based on USB state and setting
@@ -473,11 +483,13 @@ void loop() {
       Bluefruit.disconnect(bleConnHandle);
     }
     bleDisabledForUsb = true;
+    markDisplayDirty();
   }
   if ((!usbConnected || settings.btWhileUsb) && bleDisabledForUsb) {
     Bluefruit.Advertising.restartOnDisconnect(true);
     Bluefruit.Advertising.start(0);
     bleDisabledForUsb = false;
+    markDisplayDirty();
   }
 
   // BLE idle mode: switch to relaxed connection params after 5s of no HID activity
@@ -522,9 +534,16 @@ void loop() {
     unsigned long displayInterval = (screensaverActive && !sleepConfirmActive && !sleepCancelActive)
                                     ? DISPLAY_UPDATE_SAVER_MS : DISPLAY_UPDATE_MS;
     if (now - lastDisplayUpdate >= displayInterval) {
-      pollEncoder();  // Catch transitions right before I2C transfer
-      updateDisplay();
-      pollEncoder();  // Catch transitions right after I2C transfer
+      // Time-based modes always redraw; static modes only when dirty
+      bool timeBased = (currentMode == MODE_NORMAL || currentMode == MODE_MENU
+                        || screensaverActive || sleepConfirmActive
+                        || sleepCancelActive || easterEggActive);
+      if (timeBased || displayDirty) {
+        pollEncoder();  // Catch transitions right before I2C transfer
+        updateDisplay();
+        pollEncoder();  // Catch transitions right after I2C transfer
+        displayDirty = false;
+      }
       lastDisplayUpdate = now;
     }
   }

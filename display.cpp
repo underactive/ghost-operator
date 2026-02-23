@@ -10,6 +10,88 @@
 #include "orchestrator.h"
 
 // ============================================================================
+// DIRTY FLAG
+// ============================================================================
+
+void markDisplayDirty() { displayDirty = true; }
+
+// ============================================================================
+// SHADOW BUFFER — selective page redraw
+// ============================================================================
+
+static uint8_t shadowBuf[1024];
+static bool shadowValid = false;
+
+// Invalidate the shadow buffer so the next sendDirtyPages() does a full send.
+// Call this after any direct display.display() that bypasses the shadow path
+// (e.g. one-shot screens in schedule.cpp before light sleep).
+void invalidateDisplayShadow() { shadowValid = false; }
+
+// I2C data chunk: replicate Adafruit SSD1306 WIRE_MAX logic, minus 1 for 0x40
+// prefix byte.  On Seeed nRF52 (SERIAL_BUFFER_SIZE=64) this yields 62 data
+// bytes per transaction — matching Adafruit's own display() throughput.
+#if defined(I2C_BUFFER_LENGTH)
+#define I2C_DATA_CHUNK (min(256, I2C_BUFFER_LENGTH) - 1)
+#elif defined(BUFFER_LENGTH)
+#define I2C_DATA_CHUNK (min(256, BUFFER_LENGTH) - 1)
+#elif defined(SERIAL_BUFFER_SIZE)
+#define I2C_DATA_CHUNK (min(255, SERIAL_BUFFER_SIZE - 1) - 1)
+#else
+#define I2C_DATA_CHUNK 31
+#endif
+
+// Send a contiguous range of SSD1306 pages via I2C (0-indexed, inclusive)
+static void sendPages(uint8_t startPage, uint8_t endPage) {
+  display.ssd1306_command(SSD1306_PAGEADDR);
+  display.ssd1306_command(startPage);
+  display.ssd1306_command(endPage);
+  display.ssd1306_command(SSD1306_COLUMNADDR);
+  display.ssd1306_command(0);
+  display.ssd1306_command(SCREEN_WIDTH - 1);
+
+  uint8_t *buf = display.getBuffer() + startPage * SCREEN_WIDTH;
+  uint16_t len = (uint16_t)(endPage - startPage + 1) * SCREEN_WIDTH;
+
+  for (uint16_t i = 0; i < len; ) {
+    Wire.beginTransmission(SCREEN_ADDRESS);
+    Wire.write((uint8_t)0x40);  // Co=0, D/C=1 (data mode)
+    uint16_t chunk = min((uint16_t)I2C_DATA_CHUNK, (uint16_t)(len - i));
+    Wire.write(buf + i, chunk);
+    i += chunk;
+    Wire.endTransmission();
+  }
+}
+
+// Compare framebuffer against shadow, send only dirty pages
+static void sendDirtyPages() {
+  uint8_t *buf = display.getBuffer();
+
+  if (!shadowValid) {
+    // First frame after boot or invalidation: full send
+    display.display();
+    memcpy(shadowBuf, buf, sizeof(shadowBuf));
+    shadowValid = true;
+    return;
+  }
+
+  // Find contiguous dirty page range
+  int8_t firstDirty = -1, lastDirty = -1;
+  for (uint8_t p = 0; p < 8; p++) {
+    if (memcmp(buf + p * SCREEN_WIDTH, shadowBuf + p * SCREEN_WIDTH, SCREEN_WIDTH) != 0) {
+      if (firstDirty < 0) firstDirty = p;
+      lastDirty = p;
+    }
+  }
+
+  if (firstDirty < 0) return;  // No pages changed — skip I2C entirely
+
+  sendPages(firstDirty, lastDirty);
+  memcpy(shadowBuf + firstDirty * SCREEN_WIDTH,
+         buf + firstDirty * SCREEN_WIDTH,
+         (lastDirty - firstDirty + 1) * SCREEN_WIDTH);
+}
+
+// ============================================================================
 // STATIC HELPERS (file-local)
 // ============================================================================
 
@@ -211,7 +293,8 @@ static void drawAnimation() {
     animShouldAdvance = false;
   } else {
     animFrameCounter++;
-    animShouldAdvance = (activeCount == 2) || (animFrameCounter % 2 == 0);
+    // Divisors doubled vs original 10 Hz to compensate for 20 Hz display rate
+    animShouldAdvance = (activeCount == 2) ? (animFrameCounter % 2 == 0) : (animFrameCounter % 4 == 0);
   }
 
   switch (settings.animStyle) {
@@ -350,10 +433,14 @@ static void drawEasterEgg() {
     display.drawBitmap(pacX, 54, pacSprite, 8, 10, SSD1306_WHITE);
   }
 
-  // Advance frame
-  easterEggFrame++;
-  if (easterEggFrame >= EASTER_EGG_TOTAL_FRAMES) {
-    easterEggActive = false;
+  // Advance frame (halved for 20 Hz display rate — visual speed matches original 10 Hz)
+  static uint8_t easterEggDiv = 0;
+  easterEggDiv++;
+  if (easterEggDiv % 2 == 0) {
+    easterEggFrame++;
+    if (easterEggFrame >= EASTER_EGG_TOTAL_FRAMES) {
+      easterEggActive = false;
+    }
   }
 }
 
@@ -966,7 +1053,7 @@ void drawLightSleepBreathing() {
 
   display.clearDisplay();
   display.fillCircle(118, 54, r, SSD1306_WHITE);
-  display.display();
+  sendDirtyPages();
 }
 
 // ============================================================================
@@ -1921,5 +2008,5 @@ void updateDisplay() {
     drawModePickerPage();
   }
 
-  display.display();
+  sendDirtyPages();
 }

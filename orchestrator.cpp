@@ -5,6 +5,7 @@
 #include "mouse.h"
 #include "serial_cmd.h"
 #include "timing.h"
+#include "display.h"
 
 // ============================================================================
 // HELPERS
@@ -127,6 +128,7 @@ static void startBlock(uint8_t blockIdx, unsigned long now) {
   unsigned long baseDur = (unsigned long)currentBlock().durationMinutes * 60000UL;
   orch.blockDurationMs = jitter(baseDur);
 
+  markDisplayDirty();
   Serial.print("[SIM] Block: ");
   Serial.println(currentBlock().name);
 }
@@ -166,6 +168,7 @@ static void startMode(unsigned long now) {
   // Schedule window switch
   orch.nextWindowSwitchMs = now + randRange(180000, 900000);
 
+  markDisplayDirty();
   Serial.print("[SIM] Mode: ");
   Serial.print(mode.shortName);
   Serial.print(" (");
@@ -339,6 +342,7 @@ void tickOrchestrator(unsigned long now) {
       (unsigned long)mode.profileStintMinSec * 1000UL,
       (unsigned long)mode.profileStintMaxSec * 1000UL
     );
+    markDisplayDirty();
   }
 
   // 4. Check phase timer
@@ -364,6 +368,7 @@ void tickOrchestrator(unsigned long now) {
 
     ActivityPhase nextPhase = selectNextPhase(currentWorkMode(), orch.phase);
     startPhase(nextPhase, now);
+    markDisplayDirty();
     pushSerialStatus();
   }
 
@@ -394,6 +399,7 @@ void skipWorkMode() {
     orch.keyDown = false;
   }
   startMode(now);
+  markDisplayDirty();
 }
 
 const char* currentBlockName() {

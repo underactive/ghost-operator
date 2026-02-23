@@ -1,6 +1,7 @@
 #include "hid.h"
 #include "state.h"
 #include "keys.h"
+#include "display.h"
 #include <Adafruit_TinyUSB.h>
 
 // RF/ADC calibration gate — shared by keyboard and mouse
@@ -96,6 +97,7 @@ void sendKeystroke() {
   }
 
   pickNextKey();
+  markDisplayDirty();
 }
 
 // ============================================================================
