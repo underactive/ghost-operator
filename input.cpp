@@ -217,7 +217,7 @@ bool isMenuItemHidden(int8_t idx) {
   // Sim-only items: hidden in Simple mode
   if (!isSim) {
     switch (item.settingId) {
-      case SET_JOB_SIM: case SET_JOB_PERFORMANCE:
+      case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
       case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
       case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
         return true;

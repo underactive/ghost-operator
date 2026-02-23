@@ -57,6 +57,7 @@ void loadDefaults() {
   settings.operationMode = 0;     // Simple
   settings.jobSimulation = 0;     // Staff
   settings.jobPerformance = 5;    // Baseline (50%)
+  settings.jobStartTime = 96;    // 8:00 (96 * 5min = 480min = 8h)
   settings.phantomClicks = 0;     // Off
   settings.clickType = 0;         // Middle
   settings.windowSwitching = 0;   // Off
@@ -158,6 +159,7 @@ void loadSettings() {
         if (settings.operationMode > 1) settings.operationMode = 0;
         if (settings.jobSimulation >= JOB_SIM_COUNT) settings.jobSimulation = 0;
         if (settings.jobPerformance > 11) settings.jobPerformance = 5;
+        if (settings.jobStartTime >= SCHEDULE_SLOTS) settings.jobStartTime = 96;
         if (settings.phantomClicks > 1) settings.phantomClicks = 0;
         if (settings.clickType > 1) settings.clickType = 0;
         if (settings.windowSwitching > 1) settings.windowSwitching = 0;
@@ -211,6 +213,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_OP_MODE:        return settings.operationMode;
     case SET_JOB_SIM:        return settings.jobSimulation;
     case SET_JOB_PERFORMANCE: return settings.jobPerformance;
+    case SET_JOB_START_TIME: return settings.jobStartTime;
     case SET_PHANTOM_CLICKS: return settings.phantomClicks;
     case SET_CLICK_TYPE:     return settings.clickType;
     case SET_WINDOW_SWITCH:  return settings.windowSwitching;
@@ -275,6 +278,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 1); break;
     case SET_JOB_SIM:        settings.jobSimulation = (uint8_t)clampVal(value, 0, JOB_SIM_COUNT - 1); break;
     case SET_JOB_PERFORMANCE: settings.jobPerformance = (uint8_t)clampVal(value, 0, 11); break;
+    case SET_JOB_START_TIME: settings.jobStartTime = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
     case SET_PHANTOM_CLICKS: settings.phantomClicks = (uint8_t)clampVal(value, 0, 1); break;
     case SET_CLICK_TYPE:     settings.clickType = (uint8_t)clampVal(value, 0, 1); break;
     case SET_WINDOW_SWITCH:  settings.windowSwitching = (uint8_t)clampVal(value, 0, 1); break;

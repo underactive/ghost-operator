@@ -10,7 +10,7 @@
 #define VERSION "2.0.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F55  // bumped: added jobPerformance
+#define SETTINGS_MAGIC 0x50524F56  // bumped: +jobStartTime
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -178,6 +178,7 @@ enum SettingId {
   SET_OP_MODE,
   SET_JOB_SIM,
   SET_JOB_PERFORMANCE,
+  SET_JOB_START_TIME,
   SET_PHANTOM_CLICKS,
   SET_CLICK_TYPE,
   SET_WINDOW_SWITCH,
@@ -212,7 +213,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 44
+#define MENU_ITEM_COUNT 45
 #define KB_SOUND_COUNT  5
 
 struct Settings {
@@ -244,6 +245,7 @@ struct Settings {
   uint8_t operationMode;    // 0=Simple (default), 1=Simulation
   uint8_t jobSimulation;    // 0=Staff, 1=Developer, 2=Designer (default: 0)
   uint8_t jobPerformance;   // 0-11, default 5 (level*10 = percentage, 5=baseline)
+  uint16_t jobStartTime;    // 0-287 (5-min slots), default 96 (8:00)
   uint8_t phantomClicks;    // 0=Off (default), 1=On
   uint8_t clickType;        // 0=Middle (default), 1=Left
   uint8_t windowSwitching;  // 0=Off (default), 1=On

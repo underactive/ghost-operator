@@ -2,6 +2,7 @@
 import { settings, setSetting } from '../lib/store.js'
 import {
   JOB_SIM_NAMES, CLICK_TYPE_NAMES, SWITCH_KEYS_NAMES, HEADER_DISP_NAMES,
+  formatTime5,
 } from '../lib/protocol.js'
 </script>
 
@@ -20,6 +21,21 @@ import {
         </option>
       </select>
       <p class="help-text">Day schedule template — determines work block timing and mode weights.</p>
+    </div>
+
+    <div class="field">
+      <label>
+        Job Start Time
+        <span class="field-value">{{ formatTime5(settings.jobStart) }}</span>
+      </label>
+      <input
+        type="range"
+        min="0"
+        max="287"
+        :value="settings.jobStart"
+        @input="setSetting('jobStart', Number($event.target.value))"
+      />
+      <p class="help-text">Time your workday begins — simulation aligns work blocks to this time.</p>
     </div>
 
     <div class="field">

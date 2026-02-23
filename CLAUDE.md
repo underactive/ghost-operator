@@ -105,7 +105,7 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SC
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (42 entries: 9 headings + 33 items):
+Data-driven architecture using `MenuItem` struct array (45 entries: 9 headings + 36 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND };
@@ -121,7 +121,7 @@ enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F54 (bumped: hostOS → switchKeys)
+  uint32_t magic;              // 0x50524F56 (bumped: +jobStartTime)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -148,6 +148,8 @@ struct Settings {
   // Simulation mode settings
   uint8_t operationMode;       // 0=Simple (default), 1=Simulation
   uint8_t jobSimulation;       // 0=Staff, 1=Developer, 2=Designer (default: 0)
+  uint8_t jobPerformance;      // 0-11, default 5 (level*10 = percentage, 5=baseline)
+  uint16_t jobStartTime;       // 0-287 (5-min slots), default 96 (8:00)
   uint8_t phantomClicks;       // 0=Off (default), 1=On
   uint8_t clickType;           // 0=Middle (default), 1=Left
   uint8_t windowSwitching;     // 0=Off (default), 1=On
@@ -161,7 +163,7 @@ struct Settings {
 enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name, sound = Off, sound type = MX Blue.
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, job performance = 5 (baseline), job start time = 8:00 (96), phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name, sound = Off, sound type = MX Blue.
 
 #### 4. Timing Profiles
 ```cpp
@@ -229,6 +231,7 @@ WEB → DEVICE                    DEVICE → WEB
 =dashboard:1                →   +ok
 =invertDial:1               →   +ok
 =switchKeys:N               →   +ok
+=jobStart:N                 →   +ok
 =clickType:N                →   +ok
 =sound:1                    →   +ok
 =soundType:N                →   +ok

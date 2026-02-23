@@ -452,9 +452,9 @@ uint8_t modeProgress(unsigned long now) {
 void syncOrchestratorTime(uint32_t daySeconds) {
   const DayTemplate& tmpl = currentTemplate();
 
-  // Convert daySeconds to minutes offset from schedule start
-  uint32_t schedStartSecs = (uint32_t)settings.scheduleStart * SCHEDULE_SLOT_SECS;
-  if (daySeconds < schedStartSecs) return;  // Before schedule start
+  // Convert daySeconds to minutes offset from job start time
+  uint32_t schedStartSecs = (uint32_t)settings.jobStartTime * SCHEDULE_SLOT_SECS;
+  if (daySeconds < schedStartSecs) return;  // Before job start
 
   uint32_t offsetMin = (daySeconds - schedStartSecs) / 60;
 

@@ -103,6 +103,7 @@ export function parseSettings(data) {
     opMode: parseInt(data.opMode) || 0,
     jobSim: parseInt(data.jobSim) || 0,
     jobPerf: parseInt(data.jobPerf ?? '5'),
+    jobStart: parseInt(data.jobStart ?? '96'),
     phantom: parseInt(data.phantom) || 0,
     clickType: parseInt(data.clickType) || 0,
     winSwitch: parseInt(data.winSwitch) || 0,
