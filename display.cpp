@@ -748,11 +748,35 @@ static void drawSimulationNormal() {
       display.print(uptimeBuf);
     }
 
-    // KB/MS mute indicators
-    display.setCursor(60, 54);
-    display.print(keyEnabled ? "KB" : "--");
-    display.setCursor(78, 54);
-    display.print(mouseEnabled ? "MS" : "--");
+    // Keycap icon: inverted when key held, hidden when muted
+    if (keyEnabled) {
+      if (orch.keyDown) {
+        display.fillRect(60, 54, 10, 10, SSD1306_WHITE);
+        display.drawBitmap(60, 54, iconKeycapNormal, 10, 10, SSD1306_BLACK);
+      } else {
+        display.drawBitmap(60, 54, iconKeycapNormal, 10, 10, SSD1306_WHITE);
+      }
+    }
+
+    // Mouse icon: click > scroll > moving(nudge) > idle; hidden when muted
+    if (mouseEnabled) {
+      const uint8_t* mIcon;
+      int mx = 78;
+
+      if (now - orch.lastPhantomClickMs < 200) {
+        mIcon = iconMouseClick;
+      } else if (settings.scrollEnabled && (now - lastScrollTime < 200)) {
+        mIcon = iconMouseScroll;
+      } else {
+        mIcon = iconMouseNormal;
+        if (mouseState != MOUSE_IDLE) {
+          static const int8_t nudge[] = {0, 2, 0, -2};
+          mx += nudge[(millis() / 150) % 4];
+        }
+      }
+
+      display.drawBitmap(mx, 54, mIcon, 10, 10, SSD1306_WHITE);
+    }
 
     // Animation in corner
     if (deviceConnected || usbConnected) {
