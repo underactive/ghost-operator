@@ -86,3 +86,34 @@ jobs:
         with:
           files: ghost_operator/releases/ghost_operator_dfu-*.zip
           body_path: /tmp/release_body.md
+
+  # Mirror the release to the public v1 repo so the product site picks it up
+  publish-to-v1:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release artifact
+        run: |
+          gh release download "$GITHUB_REF_NAME" \
+            --repo underactive/ghost-operator-v2 \
+            --pattern "*.zip" \
+            --dir ./artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download release notes
+        run: |
+          gh release view "$GITHUB_REF_NAME" \
+            --repo underactive/ghost-operator-v2 \
+            --json body --jq .body > /tmp/release_body.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release on public repo
+        run: |
+          gh release create "$GITHUB_REF_NAME" ./artifacts/*.zip \
+            --repo underactive/ghost-operator \
+            --title "Ghost Operator $GITHUB_REF_NAME" \
+            --notes-file /tmp/release_body.md
+        env:
+          GH_TOKEN: ${{ secrets.V1_REPO_PAT }}
