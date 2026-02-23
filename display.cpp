@@ -819,7 +819,7 @@ static void drawSimulationScreensaver() {
   // Work mode label centered (y=8)
   {
     const char* name = currentModeName();
-    char label[14];
+    char label[22];
     snprintf(label, sizeof(label), "[%s]", name);
     int w = strlen(label) * 6;
     display.setCursor((128 - w) / 2, 8);

@@ -74,7 +74,7 @@ const WorkModeDef WORK_MODES[WMODE_COUNT] = {
   },
 
   // --- CHAT_SLACK (KB:60%) ---
-  { WMODE_CHAT_SLACK, "Chat", "Chat", 60,
+  { WMODE_CHAT_SLACK, "Chatting", "Chat", 60,
     { 20, 30, 50 },
     {
       // LAZY

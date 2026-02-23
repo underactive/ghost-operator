@@ -401,7 +401,7 @@ const char* currentBlockName() {
 }
 
 const char* currentModeName() {
-  return currentWorkMode().shortName;
+  return currentWorkMode().name;
 }
 
 uint8_t blockProgress(unsigned long now) {
