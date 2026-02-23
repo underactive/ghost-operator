@@ -120,6 +120,9 @@ float batteryVoltage = 4.2;
 unsigned long lastHidActivity = 0;
 bool bleIdleMode = false;
 
+// Die temperature (hysteresis-smoothed)
+int16_t cachedDieTempRaw = INT16_MIN;
+
 // RF/ADC thermal compensation
 uint8_t  rfThermalOffset  = 0;
 uint16_t adcDriftComp     = 0;

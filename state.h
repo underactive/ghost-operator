@@ -128,6 +128,9 @@ extern float batteryVoltage;
 extern unsigned long lastHidActivity;
 extern bool bleIdleMode;
 
+// Die temperature (hysteresis-smoothed)
+extern int16_t cachedDieTempRaw;
+
 // RF/ADC thermal compensation
 extern uint8_t  rfThermalOffset;
 extern uint16_t adcDriftComp;

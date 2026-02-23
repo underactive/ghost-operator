@@ -7,6 +7,21 @@
 
 using namespace Adafruit_LittleFS_Namespace;
 
+// Die temperature with hysteresis to prevent display flapping.
+// Raw value is in 0.25°C units; threshold of 2 = 0.5°C hysteresis band.
+#define DIE_TEMP_HYSTERESIS 2
+
+int getDieTempCelsius() {
+  int32_t raw;
+  if (sd_temp_get(&raw) != NRF_SUCCESS) {
+    return (cachedDieTempRaw == INT16_MIN) ? 0 : cachedDieTempRaw / 4;
+  }
+  if (cachedDieTempRaw == INT16_MIN || abs((int)(raw - cachedDieTempRaw)) >= DIE_TEMP_HYSTERESIS) {
+    cachedDieTempRaw = (int16_t)raw;
+  }
+  return cachedDieTempRaw / 4;
+}
+
 void loadDefaults() {
   memset(&settings, 0, sizeof(Settings));  // zero padding bytes for checksum consistency
   settings.magic = SETTINGS_MAGIC;
@@ -280,9 +295,8 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
     }
     case FMT_UPTIME:        formatUptime(millis() - startTime, buf, bufSize); return;
     case FMT_DIE_TEMP: {
-      int32_t raw;
-      if (sd_temp_get(&raw) != NRF_SUCCESS) { snprintf(buf, bufSize, "---"); return; }
-      int c = raw / 4;
+      int c = getDieTempCelsius();
+      if (cachedDieTempRaw == INT16_MIN) { snprintf(buf, bufSize, "---"); return; }
       int f = c * 9 / 5 + 32;
       snprintf(buf, bufSize, "%dC/%dF", c, f);
       return;

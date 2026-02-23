@@ -8,7 +8,6 @@
 #include "input.h"
 #include "sim_data.h"
 #include "orchestrator.h"
-#include <nrf_soc.h>
 
 // ============================================================================
 // STATIC HELPERS (file-local)
@@ -526,15 +525,14 @@ static void drawNormalMode() {
           display.print(VERSION);
           break;
         case FOOTER_DIETEMP: {
-          int32_t raw;
-          if (sd_temp_get(&raw) == NRF_SUCCESS) {
-            int c = raw / 4;
+          int c = getDieTempCelsius();
+          if (cachedDieTempRaw == INT16_MIN) {
+            display.print("---");
+          } else {
             int f = c * 9 / 5 + 32;
             char tempBuf[16];
             snprintf(tempBuf, sizeof(tempBuf), "%dC/%dF", c, f);
             display.print(tempBuf);
-          } else {
-            display.print("---");
           }
           break;
         }
