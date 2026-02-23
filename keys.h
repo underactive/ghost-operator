@@ -22,7 +22,7 @@ extern const char* const DECOY_NAMES[];
 extern const char* const DECOY_MANUFACTURERS[];
 
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
-#define MENU_IDX_KEY_SLOTS    3
+#define MENU_IDX_KEY_SLOTS    5
 #define MENU_IDX_SCHEDULE     25
 #define MENU_IDX_OP_MODE      27   // "Mode" (Simple/Simulation) — under Device heading
 #define MENU_IDX_BLE_IDENTITY 29

@@ -1468,10 +1468,10 @@ static void drawModePickerPage() {
   if (modePickerCursor == 0) display.setTextColor(SSD1306_WHITE);
 
   display.setCursor(8, y0 + 9);
-  display.print("Direct timing control");
+  display.print("Direct timing");
 
   // === Option 1: Simulation ===
-  int y1 = 30;
+  int y1 = 29;
   if (modePickerCursor == 1) {
     display.fillRect(0, y1, 128, 8, SSD1306_WHITE);
     display.setTextColor(SSD1306_BLACK);
@@ -1484,8 +1484,8 @@ static void drawModePickerPage() {
   display.print("Human work patterns");
 
   // === Footer ===
-  display.drawFastHLine(0, 50, 128, SSD1306_WHITE);
-  display.setCursor(0, 52);
+  display.drawFastHLine(0, 46, 128, SSD1306_WHITE);
+  display.setCursor(0, 48);
   display.print("Turn=select Press=OK");
   display.setCursor(0, 57);
   display.print("Func=back");
