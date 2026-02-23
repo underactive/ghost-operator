@@ -954,6 +954,22 @@ static void drawSleepCancelled() {
 }
 
 // ============================================================================
+// LIGHT SLEEP BREATHING ANIMATION
+// ============================================================================
+
+void drawLightSleepBreathing() {
+  // Breathing circle in lower-right corner, evokes MacBook sleep LED
+  // 4-second cycle: smoothly expands and contracts
+  float phase = (float)(millis() % 4000) / 4000.0f * 6.2831853f;  // 2*PI
+  float breathe = (sinf(phase) + 1.0f) * 0.5f;  // 0.0 → 1.0
+  int r = 2 + (int)(4.0f * breathe);             // radius 2 → 6
+
+  display.clearDisplay();
+  display.fillCircle(118, 54, r, SSD1306_WHITE);
+  display.display();
+}
+
+// ============================================================================
 // SCREENSAVER
 // ============================================================================
 

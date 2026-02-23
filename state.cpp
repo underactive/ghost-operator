@@ -144,6 +144,7 @@ bool timeSynced = false;
 uint32_t wallClockDaySecs = 0;
 unsigned long wallClockSyncMs = 0;
 bool scheduleSleeping = false;
+bool manualLightSleep = false;
 bool scheduleManualWake = false;
 unsigned long lastScheduleCheck = 0;
 

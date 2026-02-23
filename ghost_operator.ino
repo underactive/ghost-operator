@@ -529,6 +529,14 @@ void loop() {
     }
   }
 
+  // Breathing circle during manual light sleep (10 Hz)
+  if (displayInitialized && manualLightSleep) {
+    if (now - lastDisplayUpdate >= DISPLAY_UPDATE_MS) {
+      drawLightSleepBreathing();
+      lastDisplayUpdate = now;
+    }
+  }
+
   // LED blink
   static unsigned long lastBlink = 0;
   if (scheduleSleeping) {

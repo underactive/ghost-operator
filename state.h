@@ -152,6 +152,7 @@ extern bool timeSynced;
 extern uint32_t wallClockDaySecs;
 extern unsigned long wallClockSyncMs;
 extern bool scheduleSleeping;
+extern bool manualLightSleep;
 extern bool scheduleManualWake;
 extern unsigned long lastScheduleCheck;
 

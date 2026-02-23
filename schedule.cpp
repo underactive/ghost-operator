@@ -108,6 +108,7 @@ void checkSchedule() {
 
 void enterLightSleep(bool scheduled) {
   scheduleSleeping = true;
+  manualLightSleep = !scheduled;
 
   // Stop BLE advertising
   Bluefruit.Advertising.restartOnDisconnect(false);
@@ -116,19 +117,20 @@ void enterLightSleep(bool scheduled) {
     Bluefruit.disconnect(bleConnHandle);
   }
 
-  // Blank display
+  // Display setup
   if (displayInitialized) {
     display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-
-    const char* msg1 = scheduled ? "Scheduled Sleep" : "LIGHT SLEEP";
-    int w1 = strlen(msg1) * 6;
-    display.setCursor((128 - w1) / 2, 18);
-    display.print(msg1);
 
     if (scheduled) {
-      // Show wake time for scheduled sleep
+      // Scheduled sleep: show wake time
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
+
+      const char* msg1 = "Scheduled Sleep";
+      int w1 = strlen(msg1) * 6;
+      display.setCursor((128 - w1) / 2, 18);
+      display.print(msg1);
+
       uint32_t wakeSecs = (uint32_t)settings.scheduleStart * SCHEDULE_SLOT_SECS;
       uint8_t wh = wakeSecs / 3600;
       uint8_t wm = (wakeSecs % 3600) / 60;
@@ -137,15 +139,10 @@ void enterLightSleep(bool scheduled) {
       int w2 = strlen(wakeBuf) * 6;
       display.setCursor((128 - w2) / 2, 34);
       display.print(wakeBuf);
-    } else {
-      // Manual light sleep — show wake instruction
-      const char* msg2 = "Press btn to wake";
-      int w2 = strlen(msg2) * 6;
-      display.setCursor((128 - w2) / 2, 34);
-      display.print(msg2);
-    }
 
-    display.display();
+      display.display();
+    }
+    // Manual: leave display blank — breathing animation renders from main loop
 
     // Dim to minimum
     display.ssd1306_command(SSD1306_SETCONTRAST);
@@ -157,6 +154,7 @@ void enterLightSleep(bool scheduled) {
 
 void exitLightSleep() {
   scheduleSleeping = false;
+  manualLightSleep = false;
   scheduleManualWake = true;  // suppress re-sleep until next active window
 
   // Restart BLE
