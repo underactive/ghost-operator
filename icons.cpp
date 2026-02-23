@@ -46,57 +46,57 @@ const uint8_t PROGMEM usbIcon[] = {
   0x70   // .###.  base
 };
 
-// Keycap icon (10x10 pixels) — top-down keycap with letter "G"
+// Keycap icon (10x10 pixels) — top-down keycap with letter "A"
 const uint8_t PROGMEM iconKeycapNormal[] = {
   0x7F, 0x80,  // .########.
   0x80, 0x40,  // #........#
   0x9E, 0x40,  // #..####..#
-  0xA0, 0x40,  // #.#......#
-  0xA0, 0x40,  // #.#......#
-  0xA6, 0x40,  // #.#..##..#
-  0xA2, 0x40,  // #.#...#..#
-  0x9E, 0x40,  // #..####..#
+  0xA1, 0x40,  // #.#....#.#
+  0xA1, 0x40,  // #.#....#.#
+  0xBF, 0x40,  // #.######.#
+  0xA1, 0x40,  // #.#....#.#
+  0xA1, 0x40,  // #.#....#.#
   0x80, 0x40,  // #........#
   0x7F, 0x80   // .########.
 };
 
-// Mouse icon (10x10 pixels) — Mac Classic style, one button with outlined rectangle
+// Mouse icon (10x10 pixels) — Mac Classic style, button outline then solid body
 const uint8_t PROGMEM iconMouseNormal[] = {
   0x3F, 0x00,  // ..######..
   0x7F, 0x80,  // .########.
   0x40, 0x80,  // .#......#.
   0x5E, 0x80,  // .#.####.#.
-  0x5E, 0x80,  // .#.####.#.
-  0x5E, 0x80,  // .#.####.#.
   0x40, 0x80,  // .#......#.
+  0x7F, 0x80,  // .########.
+  0x7F, 0x80,  // .########.
   0x7F, 0x80,  // .########.
   0x7F, 0x80,  // .########.
   0x3F, 0x00   // ..######..
 };
 
-// Mouse click icon (10x10 pixels) — button rectangle filled solid
+// Mouse click icon (10x10 pixels) — button filled, solid body
 const uint8_t PROGMEM iconMouseClick[] = {
   0x3F, 0x00,  // ..######..
   0x7F, 0x80,  // .########.
   0x40, 0x80,  // .#......#.
   0x40, 0x80,  // .#......#.
   0x40, 0x80,  // .#......#.
-  0x40, 0x80,  // .#......#.
-  0x40, 0x80,  // .#......#.
+  0x7F, 0x80,  // .########.
+  0x7F, 0x80,  // .########.
   0x7F, 0x80,  // .########.
   0x7F, 0x80,  // .########.
   0x3F, 0x00   // ..######..
 };
 
-// Mouse scroll icon (10x10 pixels) — up-down arrow in button area
+// Mouse scroll icon (10x10 pixels) — arrow cutouts in solid body
 const uint8_t PROGMEM iconMouseScroll[] = {
   0x3F, 0x00,  // ..######..
   0x7F, 0x80,  // .########.
-  0x4C, 0x80,  // .#..##..#.
-  0x5E, 0x80,  // .#.####.#.
-  0x4C, 0x80,  // .#..##..#.
-  0x5E, 0x80,  // .#.####.#.
-  0x4C, 0x80,  // .#..##..#.
+  0x73, 0x80,  // .###..###.
+  0x61, 0x80,  // .##....##.
+  0x73, 0x80,  // .###..###.
+  0x61, 0x80,  // .##....##.
+  0x73, 0x80,  // .###..###.
   0x7F, 0x80,  // .########.
   0x7F, 0x80,  // .########.
   0x3F, 0x00   // ..######..

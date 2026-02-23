@@ -675,44 +675,18 @@ static void drawSimulationNormal() {
 
   // === Activity row (y=38..49): label + outlined bar + time ===
   {
-    // Activity label (3 chars) — three visual states:
-    //   plain = idle/default, outlined = active movement, inverted = HID event
+    // Activity label (3 chars) — state feedback now handled by footer icons
     const char* actLabel;
-    bool invertLabel = false;
-    bool outlineLabel = false;
 
     switch (orch.phase) {
-      case PHASE_TYPING:
-        actLabel = "KBD";
-        invertLabel = orch.keyDown;
-        break;
-      case PHASE_MOUSING:
-        actLabel = "MSE";
-        invertLabel = (now - orch.lastPhantomClickMs < 200);
-        outlineLabel = !invertLabel && (mouseState != MOUSE_IDLE);
-        break;
-      case PHASE_IDLE:
-        actLabel = "IDL";
-        break;
-      default:
-        actLabel = "SWT";
-        break;
+      case PHASE_TYPING:  actLabel = "KBD"; break;
+      case PHASE_MOUSING: actLabel = "MSE"; break;
+      case PHASE_IDLE:    actLabel = "IDL"; break;
+      default:            actLabel = "SWT"; break;
     }
 
-    if (invertLabel) {
-      display.fillRect(0, 39, 18, 9, SSD1306_WHITE);
-      display.setTextColor(SSD1306_BLACK);
-      display.setCursor(0, 40);
-      display.print(actLabel);
-      display.setTextColor(SSD1306_WHITE);
-    } else if (outlineLabel) {
-      display.drawRect(0, 39, 18, 9, SSD1306_WHITE);
-      display.setCursor(0, 40);
-      display.print(actLabel);
-    } else {
-      display.setCursor(0, 40);
-      display.print(actLabel);
-    }
+    display.setCursor(0, 40);
+    display.print(actLabel);
 
     // Progress bar (7px tall outlined, x=21..96)
     display.drawRect(21, 40, 76, 7, SSD1306_WHITE);
@@ -769,8 +743,8 @@ static void drawSimulationNormal() {
         mIcon = iconMouseScroll;
       } else {
         mIcon = iconMouseNormal;
-        if (mouseState != MOUSE_IDLE) {
-          static const int8_t nudge[] = {0, 2, 0, -2};
+        if (mouseState == MOUSE_JIGGLING) {
+          static const int8_t nudge[] = {0, 1, 0, -1};
           mx += nudge[(millis() / 150) % 4];
         }
       }
