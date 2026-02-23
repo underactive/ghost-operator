@@ -39,6 +39,31 @@ static unsigned long jitter(unsigned long base) {
   return (unsigned long)max(1L, (long)base + random(-variation, variation + 1));
 }
 
+// Scale a duration by job performance level.
+// scaleUp=true:  active durations (typing, mousing) — higher level = longer activity
+// scaleUp=false: idle durations (gaps, delays) — higher level = shorter idle
+// Level 5 = baseline (1.0x), level 0 = near-idle, level 11 = 2.2x active
+static unsigned long scaleByPerformance(unsigned long value, bool scaleUp) {
+  uint8_t level = settings.jobPerformance;
+  if (level == 5) return value;  // baseline — no change
+  if (scaleUp) {
+    return value * level / 5;    // level 0→0, level 11→2.2x
+  }
+  if (level == 0) return value * 10;  // 10x idle at zero performance
+  return value * 5 / level;     // level 1→5x idle, level 11→0.45x idle
+}
+
+// Scale a burst count by job performance level.
+// Level 5 = baseline, level 0 = 0 keys, level 11 = 2.2x keys
+static uint8_t scaleCountByPerformance(uint8_t value) {
+  uint8_t level = settings.jobPerformance;
+  if (level == 5) return value;
+  uint16_t result = (uint16_t)value * level / 5;
+  if (result > 255) return 255;
+  if (result == 0 && level > 0) return 1;  // clamp to 1 if level>0
+  return (uint8_t)result;
+}
+
 // ============================================================================
 // WEIGHTED RANDOM SELECTION
 // ============================================================================
@@ -100,11 +125,11 @@ static unsigned long phaseDuration(ActivityPhase phase, const WorkModeDef& mode,
   switch (phase) {
     case PHASE_TYPING:
       // Typing phase: sum of several burst cycles — estimate ~30-120s
-      return jitter(randRange(15000, 60000));
+      return jitter(scaleByPerformance(randRange(15000, 60000), true));
     case PHASE_MOUSING:
-      return jitter(randRange(t.mouseDurMinMs, t.mouseDurMaxMs));
+      return jitter(scaleByPerformance(randRange(t.mouseDurMinMs, t.mouseDurMaxMs), true));
     case PHASE_IDLE:
-      return jitter(randRange(t.idleDurMinMs, t.idleDurMaxMs));
+      return jitter(scaleByPerformance(randRange(t.idleDurMinMs, t.idleDurMaxMs), false));
     case PHASE_SWITCHING:
       return randRange(100, 500);
     default:
@@ -219,12 +244,12 @@ static void tickBurst(unsigned long now) {
       orch.burstKeysRemaining--;
 
       if (orch.burstKeysRemaining == 0) {
-        // End of burst — enter gap
+        // End of burst — enter gap (shorter at higher performance)
         orch.inBurstGap = true;
-        orch.burstGapEndMs = now + randRange(t.burstGapMinMs, t.burstGapMaxMs);
+        orch.burstGapEndMs = now + scaleByPerformance(randRange(t.burstGapMinMs, t.burstGapMaxMs), false);
       } else {
-        // Inter-key delay before next key
-        orch.nextKeyMs = now + randRange(t.interKeyMinMs, t.interKeyMaxMs);
+        // Inter-key delay before next key (shorter at higher performance)
+        orch.nextKeyMs = now + scaleByPerformance(randRange(t.interKeyMinMs, t.interKeyMaxMs), false);
       }
     }
     return;
@@ -234,8 +259,8 @@ static void tickBurst(unsigned long now) {
   if (orch.inBurstGap) {
     if (now >= orch.burstGapEndMs) {
       orch.inBurstGap = false;
-      // Start new burst
-      orch.burstKeysRemaining = (uint8_t)randRange(t.burstKeysMin, t.burstKeysMax);
+      // Start new burst (more keys at higher performance)
+      orch.burstKeysRemaining = scaleCountByPerformance((uint8_t)randRange(t.burstKeysMin, t.burstKeysMax));
       orch.nextKeyMs = now;  // Start immediately
     }
     return;
@@ -243,8 +268,8 @@ static void tickBurst(unsigned long now) {
 
   // Not in burst — start one or continue
   if (orch.burstKeysRemaining == 0) {
-    // Start new burst
-    orch.burstKeysRemaining = (uint8_t)randRange(t.burstKeysMin, t.burstKeysMax);
+    // Start new burst (more keys at higher performance)
+    orch.burstKeysRemaining = scaleCountByPerformance((uint8_t)randRange(t.burstKeysMin, t.burstKeysMax));
     orch.nextKeyMs = now;
   }
 

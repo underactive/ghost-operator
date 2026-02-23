@@ -220,8 +220,8 @@ static void cmdQuerySettings() {
 
   // Simulation mode settings
   snprintf(buf + len, sizeof(buf) - len,
-    "|opMode=%d|jobSim=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d",
-    settings.operationMode, settings.jobSimulation,
+    "|opMode=%d|jobSim=%d|jobPerf=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d",
+    settings.operationMode, settings.jobSimulation, settings.jobPerformance,
     settings.phantomClicks, settings.clickType, settings.windowSwitching,
     settings.switchKeys, settings.headerDisplay);
 
@@ -330,6 +330,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_OP_MODE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "jobSim") == 0) {
     setSettingValue(SET_JOB_SIM, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "jobPerf") == 0) {
+    setSettingValue(SET_JOB_PERFORMANCE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "phantom") == 0) {
     setSettingValue(SET_PHANTOM_CLICKS, (uint32_t)atol(valStr));
   } else if (strcmp(key, "clickType") == 0) {

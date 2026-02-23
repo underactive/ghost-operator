@@ -179,6 +179,7 @@ void handleSerialCommands() {
         if (settings.operationMode == 1) {
           Serial.println("--- Simulation ---");
           Serial.print("Job: "); Serial.println(JOB_SIM_NAMES[settings.jobSimulation]);
+          Serial.print("Performance: "); Serial.println(settings.jobPerformance);
           Serial.print("Block: "); Serial.print(orch.blockIdx); Serial.print(" ("); Serial.print(currentBlockName()); Serial.println(")");
           Serial.print("Mode: "); Serial.print((int)orch.modeId); Serial.print(" ("); Serial.print(currentModeName()); Serial.println(")");
           Serial.print("Phase: "); Serial.println(PHASE_NAMES[orch.phase]);

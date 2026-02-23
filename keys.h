@@ -24,12 +24,12 @@ extern const char* const DECOY_NAMES[];
 extern const char* const DECOY_MANUFACTURERS[];
 
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
-#define MENU_IDX_KEY_SLOTS    5
-#define MENU_IDX_SCHEDULE     29
-#define MENU_IDX_OP_MODE      31   // "Mode" (Simple/Simulation) — under Device heading
-#define MENU_IDX_BLE_IDENTITY 32
-#define MENU_IDX_UPTIME       39
-#define MENU_IDX_DIE_TEMP     40
-#define MENU_IDX_VERSION      41
+#define MENU_IDX_KEY_SLOTS    6
+#define MENU_IDX_SCHEDULE     30
+#define MENU_IDX_OP_MODE      32   // "Mode" (Simple/Simulation) — under Device heading
+#define MENU_IDX_BLE_IDENTITY 33
+#define MENU_IDX_UPTIME       40
+#define MENU_IDX_DIE_TEMP     41
+#define MENU_IDX_VERSION      42
 
 #endif // GHOST_KEYS_H

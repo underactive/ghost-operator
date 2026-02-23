@@ -56,6 +56,7 @@ void loadDefaults() {
   // Simulation mode defaults
   settings.operationMode = 0;     // Simple
   settings.jobSimulation = 0;     // Staff
+  settings.jobPerformance = 5;    // Baseline (50%)
   settings.phantomClicks = 0;     // Off
   settings.clickType = 0;         // Middle
   settings.windowSwitching = 0;   // Off
@@ -156,6 +157,7 @@ void loadSettings() {
         // Simulation mode bounds
         if (settings.operationMode > 1) settings.operationMode = 0;
         if (settings.jobSimulation >= JOB_SIM_COUNT) settings.jobSimulation = 0;
+        if (settings.jobPerformance > 11) settings.jobPerformance = 5;
         if (settings.phantomClicks > 1) settings.phantomClicks = 0;
         if (settings.clickType > 1) settings.clickType = 0;
         if (settings.windowSwitching > 1) settings.windowSwitching = 0;
@@ -208,6 +210,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_SCHEDULE_END:   return settings.scheduleEnd;
     case SET_OP_MODE:        return settings.operationMode;
     case SET_JOB_SIM:        return settings.jobSimulation;
+    case SET_JOB_PERFORMANCE: return settings.jobPerformance;
     case SET_PHANTOM_CLICKS: return settings.phantomClicks;
     case SET_CLICK_TYPE:     return settings.clickType;
     case SET_WINDOW_SWITCH:  return settings.windowSwitching;
@@ -271,6 +274,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
     case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 1); break;
     case SET_JOB_SIM:        settings.jobSimulation = (uint8_t)clampVal(value, 0, JOB_SIM_COUNT - 1); break;
+    case SET_JOB_PERFORMANCE: settings.jobPerformance = (uint8_t)clampVal(value, 0, 11); break;
     case SET_PHANTOM_CLICKS: settings.phantomClicks = (uint8_t)clampVal(value, 0, 1); break;
     case SET_CLICK_TYPE:     settings.clickType = (uint8_t)clampVal(value, 0, 1); break;
     case SET_WINDOW_SWITCH:  settings.windowSwitching = (uint8_t)clampVal(value, 0, 1); break;
@@ -319,6 +323,7 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
     case FMT_HEADER_DISP:   snprintf(buf, bufSize, "%s", (val < 2) ? HEADER_DISP_NAMES[val] : "???"); return;
     case FMT_CLICK_TYPE:    snprintf(buf, bufSize, "%s", (val < 2) ? CLICK_TYPE_NAMES[val] : "???"); return;
     case FMT_KEY_SOUND:     snprintf(buf, bufSize, "%s", (val < KB_SOUND_COUNT) ? KB_SOUND_NAMES[val] : "???"); return;
+    case FMT_PERF_LEVEL:    snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
     default:                snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
   }
 }
