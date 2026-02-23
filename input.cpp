@@ -277,9 +277,14 @@ void handleEncoder() {
     switch (currentMode) {
       case MODE_NORMAL:
         if (settings.operationMode == 1) {
-          // Simulation mode: show schedule preview overlay
+          // Simulation mode: adjust job performance (0–11)
+          int val = (int)settings.jobPerformance + direction;
+          if (val < 0) val = 0;
+          if (val > 11) val = 11;
+          settings.jobPerformance = (uint8_t)val;
           orch.previewActive = true;
           orch.previewStartMs = millis();
+          pushSerialStatus();
         } else {
           // Simple mode: switch timing profile
           int p = (int)currentProfile + direction;

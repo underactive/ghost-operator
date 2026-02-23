@@ -64,6 +64,7 @@ export const settings = reactive({
   // Simulation mode
   opMode: 0,
   jobSim: 0,
+  jobPerf: 5,
   phantom: 0,
   clickType: 0,
   winSwitch: 0,

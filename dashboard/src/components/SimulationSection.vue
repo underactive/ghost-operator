@@ -23,6 +23,21 @@ import {
     </div>
 
     <div class="field">
+      <label>
+        Job Performance
+        <span class="field-value">{{ settings.jobPerf }}</span>
+      </label>
+      <input
+        type="range"
+        min="0"
+        max="11"
+        :value="settings.jobPerf"
+        @input="setSetting('jobPerf', Number($event.target.value))"
+      />
+      <p class="help-text">Activity intensity (0 = near-idle, 5 = baseline, 11 = maximum). Also adjustable via encoder on OLED.</p>
+    </div>
+
+    <div class="field">
       <label>Window Switching</label>
       <select
         :value="settings.winSwitch"

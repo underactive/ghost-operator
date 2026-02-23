@@ -881,23 +881,29 @@ static void drawSimulationNormal() {
     }
   }
 
-  // Schedule preview overlay (encoder rotation shows upcoming modes)
+  // Performance level overlay (encoder changes job performance)
   if (orch.previewActive) {
     if (now - orch.previewStartMs < SIM_SCHEDULE_PREVIEW_MS) {
-      // Draw overlay box in center
       display.fillRect(8, 16, 112, 32, SSD1306_BLACK);
       display.drawRect(8, 16, 112, 32, SSD1306_WHITE);
 
-      const DayTemplate& tmpl = DAY_TEMPLATES[settings.jobSimulation];
-      display.setCursor(12, 18);
-      display.print("Next:");
+      // Title
+      display.setCursor(12, 19);
+      display.print("Job Performance");
 
-      // Show upcoming blocks (up to 2)
-      uint8_t nextIdx = (orch.blockIdx + 1) % tmpl.numBlocks;
-      for (int i = 0; i < 2 && i + nextIdx < tmpl.numBlocks; i++) {
-        display.setCursor(12, 28 + i * 8);
-        display.print(tmpl.blocks[nextIdx + i].name);
+      // Bar background (88px wide, inside the overlay box)
+      int16_t barX = 12, barY = 31, barW = 88, barH = 8;
+      display.drawRect(barX, barY, barW, barH, SSD1306_WHITE);
+
+      // Filled portion: level/11 of the bar width
+      int16_t fillW = (int16_t)settings.jobPerformance * (barW - 2) / 11;
+      if (fillW > 0) {
+        display.fillRect(barX + 1, barY + 1, fillW, barH - 2, SSD1306_WHITE);
       }
+
+      // Numeric value right of bar
+      display.setCursor(barX + barW + 4, 31);
+      display.print(settings.jobPerformance);
     } else {
       orch.previewActive = false;
     }
