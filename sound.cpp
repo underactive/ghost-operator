@@ -81,13 +81,33 @@ static void playOnce(uint8_t type) {
 void playKeySound() {
   if (!settings.soundEnabled) return;
   if (!deviceConnected && !usbConnected) return;
+  if (currentMode != MODE_NORMAL) return;
 
   playOnce(settings.soundType);
 }
 
-void playSoundPreview(uint8_t soundType) {
-  for (uint8_t i = 0; i < 3; i++) {
-    playOnce(soundType);
-    if (i < 2) delay(random(40, 81));
+// Non-blocking continuous preview state
+static bool previewActive = false;
+static uint8_t previewType = 0;
+static unsigned long previewNextMs = 0;
+
+void startSoundPreview(uint8_t soundType) {
+  previewType = soundType;
+  if (!previewActive) {
+    previewActive = true;
+    previewNextMs = 0;  // play immediately on first start
+  }
+}
+
+void stopSoundPreview() {
+  previewActive = false;
+}
+
+void updateSoundPreview() {
+  if (!previewActive) return;
+  unsigned long now = millis();
+  if (now >= previewNextMs) {
+    playOnce(previewType);
+    previewNextMs = now + random(80, 181);
   }
 }

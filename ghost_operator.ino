@@ -379,6 +379,7 @@ void loop() {
   handleBleUart();
   handleEncoder();
   handleButtons();
+  updateSoundPreview();
 
   // Auto-return to NORMAL mode after timeout
   // Skip timeout when viewing read-only About items (Uptime, Die temp, Version)
@@ -413,6 +414,7 @@ void loop() {
     defaultsConfirming = false;
     rebootConfirming = false;
     menuEditing = false;
+    stopSoundPreview();
     currentMode = MODE_NORMAL;
     markDisplayDirty();
     saveSettings();  // Save when leaving settings

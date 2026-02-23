@@ -307,7 +307,7 @@ void handleEncoder() {
           if (val < (int32_t)item.minVal) val = item.minVal;
           if (val > (int32_t)item.maxVal) val = item.maxVal;
           setSettingValue(item.settingId, (uint32_t)val);
-          if (item.settingId == SET_SOUND_TYPE) playSoundPreview((uint8_t)val);
+          if (item.settingId == SET_SOUND_TYPE) startSoundPreview((uint8_t)val);
         } else {
           // Navigate cursor
           if (menuCursor == -1 && direction > 0) {
@@ -472,12 +472,14 @@ void handleButtons() {
         } else if (menuEditing) {
           // Exit edit mode
           menuEditing = false;
+          stopSoundPreview();
           Serial.println("Menu: edit done");
         } else if (menuCursor >= 0) {
           const MenuItem& item = MENU_ITEMS[menuCursor];
           if (item.type == MENU_VALUE && item.minVal != item.maxVal) {
             // Enter edit mode (skip read-only items where min == max)
             menuEditing = true;
+            if (item.settingId == SET_SOUND_TYPE) startSoundPreview(settings.soundType);
             Serial.print("Menu: editing "); Serial.println(item.label);
           } else if (item.type == MENU_ACTION) {
             if (item.settingId == SET_OP_MODE) {
@@ -684,6 +686,7 @@ void handleButtons() {
             } else {
               // Close menu -> save and return to NORMAL
               menuEditing = false;
+              stopSoundPreview();
               currentMode = MODE_NORMAL;
               saveSettings();
               Serial.println("Mode: NORMAL (menu closed)");
