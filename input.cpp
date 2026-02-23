@@ -166,6 +166,7 @@ bool isMenuItemHidden(int8_t idx) {
   // Conditional visibility (independent of mode)
   if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) return true;
   if (item.settingId == SET_CLICK_TYPE && !settings.phantomClicks) return true;
+  if (item.settingId == SET_SWITCH_KEYS && !settings.windowSwitching) return true;
 
   // Simple-only items: hidden in Simulation mode
   if (isSim) {
@@ -182,7 +183,7 @@ bool isMenuItemHidden(int8_t idx) {
   if (!isSim) {
     switch (item.settingId) {
       case SET_JOB_SIM: case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
-      case SET_WINDOW_SWITCH: case SET_HOST_OS: case SET_HEADER_DISPLAY:
+      case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
         return true;
     }
   }

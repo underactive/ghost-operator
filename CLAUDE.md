@@ -104,19 +104,20 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_COUNT };
 Data-driven architecture using `MenuItem` struct array (38 entries: 7 headings + 31 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
-- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, `ANIM_NAMES[]`, or `MOUSE_STYLE_NAMES[]`
+- `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, `ANIM_NAMES[]`, `MOUSE_STYLE_NAMES[]`, or `SWITCH_KEYS_NAMES[]`
 - `moveCursor(direction)` — skips headings, clamps at bounds, manages viewport scroll
 - `FMT_PERCENT_NEG` items: encoder direction and arrow bounds are inverted so displayed value direction matches encoder rotation
+- Conditional visibility: some items are hidden based on other settings (e.g., "Switch keys" in the Keyboard section is only visible when `windowSwitching` is enabled; "Move size" hidden when mouse style is Bezier)
 
 #### 3. Settings Storage
 ```cpp
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F4B (bumped for scrollEnabled)
+  uint32_t magic;              // 0x50524F54 (bumped: hostOS → switchKeys)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -140,11 +141,21 @@ struct Settings {
   uint16_t scheduleStart;      // 0-287 (5-min slots), default 108 (9:00)
   uint16_t scheduleEnd;        // 0-287 (5-min slots), default 204 (17:00)
   uint8_t invertDial;          // 0=Off (default), 1=On — reverse encoder rotation
+  // Simulation mode settings
+  uint8_t operationMode;       // 0=Simple (default), 1=Simulation
+  uint8_t jobSimulation;       // 0=Staff, 1=Developer, 2=Designer (default: 0)
+  uint8_t phantomClicks;       // 0=Off (default), 1=On
+  uint8_t clickType;           // 0=Middle (default), 1=Left
+  uint8_t windowSwitching;     // 0=Off (default), 1=On
+  uint8_t switchKeys;          // 0=Alt-Tab (default), 1=Cmd-Tab
+  uint8_t headerDisplay;       // 0=Job sim name (default), 1=Device name
   uint8_t checksum;            // must remain last
 };
+
+enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off.
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name.
 
 #### 4. Timing Profiles
 ```cpp
@@ -207,6 +218,7 @@ WEB → DEVICE                    DEVICE → WEB
 =scroll:1                   →   +ok
 =dashboard:1                →   +ok
 =invertDial:1               →   +ok
+=switchKeys:N               →   +ok
 =statusPush:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok

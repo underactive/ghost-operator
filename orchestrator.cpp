@@ -289,7 +289,7 @@ static void tickMousePhase(unsigned long now) {
 
 static void tickSwitchPhase(unsigned long now) {
   // Window switch fires during SWITCHING phase at long intervals
-  if (settings.windowSwitching && settings.hostOS != HOST_OS_DISABLED &&
+  if (settings.windowSwitching &&
       orch.autoProfile != PROFILE_LAZY && now >= orch.nextWindowSwitchMs) {
     sendWindowSwitch();
     orch.nextWindowSwitchMs = now + randRange(180000, 900000);

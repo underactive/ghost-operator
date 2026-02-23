@@ -61,7 +61,6 @@ extern const DayTemplate DAY_TEMPLATES[JOB_SIM_COUNT];
 
 extern const char* OP_MODE_NAMES[];
 extern const char* JOB_SIM_NAMES[];
-extern const char* HOST_OS_NAMES[];
 extern const char* HEADER_DISP_NAMES[];
 extern const char* PHASE_NAMES[];
 extern const char* CLICK_TYPE_NAMES[];

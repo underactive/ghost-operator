@@ -10,7 +10,7 @@
 #define VERSION "2.0.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F53  // bumped: clickType field
+#define SETTINGS_MAGIC 0x50524F54  // bumped: hostOS → switchKeys
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -145,7 +145,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_HOST_OS, FMT_HEADER_DISP, FMT_CLICK_TYPE };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -157,7 +157,7 @@ enum WorkModeId {
   WMODE_CHAT_SLACK, WMODE_VIDEO_CONF, WMODE_DOC_EDITING, WMODE_COFFEE_BREAK,
   WMODE_LUNCH_BREAK, WMODE_IRL_MEETING, WMODE_FILE_MGMT, WMODE_COUNT
 };
-enum HostOS { HOST_OS_DISABLED, HOST_OS_WINDOWS, HOST_OS_MAC, HOST_OS_LINUX, HOST_OS_COUNT };
+enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 
 // USB HID report IDs (for composite keyboard + mouse descriptor)
 enum USBReportId { RID_KEYBOARD = 1, RID_MOUSE };
@@ -181,7 +181,7 @@ enum SettingId {
   SET_PHANTOM_CLICKS,
   SET_CLICK_TYPE,
   SET_WINDOW_SWITCH,
-  SET_HOST_OS,
+  SET_SWITCH_KEYS,
   SET_HEADER_DISPLAY,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
@@ -242,7 +242,7 @@ struct Settings {
   uint8_t phantomClicks;    // 0=Off (default), 1=On
   uint8_t clickType;        // 0=Middle (default), 1=Left
   uint8_t windowSwitching;  // 0=Off (default), 1=On
-  uint8_t hostOS;           // 0=Disabled, 1=Windows, 2=Mac, 3=Linux (default: 0)
+  uint8_t switchKeys;       // 0=Alt-Tab (default), 1=Cmd-Tab
   uint8_t headerDisplay;    // 0=Job sim name (default), 1=Device name
   uint8_t checksum;         // MUST remain last
 };

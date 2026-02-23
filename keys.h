@@ -16,6 +16,7 @@ extern const char* PROFILE_NAMES[];
 extern const char* PROFILE_NAMES_TITLE[];
 extern const char* ANIM_NAMES[];
 extern const char* MOUSE_STYLE_NAMES[];
+extern const char* SWITCH_KEYS_NAMES[];
 extern const char* ON_OFF_NAMES[];
 extern const char* SCHEDULE_MODE_NAMES[];
 extern const char* const DECOY_NAMES[];
@@ -23,8 +24,8 @@ extern const char* const DECOY_MANUFACTURERS[];
 
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
 #define MENU_IDX_KEY_SLOTS    5
-#define MENU_IDX_SCHEDULE     25
-#define MENU_IDX_OP_MODE      27   // "Mode" (Simple/Simulation) — under Device heading
+#define MENU_IDX_SCHEDULE     26
+#define MENU_IDX_OP_MODE      28   // "Mode" (Simple/Simulation) — under Device heading
 #define MENU_IDX_BLE_IDENTITY 29
 #define MENU_IDX_UPTIME       36
 #define MENU_IDX_DIE_TEMP     37

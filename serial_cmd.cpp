@@ -183,7 +183,7 @@ void handleSerialCommands() {
           Serial.print("Auto-profile: "); Serial.println(PROFILE_NAMES[orch.autoProfile]);
           Serial.print("Phantom clicks: "); Serial.println(settings.phantomClicks ? "On" : "Off");
           Serial.print("Window switch: "); Serial.println(settings.windowSwitching ? "On" : "Off");
-          Serial.print("Host OS: "); Serial.println(HOST_OS_NAMES[settings.hostOS]);
+          Serial.print("Switch keys: "); Serial.println(SWITCH_KEYS_NAMES[settings.switchKeys]);
           Serial.print("Header display: "); Serial.println(HEADER_DISP_NAMES[settings.headerDisplay]);
         }
         break;

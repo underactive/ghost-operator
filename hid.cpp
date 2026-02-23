@@ -156,18 +156,17 @@ void sendMouseClick(uint8_t button, uint16_t holdMs) {
 // ============================================================================
 
 void sendWindowSwitch() {
-  // Double-gate: requires both windowSwitching=1 AND hostOS != Disabled
-  if (!settings.windowSwitching || settings.hostOS == HOST_OS_DISABLED) return;
+  if (!settings.windowSwitching) return;
   if (!rfCalOk()) return;
   markHidActivity();
 
   uint8_t keycodes[6] = {0};
   uint8_t modifier;
 
-  if (settings.hostOS == HOST_OS_MAC) {
-    modifier = KEYBOARD_MODIFIER_LEFTGUI;  // Cmd
+  if (settings.switchKeys == SWITCH_KEYS_CMD_TAB) {
+    modifier = KEYBOARD_MODIFIER_LEFTGUI;  // Cmd (Mac)
   } else {
-    modifier = KEYBOARD_MODIFIER_LEFTALT;  // Alt (Win/Linux)
+    modifier = KEYBOARD_MODIFIER_LEFTALT;  // Alt (Win/Linux, default)
   }
 
   // Press modifier
