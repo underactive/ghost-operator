@@ -25,6 +25,20 @@ static const char* slotName(uint8_t slotIdx) {
   return SHORT_NAMES[slotIdx];
 }
 
+// Draw a PROGMEM 1-bit bitmap at integer scale (each src pixel → scale×scale block)
+static void drawBitmapScaled(int16_t x, int16_t y, const uint8_t* bitmap,
+                             int16_t srcW, int16_t srcH, uint8_t scale, uint16_t color) {
+  int16_t byteWidth = (srcW + 7) / 8;
+  for (int16_t row = 0; row < srcH; row++) {
+    for (int16_t col = 0; col < srcW; col++) {
+      uint8_t b = pgm_read_byte(&bitmap[row * byteWidth + col / 8]);
+      if (b & (0x80 >> (col % 8))) {
+        display.fillRect(x + col * scale, y + row * scale, scale, scale, color);
+      }
+    }
+  }
+}
+
 // ============================================================================
 // ANIMATIONS (footer corner, 20x10px region: x=108..127, y=54..63)
 // ============================================================================
@@ -809,60 +823,62 @@ static void drawSimulationNormal() {
 
 static void drawSimulationScreensaver() {
   unsigned long now = millis();
-  display.setTextSize(1);
+  const uint8_t scale = 3;        // 10px icons → 30px
+  const uint8_t iconSz = 10 * scale;  // 30
+  const uint8_t gap = 12;
+  const int16_t iconY = 17;       // vertically centered in 64px
 
-  const int barW = 83;
-  const int barX = (128 - barW) / 2;
-  const int barEndX = barX + barW - 1;
-  const int innerW = barW - 2;
+  bool showKb = keyEnabled;
+  bool showMs = mouseEnabled;
+  int numIcons = (showKb ? 1 : 0) + (showMs ? 1 : 0);
+  if (numIcons == 0) return;      // both muted — blank screensaver
 
-  // Work mode label centered (y=8)
-  {
-    const char* name = currentModeName();
-    char label[22];
-    snprintf(label, sizeof(label), "[%s]", name);
-    int w = strlen(label) * 6;
-    display.setCursor((128 - w) / 2, 8);
-    display.print(label);
-  }
+  // Compute X positions for centering
+  int16_t totalW = numIcons * iconSz + (numIcons > 1 ? gap : 0);
+  int16_t startX = (128 - totalW) / 2;
+  int16_t kbX = startX;
+  int16_t msX = showKb ? (startX + iconSz + gap) : startX;
 
-  // Mode progress bar 1px (y=18)
-  display.drawFastVLine(barX, 17, 3, SSD1306_WHITE);
-  display.drawFastVLine(barEndX, 17, 3, SSD1306_WHITE);
-  {
-    uint8_t progress = modeProgress(now);
-    int fill = map(100 - progress, 0, 100, 0, innerW);
-    if (fill > 0) display.drawFastHLine(barX + 1, 18, fill, SSD1306_WHITE);
-  }
-
-  // KB state centered (y=26)
-  {
-    const char* kbTag;
-    if (orch.phase == PHASE_TYPING) kbTag = "[BST]";
-    else if (!keyEnabled) kbTag = "[OFF]";
-    else kbTag = "[IDL]";
-    int w = strlen(kbTag) * 6;
-    display.setCursor((128 - w) / 2, 26);
-    display.print(kbTag);
-  }
-
-  // KB progress bar 1px (y=36)
-  display.drawFastVLine(barX, 35, 3, SSD1306_WHITE);
-  display.drawFastVLine(barEndX, 35, 3, SSD1306_WHITE);
-  if (orch.phase == PHASE_TYPING) {
-    unsigned long phaseElapsed = now - orch.phaseStartMs;
-    if (phaseElapsed < orch.phaseDurationMs) {
-      int fill = map(orch.phaseDurationMs - phaseElapsed, 0, orch.phaseDurationMs, 0, innerW);
-      if (fill > 0) display.drawFastHLine(barX + 1, 36, fill, SSD1306_WHITE);
+  // Keycap: depressed when key is held
+  if (showKb) {
+    if (orch.keyDown) {
+      // Pressed: 9x9 bitmap → 27x27, offset +1x,+3y within 30x30 footprint
+      drawBitmapScaled(kbX + scale, iconY + scale * 3, iconKeycapPressed,
+                       9, 9, scale, SSD1306_WHITE);
+    } else {
+      drawBitmapScaled(kbX, iconY, iconKeycapNormal,
+                       10, 10, scale, SSD1306_WHITE);
     }
   }
 
-  // Battery warning (y=44) — only if <15%
+  // Mouse: click > scroll > nudge > idle
+  if (showMs) {
+    const uint8_t* mIcon;
+    int16_t mx = msX;
+
+    if (now - orch.lastPhantomClickMs < 200) {
+      mIcon = iconMouseClick;
+    } else if (settings.scrollEnabled && (now - lastScrollTime < 200)) {
+      mIcon = iconMouseScroll;
+    } else {
+      mIcon = iconMouseNormal;
+      // Nudge: ±3px, slowed to ~2Hz for screensaver
+      if (orch.phase == PHASE_MOUSING && mouseState == MOUSE_JIGGLING) {
+        static const int8_t nudge[] = {0, 1, 0, -1};
+        mx += nudge[(now / 500) % 4] * (int8_t)scale;
+      }
+    }
+
+    drawBitmapScaled(mx, iconY, mIcon, 10, 10, scale, SSD1306_WHITE);
+  }
+
+  // Battery warning below icons — only if <15%
   if (batteryPercent < 15) {
+    display.setTextSize(1);
     char batStr[16];
     snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
     int bw = strlen(batStr) * 6;
-    display.setCursor((128 - bw) / 2, 44);
+    display.setCursor((128 - bw) / 2, 56);
     display.print(batStr);
   }
 }
