@@ -9,6 +9,7 @@
 #include "orchestrator.h"
 #include "sim_data.h"
 #include "display.h"
+#include "sound.h"
 
 // ============================================================================
 // NAME EDITOR HELPERS
@@ -306,6 +307,7 @@ void handleEncoder() {
           if (val < (int32_t)item.minVal) val = item.minVal;
           if (val > (int32_t)item.maxVal) val = item.maxVal;
           setSettingValue(item.settingId, (uint32_t)val);
+          if (item.settingId == SET_SOUND_TYPE) playSoundPreview((uint8_t)val);
         } else {
           // Navigate cursor
           if (menuCursor == -1 && direction > 0) {

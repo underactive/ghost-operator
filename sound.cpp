@@ -67,16 +67,27 @@ static void soundThock() {
   noTone(PIN_SOUND);
 }
 
-void playKeySound() {
-  if (!settings.soundEnabled) return;
-  if (!deviceConnected && !usbConnected) return;
-
-  switch (settings.soundType) {
+static void playOnce(uint8_t type) {
+  switch (type) {
     case KB_SOUND_MX_BLUE:   soundMxBlue();    break;
     case KB_SOUND_MX_BROWN:  soundMxBrown();   break;
     case KB_SOUND_MEMBRANE:  soundMembrane();  break;
     case KB_SOUND_BUCKLING:  soundBuckling();  break;
     case KB_SOUND_THOCK:     soundThock();     break;
     default:                 soundMxBlue();    break;
+  }
+}
+
+void playKeySound() {
+  if (!settings.soundEnabled) return;
+  if (!deviceConnected && !usbConnected) return;
+
+  playOnce(settings.soundType);
+}
+
+void playSoundPreview(uint8_t soundType) {
+  for (uint8_t i = 0; i < 3; i++) {
+    playOnce(soundType);
+    if (i < 2) delay(random(40, 81));
   }
 }

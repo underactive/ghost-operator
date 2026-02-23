@@ -13,5 +13,6 @@ enum KeyboardSound {
 
 void initSound();
 void playKeySound();
+void playSoundPreview(uint8_t soundType);
 
 #endif // GHOST_SOUND_H
