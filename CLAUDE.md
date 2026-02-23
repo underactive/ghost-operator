@@ -274,104 +274,13 @@ WEB → DEVICE                    DEVICE → WEB
 
 ## Display Layout
 
-### Normal Mode
-```
-GHOST Operator          ᛒ 85%
-─────────────────────────────
-KB [F16] 1.7-5.5s        ↑     ← effective (profile-adjusted) range
-████████████░░░░░░░░░░░  3.2s
-─────────────────────────────
-MS [MOV]  17s/25s          ↑   ← effective durations
-██████░░░░░░░░░░░░░░░░░  8.5s
-─────────────────────────────
-BUSY                  ~^~_~^~  ← profile name (3s) or "Up: 2h34m"; animation on right
-```
-`KB [F16]` shows the pre-picked next key. Changes after each keypress.
-`[MOV]` = moving, `[IDL]` = idle, `[RTN]` = returning to origin (progress bar at 0%).
-Footer shows profile name for 3 seconds after switching, then reverts to uptime (compact format: `2h34m`, `1d5h`, `45s` — seconds hidden above 1 day). Status animation plays on the right side of the footer (configurable: ECG, EQ, Ghost, Matrix, Radar, None; default Ghost). Animation speed is activity-aware: full speed when both KB and mouse are enabled, half speed when one is muted, frozen when both are muted.
-
-### Menu Mode
-```
-MENU                    ᛒ 85%
-──────────────────────────────
-      - Keyboard -               ← heading (not selectable)
-▌Key min        < 2.0s >  ▐     ← selected (inverted row)
- Key max          < 6.5s >       ← value item with arrows
- Key slots               >      ← action item
-      - Mouse -
-──────────────────────────────
-Minimum delay between keys       ← help bar (scrolls if long)
-```
-5-row scrollable viewport. Headings centered. Selected row inverted.
-Editing inverts only value portion with `< >` arrows. Arrows hidden at bounds.
-`FMT_PERCENT_NEG` items have inverted encoder direction and swapped arrow bounds.
-
-### Slots Mode
-```
-MODE: SLOTS             [3/8]
-─────────────────────────────
-  F15 F14 --- ---
-  --- --- --- ---
-─────────────────────────────
-Turn=key  Press=slot
-Func=back
-```
-Active slot rendered with inverted colors (white rect, black text).
-
-### Name Mode
-```
-DEVICE NAME          [3/14]
-──────────────────────────────
-  G h o s t O p
-  e r a t o r · ·
-──────────────────────────────
-Turn=char  Press=next
-Func=save
-```
-Active position rendered with inverted colors. END positions shown as `·`.
-On save, if name changed, shows reboot confirmation prompt with Yes/No selector.
-
-### Screensaver Mode (overlay)
-```
-                              (blank)
-
-             [F16]            ← next key label, centered
-  ████████████████░░░░░░░░░░  ← 1px high KB progress bar (full width)
-
-             [IDL]            ← mouse state, centered
-  ██████░░░░░░░░░░░░░░░░░░░░  ← 1px high MS progress bar (full width)
-
-              12%             ← battery % (ONLY if <15%)
-                              (blank)
-```
+See [docs/CLAUDE.md/display-layout.md](docs/CLAUDE.md/display-layout.md) for ASCII mockups of all UI modes (Normal, Menu, Slots, Name, Screensaver).
 
 ---
 
 ## Version History
 
-| Ver | Changes |
-|-----|---------|
-| 2.0.0 | Simulation mode: realistic human work patterns (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules), mute button (D7) |
-| 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
-| 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto), schedule editor UI |
-| 1.9.1 | Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization, deferred flash save |
-| 1.9.0 | USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard |
-| 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
-| 1.1.0 | Display overhaul, BT icon, HID keycode fix |
-| 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
-| 1.2.0 | Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode |
-| 1.2.1 | Fix encoder initial state sync bug |
-| 1.3.0 | Screensaver mode for OLED burn-in prevention |
-| 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
-| 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
-| 1.5.0 | Adjustable mouse amplitude (1-5px), inertial ease-in-out mouse movement, reset defaults |
-| 1.8.2 | Mute indicator on progress bars, custom name in header, narrower screensaver bars with end caps |
-| 1.8.1 | Pac-Man easter egg redesign: power pellet narrative with tunnel transition |
-| 1.8.0 | Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation |
-| 1.7.2 | Web Serial DFU, dashboard switched from BLE to USB serial |
-| 1.7.1 | OTA DFU mode (`!dfu` command, OLED DFU screen) — via nRF Connect mobile |
-| 1.7.0 | BLE UART config protocol (NUS), Vue 3 web dashboard (USB serial) |
-| 1.6.0 | Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split |
+See [docs/CLAUDE.md/version-history.md](docs/CLAUDE.md/version-history.md) for full changelog (v1.0.0 through v2.0.0).
 
 ---
 
@@ -539,130 +448,13 @@ ln -sfn "$(pwd)" /tmp/ghost_operator && arduino-cli compile --fqbn Seeeduino:nrf
 
 ## Testing Checklist
 
-- [ ] Display initializes and shows splash screen
-- [ ] BLE advertises as "GhostOperator"
-- [ ] Pairs with computer
-- [ ] NORMAL mode encoder rotation switches profiles (LAZY/NORMAL/BUSY, clamped)
-- [ ] Profile name appears on uptime line for 3 seconds after switching
-- [ ] NORMAL mode KB/MS values update to reflect active profile
-- [ ] Encoder button cycles KB/MS enable combos in NORMAL mode
-- [ ] Function button opens menu from NORMAL, closes menu back to NORMAL
-- [ ] Menu: encoder scrolls through items (headings skipped), cursor clamps at bounds
-- [ ] Menu: "MENU" title inverted when cursor at -1, scroll down to first item
-- [ ] Menu: encoder press on value item enters edit mode (value portion inverted)
-- [ ] Menu: encoder adjusts value in edit mode, press confirms and exits edit
-- [ ] Menu: `< >` arrows visible; `<` hidden at min, `>` hidden at max
-- [ ] Menu: "Key slots" action item → press encoder → enters SLOTS mode
-- [ ] Menu: function button from SLOTS returns to menu at "Key slots" item
-- [ ] Menu: help bar shows context text, scrolls if >21 chars with pauses at ends
-- [ ] Menu: Lazy adj shows 0% (not -0%) at zero, -50% at max; encoder CW → toward 0%
-- [ ] Menu: Key min/max cross-constraint works (min cannot exceed max)
-- [ ] SLOTS mode: encoder rotates key for active slot, button advances slot cursor
-- [ ] SLOTS mode: bottom shows "Func=back" (not "Func=exit")
-- [ ] All menu values persist after close → reopen menu
-- [ ] Settings persist after sleep
-- [ ] Hold function button → "Hold to sleep..." overlay with 5s countdown bar appears after 500ms
-- [ ] Keep holding through countdown → device enters sleep
-- [ ] Release during countdown → "Cancelled" shown, returns to previous screen
-- [ ] Encoder and button input suppressed during confirmation and cancellation overlays
-- [ ] Sleep confirmation works from any mode (NORMAL, MENU, SLOTS, NAME) and screensaver
-- [ ] Button press wakes from sleep
-- [ ] Keystrokes detected on host (use key test website)
-- [ ] Mouse movement visible on host
-- [ ] Battery percentage displays (with battery connected)
-- [ ] Scheduling uses profile-adjusted values (verify via serial `s`)
-- [ ] Profile does NOT modify base settings (open menu → shows original, not adjusted)
-- [ ] Sleep + wake → lazy% and busy% persist, profile resets to NORMAL
-- [ ] Serial `d` → prints profile, lazy%, busy%, display brightness, animation, effective values
-- [ ] Brightness: editing in menu live-updates OLED contrast
-- [ ] Brightness: value persists after menu close and sleep/wake
-- [ ] Screensaver activates after configured timeout with no input (minimal display)
-- [ ] Screensaver shows centered key label + 1px bar, mouse state + 1px bar
-- [ ] Screensaver battery warning appears only when <15%
-- [ ] Any input wakes screensaver without side effects (consumed)
-- [ ] Hold-to-sleep works from screensaver (not consumed by screensaver wake)
-- [ ] "Never" disables screensaver
-- [ ] Screensaver dims OLED to saver brightness, restores display brightness on wake
-- [ ] Serial `d` → prints screensaver timeout, brightness, and active state
-- [ ] Mode timeout (30s): returns to NORMAL from MENU or SLOTS, resets menuEditing
-- [ ] Encoder responsive immediately after boot (hybrid ISR+polling, analogRead fix)
-- [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
-- [ ] Menu: "Move style" shows "Bezier" default, editable with 2 options (Bezier/Brownian)
-- [ ] Menu: "Move style" set to Bezier → "Move size" hidden in menu
-- [ ] Menu: "Move style" set to Brownian → "Move size" visible and editable
-- [ ] Mouse style persists after menu close → reopen, and after sleep/wake
-- [ ] Serial `d` → prints mouse style name
-- [ ] Dashboard: "Move Style" dropdown shows Bezier/Brownian, sends `=mouseStyle:N`
-- [ ] Dashboard: Move Size slider disabled with `---` when Bezier selected
-- [ ] Dashboard: Move Size slider enabled with `Npx` when Brownian selected
-- [ ] Menu: "Move size" shows "1px" default, editable 1-5 with `< >` arrows (Brownian only)
-- [ ] Mouse amplitude 1: subtle pauses at start/end of jiggle, 1px movement in middle (Brownian only)
-- [ ] Mouse amplitude 5: smooth visible ramp-up and ramp-down, 5px peak movement (Brownian only)
-- [ ] Mouse amplitude persists after menu close → reopen, and after sleep/wake
-- [ ] Serial `d` → prints mouse amplitude value
-- [ ] Easing: mouse cursor visibly accelerates at start and decelerates at end of each jiggle
-- [ ] Easing: mouse returns to approximate origin after each jiggle (net tracking accurate with eased steps)
-- [ ] Easing: jiggle duration unchanged (only velocity profile within the jiggle changes)
-- [ ] Menu: "Display" heading visible with Brightness/Saver bright/Saver T.O./Animation items
-- [ ] Menu: "Animation" shows default "Ghost", editable with 6 options (ECG/EQ/Ghost/Matrix/Radar/None)
-- [ ] Animation setting persists after menu close → reopen, and after sleep/wake
-- [ ] Animation changes live in NORMAL mode footer area
-- [ ] Animation: full speed with both KB+MS enabled, half speed with one muted, frozen with both muted
-- [ ] Uptime footer: compact format (e.g. "45s", "2h34m", "1d5h" — seconds hidden above 1 day)
-- [ ] Dashboard uptime matches device compact format
-- [ ] Serial `d` → prints animation style name
-- [ ] Menu: "Device" heading visible with Device name/Reset defaults/Reboot items
-- [ ] Menu: help bar shows "Current: GhostOperator" when cursor on "Device name"
-- [ ] Menu: press encoder on "Device name" → enters MODE_NAME with current name pre-loaded
-- [ ] Name editor: encoder rotates through A-Z, a-z, 0-9, space, -, _, END (66 total, wrapping)
-- [ ] Name editor: encoder button advances cursor (wraps at 14)
-- [ ] Name editor: active position inverted, END positions shown as `·`, header shows `[pos/14]`
-- [ ] Name editor: func button saves and shows reboot prompt if name changed
-- [ ] Name editor: func button returns to menu directly if name unchanged
-- [ ] Reboot prompt: encoder toggles Yes/No, encoder button confirms selection
-- [ ] Reboot prompt: Yes → `NVIC_SystemReset()` → device reboots with new name
-- [ ] Reboot prompt: No (or func button) → returns to menu at "Device name" item
-- [ ] BLE name: after reboot, device advertises new name (verify in host Bluetooth settings)
-- [ ] Name persists after menu close → reopen, and after sleep/wake
-- [ ] Empty name guard: if all positions END, defaults to "GhostOperator"
-- [ ] 30s timeout: returns to NORMAL from NAME mode (saves, skips reboot prompt)
-- [ ] Serial `d` → prints device name
-- [ ] Menu: "Reset defaults" appears after "Device name" in Device section with `>` indicator
-- [ ] Menu: help bar shows "Restore all settings to factory defaults" when "Reset defaults" selected
-- [ ] Menu: press encoder on "Reset defaults" → confirmation overlay with "No" highlighted by default
-- [ ] Reset defaults: encoder toggles Yes/No, encoder press with No → returns to menu, settings unchanged
-- [ ] Reset defaults: encoder press with Yes → all settings reset to defaults, returns to menu
-- [ ] Reset defaults: function button during confirmation → cancels (same as No)
-- [ ] Reset defaults: mode timeout (30s) during confirmation → cancels, returns to NORMAL
-- [ ] After restore: reopen menu → all values show defaults; serial `d` → default values
-- [ ] After restore: profile resets to NORMAL, next key updates to F16
-- [ ] Menu: "Reboot" appears after "Reset defaults" in Device section with `>` indicator
-- [ ] Menu: help bar shows "Restart device (applies pending changes)" when "Reboot" selected
-- [ ] Menu: press encoder on "Reboot" → confirmation overlay with "No" highlighted by default
-- [ ] Reboot: encoder toggles Yes/No, encoder press with Yes → device reboots immediately
-- [ ] Reboot: encoder press with No → returns to menu
-- [ ] Reboot: function button during confirmation → cancels (same as No)
-- [ ] Reboot: mode timeout (30s) during confirmation → cancels, returns to NORMAL
-- [ ] Serial `p` → outputs base64-encoded PNG between `--- PNG START ---` / `--- PNG END ---`
-- [ ] Screenshot PNG decodes to valid 128x64 1-bit grayscale image matching OLED display
-- [ ] Screenshot works in all UI modes (NORMAL, MENU, SLOTS, screensaver)
-- [ ] Screenshot with display not initialized prints error, does not crash
-- [ ] Encoder and BLE remain responsive during/after screenshot capture
+See [docs/CLAUDE.md/testing-checklist.md](docs/CLAUDE.md/testing-checklist.md) for the full QA testing checklist (~100 items covering all UI modes, settings, BLE, display, and serial commands).
 
 ---
 
 ## Future Improvements (Ideas)
 
-- [ ] RGB LED for status (uses D7)
-- [ ] Buzzer feedback on mode change
-- [x] ~~Multiple profiles~~ → Implemented as timing profiles (LAZY/NORMAL/BUSY) in v1.2.0
-- [x] ~~Adjustable mouse movement amplitude~~ → Implemented as "Move size" setting (1-5px) in v1.5.0
-- [x] ~~Configurable BLE device name~~ → Implemented as "Device name" editor (MODE_NAME) in v1.5.0
-- [x] ~~OTA firmware updates~~ → OTA DFU in v1.7.1, Web Serial DFU with browser-based transfer in v1.7.2
-- [x] ~~Web-based configuration (BLE UART)~~ → Implemented as BLE UART protocol + Vue 3 web dashboard in v1.7.0
-- [ ] Scheduled on/off times
-- [ ] Activity logging to flash
-- [x] ~~Display idle timeout / dimming~~ → Implemented as screensaver mode in v1.3.0 (minimal pixel display after configurable timeout)
+See [docs/CLAUDE.md/future-improvements.md](docs/CLAUDE.md/future-improvements.md) for the ideas backlog and completed items.
 
 ---
 

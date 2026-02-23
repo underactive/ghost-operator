@@ -1,0 +1,111 @@
+# Testing Checklist
+
+- [ ] Display initializes and shows splash screen
+- [ ] BLE advertises as "GhostOperator"
+- [ ] Pairs with computer
+- [ ] NORMAL mode encoder rotation switches profiles (LAZY/NORMAL/BUSY, clamped)
+- [ ] Profile name appears on uptime line for 3 seconds after switching
+- [ ] NORMAL mode KB/MS values update to reflect active profile
+- [ ] Encoder button cycles KB/MS enable combos in NORMAL mode
+- [ ] Function button opens menu from NORMAL, closes menu back to NORMAL
+- [ ] Menu: encoder scrolls through items (headings skipped), cursor clamps at bounds
+- [ ] Menu: "MENU" title inverted when cursor at -1, scroll down to first item
+- [ ] Menu: encoder press on value item enters edit mode (value portion inverted)
+- [ ] Menu: encoder adjusts value in edit mode, press confirms and exits edit
+- [ ] Menu: `< >` arrows visible; `<` hidden at min, `>` hidden at max
+- [ ] Menu: "Key slots" action item -> press encoder -> enters SLOTS mode
+- [ ] Menu: function button from SLOTS returns to menu at "Key slots" item
+- [ ] Menu: help bar shows context text, scrolls if >21 chars with pauses at ends
+- [ ] Menu: Lazy adj shows 0% (not -0%) at zero, -50% at max; encoder CW -> toward 0%
+- [ ] Menu: Key min/max cross-constraint works (min cannot exceed max)
+- [ ] SLOTS mode: encoder rotates key for active slot, button advances slot cursor
+- [ ] SLOTS mode: bottom shows "Func=back" (not "Func=exit")
+- [ ] All menu values persist after close -> reopen menu
+- [ ] Settings persist after sleep
+- [ ] Hold function button -> "Hold to sleep..." overlay with 5s countdown bar appears after 500ms
+- [ ] Keep holding through countdown -> device enters sleep
+- [ ] Release during countdown -> "Cancelled" shown, returns to previous screen
+- [ ] Encoder and button input suppressed during confirmation and cancellation overlays
+- [ ] Sleep confirmation works from any mode (NORMAL, MENU, SLOTS, NAME) and screensaver
+- [ ] Button press wakes from sleep
+- [ ] Keystrokes detected on host (use key test website)
+- [ ] Mouse movement visible on host
+- [ ] Battery percentage displays (with battery connected)
+- [ ] Scheduling uses profile-adjusted values (verify via serial `s`)
+- [ ] Profile does NOT modify base settings (open menu -> shows original, not adjusted)
+- [ ] Sleep + wake -> lazy% and busy% persist, profile resets to NORMAL
+- [ ] Serial `d` -> prints profile, lazy%, busy%, display brightness, animation, effective values
+- [ ] Brightness: editing in menu live-updates OLED contrast
+- [ ] Brightness: value persists after menu close and sleep/wake
+- [ ] Screensaver activates after configured timeout with no input (minimal display)
+- [ ] Screensaver shows centered key label + 1px bar, mouse state + 1px bar
+- [ ] Screensaver battery warning appears only when <15%
+- [ ] Any input wakes screensaver without side effects (consumed)
+- [ ] Hold-to-sleep works from screensaver (not consumed by screensaver wake)
+- [ ] "Never" disables screensaver
+- [ ] Screensaver dims OLED to saver brightness, restores display brightness on wake
+- [ ] Serial `d` -> prints screensaver timeout, brightness, and active state
+- [ ] Mode timeout (30s): returns to NORMAL from MENU or SLOTS, resets menuEditing
+- [ ] Encoder responsive immediately after boot (hybrid ISR+polling, analogRead fix)
+- [ ] BLE reconnect resets progress bars (no stale countdown at 0% or 100%)
+- [ ] Menu: "Move style" shows "Bezier" default, editable with 2 options (Bezier/Brownian)
+- [ ] Menu: "Move style" set to Bezier -> "Move size" hidden in menu
+- [ ] Menu: "Move style" set to Brownian -> "Move size" visible and editable
+- [ ] Mouse style persists after menu close -> reopen, and after sleep/wake
+- [ ] Serial `d` -> prints mouse style name
+- [ ] Dashboard: "Move Style" dropdown shows Bezier/Brownian, sends `=mouseStyle:N`
+- [ ] Dashboard: Move Size slider disabled with `---` when Bezier selected
+- [ ] Dashboard: Move Size slider enabled with `Npx` when Brownian selected
+- [ ] Menu: "Move size" shows "1px" default, editable 1-5 with `< >` arrows (Brownian only)
+- [ ] Mouse amplitude 1: subtle pauses at start/end of jiggle, 1px movement in middle (Brownian only)
+- [ ] Mouse amplitude 5: smooth visible ramp-up and ramp-down, 5px peak movement (Brownian only)
+- [ ] Mouse amplitude persists after menu close -> reopen, and after sleep/wake
+- [ ] Serial `d` -> prints mouse amplitude value
+- [ ] Easing: mouse cursor visibly accelerates at start and decelerates at end of each jiggle
+- [ ] Easing: mouse returns to approximate origin after each jiggle (net tracking accurate with eased steps)
+- [ ] Easing: jiggle duration unchanged (only velocity profile within the jiggle changes)
+- [ ] Menu: "Display" heading visible with Brightness/Saver bright/Saver T.O./Animation items
+- [ ] Menu: "Animation" shows default "Ghost", editable with 6 options (ECG/EQ/Ghost/Matrix/Radar/None)
+- [ ] Animation setting persists after menu close -> reopen, and after sleep/wake
+- [ ] Animation changes live in NORMAL mode footer area
+- [ ] Animation: full speed with both KB+MS enabled, half speed with one muted, frozen with both muted
+- [ ] Uptime footer: compact format (e.g. "45s", "2h34m", "1d5h" -- seconds hidden above 1 day)
+- [ ] Dashboard uptime matches device compact format
+- [ ] Serial `d` -> prints animation style name
+- [ ] Menu: "Device" heading visible with Device name/Reset defaults/Reboot items
+- [ ] Menu: help bar shows "Current: GhostOperator" when cursor on "Device name"
+- [ ] Menu: press encoder on "Device name" -> enters MODE_NAME with current name pre-loaded
+- [ ] Name editor: encoder rotates through A-Z, a-z, 0-9, space, -, _, END (66 total, wrapping)
+- [ ] Name editor: encoder button advances cursor (wraps at 14)
+- [ ] Name editor: active position inverted, END positions shown as `·`, header shows `[pos/14]`
+- [ ] Name editor: func button saves and shows reboot prompt if name changed
+- [ ] Name editor: func button returns to menu directly if name unchanged
+- [ ] Reboot prompt: encoder toggles Yes/No, encoder button confirms selection
+- [ ] Reboot prompt: Yes -> `NVIC_SystemReset()` -> device reboots with new name
+- [ ] Reboot prompt: No (or func button) -> returns to menu at "Device name" item
+- [ ] BLE name: after reboot, device advertises new name (verify in host Bluetooth settings)
+- [ ] Name persists after menu close -> reopen, and after sleep/wake
+- [ ] Empty name guard: if all positions END, defaults to "GhostOperator"
+- [ ] 30s timeout: returns to NORMAL from NAME mode (saves, skips reboot prompt)
+- [ ] Serial `d` -> prints device name
+- [ ] Menu: "Reset defaults" appears after "Device name" in Device section with `>` indicator
+- [ ] Menu: help bar shows "Restore all settings to factory defaults" when "Reset defaults" selected
+- [ ] Menu: press encoder on "Reset defaults" -> confirmation overlay with "No" highlighted by default
+- [ ] Reset defaults: encoder toggles Yes/No, encoder press with No -> returns to menu, settings unchanged
+- [ ] Reset defaults: encoder press with Yes -> all settings reset to defaults, returns to menu
+- [ ] Reset defaults: function button during confirmation -> cancels (same as No)
+- [ ] Reset defaults: mode timeout (30s) during confirmation -> cancels, returns to NORMAL
+- [ ] After restore: reopen menu -> all values show defaults; serial `d` -> default values
+- [ ] After restore: profile resets to NORMAL, next key updates to F16
+- [ ] Menu: "Reboot" appears after "Reset defaults" in Device section with `>` indicator
+- [ ] Menu: help bar shows "Restart device (applies pending changes)" when "Reboot" selected
+- [ ] Menu: press encoder on "Reboot" -> confirmation overlay with "No" highlighted by default
+- [ ] Reboot: encoder toggles Yes/No, encoder press with Yes -> device reboots immediately
+- [ ] Reboot: encoder press with No -> returns to menu
+- [ ] Reboot: function button during confirmation -> cancels (same as No)
+- [ ] Reboot: mode timeout (30s) during confirmation -> cancels, returns to NORMAL
+- [ ] Serial `p` -> outputs base64-encoded PNG between `--- PNG START ---` / `--- PNG END ---`
+- [ ] Screenshot PNG decodes to valid 128x64 1-bit grayscale image matching OLED display
+- [ ] Screenshot works in all UI modes (NORMAL, MENU, SLOTS, screensaver)
+- [ ] Screenshot with display not initialized prints error, does not crash
+- [ ] Encoder and BLE remain responsive during/after screenshot capture
