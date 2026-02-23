@@ -60,6 +60,19 @@ const uint8_t PROGMEM iconKeycapNormal[] = {
   0x7F, 0x80   // .########.
 };
 
+// Keycap pressed icon (9x9 pixels) — smaller keycap simulates key depression
+const uint8_t PROGMEM iconKeycapPressed[] = {
+  0x7F, 0x00,  // .#######.
+  0x80, 0x80,  // #.......#
+  0x9C, 0x80,  // #..###..#
+  0xA2, 0x80,  // #.#...#.#
+  0xBE, 0x80,  // #.#####.#
+  0xA2, 0x80,  // #.#...#.#
+  0xA2, 0x80,  // #.#...#.#
+  0x80, 0x80,  // #.......#
+  0x7F, 0x00   // .#######.
+};
+
 // Mouse icon (10x10 pixels) — Mac Classic style, button outline then solid body
 const uint8_t PROGMEM iconMouseNormal[] = {
   0x3F, 0x00,  // ..######..
