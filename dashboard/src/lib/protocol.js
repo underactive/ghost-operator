@@ -107,6 +107,9 @@ export function parseSettings(data) {
     winSwitch: parseInt(data.winSwitch) || 0,
     switchKeys: parseInt(data.switchKeys) || 0,
     headerDisp: parseInt(data.headerDisp) || 0,
+    // Sound settings
+    sound: parseInt(data.sound) || 0,
+    soundType: parseInt(data.soundType) || 0,
   }
 }
 
@@ -175,6 +178,9 @@ export const SWITCH_KEYS_NAMES = ['Alt-Tab', 'Cmd-Tab']
 
 /** Header display index to name mapping (matches firmware HEADER_DISP_NAMES[]) */
 export const HEADER_DISP_NAMES = ['Job name', 'Device name']
+
+/** Key sound type index to name mapping (matches firmware KeyboardSound enum) */
+export const KEY_SOUND_NAMES = ['MX Blue', 'MX Brown', 'Membrane', 'Buckling Spring', 'Thock']
 
 /** Work mode index to short name mapping (matches firmware WORK_MODES[].shortName) */
 export const WORK_MODE_NAMES = [

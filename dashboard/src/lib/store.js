@@ -69,6 +69,9 @@ export const settings = reactive({
   winSwitch: 0,
   switchKeys: 0,
   headerDisp: 0,
+  // Sound
+  sound: 0,
+  soundType: 0,
 })
 
 export const availableKeys = ref([])

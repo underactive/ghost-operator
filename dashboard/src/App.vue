@@ -10,6 +10,7 @@ import ProfileSection from './components/ProfileSection.vue'
 import SimulationSection from './components/SimulationSection.vue'
 import ScheduleSection from './components/ScheduleSection.vue'
 import DisplaySection from './components/DisplaySection.vue'
+import SoundSection from './components/SoundSection.vue'
 import DeviceSection from './components/DeviceSection.vue'
 import FirmwareUpdate from './components/FirmwareUpdate.vue'
 </script>
@@ -41,6 +42,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
           <!-- Both modes -->
           <ScheduleSection />
           <DisplaySection />
+          <SoundSection />
           <DeviceSection />
         </template>
         <FirmwareUpdate />
