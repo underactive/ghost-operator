@@ -120,6 +120,26 @@ void returnToMenuFromSchedule() {
 }
 
 // ============================================================================
+// MODE PICKER HELPERS
+// ============================================================================
+
+void initModePicker() {
+  modeOriginalValue = settings.operationMode;
+  modePickerCursor = settings.operationMode;  // 0=Simple, 1=Simulation
+  modeConfirming = false;
+  modeRebootYes = true;
+}
+
+void returnToMenuFromMode() {
+  currentMode = MODE_MENU;
+  menuCursor = MENU_IDX_OP_MODE;
+  menuEditing = false;
+  modeConfirming = false;
+  menuScrollOffset = (MENU_IDX_OP_MODE > 4) ? MENU_IDX_OP_MODE - 4 : 0;
+  Serial.println("Mode: MENU (from MODE)");
+}
+
+// ============================================================================
 // MENU ITEM VISIBILITY
 // ============================================================================
 
@@ -264,9 +284,7 @@ void handleEncoder() {
         break;
 
       case MODE_MENU:
-        if (modeConfirming) {
-          modeRebootYes = !modeRebootYes;
-        } else if (defaultsConfirming) {
+        if (defaultsConfirming) {
           defaultsConfirmYes = !defaultsConfirmYes;
         } else if (rebootConfirming) {
           rebootConfirmYes = !rebootConfirmYes;
@@ -363,6 +381,15 @@ void handleEncoder() {
         }
         break;
 
+      case MODE_MODE:
+        if (modeConfirming) {
+          modeRebootYes = !modeRebootYes;
+        } else {
+          // Toggle cursor between 0 (Simple) and 1 (Simulation)
+          modePickerCursor = modePickerCursor ? 0 : 1;
+        }
+        break;
+
       default:
         break;
     }
@@ -429,16 +456,7 @@ void handleButtons() {
         break;
 
       case MODE_MENU:
-        if (modeConfirming) {
-          if (modeRebootYes) {
-            saveSettings();
-            Serial.println("Rebooting for mode change...");
-            NVIC_SystemReset();
-          } else {
-            settings.operationMode = modeOriginalValue;
-            modeConfirming = false;
-          }
-        } else if (defaultsConfirming) {
+        if (defaultsConfirming) {
           if (defaultsConfirmYes) {
             loadDefaults();
             saveSettings();
@@ -459,24 +477,19 @@ void handleButtons() {
         } else if (menuEditing) {
           // Exit edit mode
           menuEditing = false;
-          // Check if Mode was changed — trigger reboot confirmation
-          if (menuCursor >= 0 && MENU_ITEMS[menuCursor].settingId == SET_OP_MODE &&
-              settings.operationMode != modeOriginalValue) {
-            modeConfirming = true;
-            modeRebootYes = true;
-          }
           Serial.println("Menu: edit done");
         } else if (menuCursor >= 0) {
           const MenuItem& item = MENU_ITEMS[menuCursor];
           if (item.type == MENU_VALUE && item.minVal != item.maxVal) {
             // Enter edit mode (skip read-only items where min == max)
-            if (item.settingId == SET_OP_MODE) {
-              modeOriginalValue = settings.operationMode;
-            }
             menuEditing = true;
             Serial.print("Menu: editing "); Serial.println(item.label);
           } else if (item.type == MENU_ACTION) {
-            if (item.settingId == SET_SCHEDULE_MODE) {
+            if (item.settingId == SET_OP_MODE) {
+              currentMode = MODE_MODE;
+              initModePicker();
+              Serial.println("Mode: MODE");
+            } else if (item.settingId == SET_SCHEDULE_MODE) {
               currentMode = MODE_SCHEDULE;
               initScheduleEditor();
               Serial.println("Mode: SCHEDULE");
@@ -573,6 +586,29 @@ void handleButtons() {
         }
         break;
 
+      case MODE_MODE:
+        if (modeConfirming) {
+          if (modeRebootYes) {
+            saveSettings();
+            Serial.println("Rebooting for mode change...");
+            NVIC_SystemReset();
+          } else {
+            settings.operationMode = modeOriginalValue;
+            modeConfirming = false;
+          }
+        } else {
+          if (modePickerCursor == modeOriginalValue) {
+            // Same as current — no change, return to menu
+            returnToMenuFromMode();
+          } else {
+            // Apply selection and show reboot confirmation
+            settings.operationMode = modePickerCursor;
+            modeConfirming = true;
+            modeRebootYes = true;
+          }
+        }
+        break;
+
       default: break;
     }
   }
@@ -633,10 +669,7 @@ void handleButtons() {
             break;
 
           case MODE_MENU:
-            if (modeConfirming) {
-              settings.operationMode = modeOriginalValue;
-              modeConfirming = false;
-            } else if (defaultsConfirming) {
+            if (defaultsConfirming) {
               defaultsConfirming = false;  // cancel confirmation
             } else if (rebootConfirming) {
               rebootConfirming = false;    // cancel confirmation
@@ -692,6 +725,18 @@ void handleButtons() {
             } else {
               // Back to menu without changes
               returnToMenuFromDecoy();
+            }
+            break;
+
+          case MODE_MODE:
+            if (modeConfirming) {
+              // Cancel reboot prompt — revert and return to menu
+              settings.operationMode = modeOriginalValue;
+              modeConfirming = false;
+              returnToMenuFromMode();
+            } else {
+              // Back to menu without changes
+              returnToMenuFromMode();
             }
             break;
 

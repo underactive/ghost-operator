@@ -70,7 +70,8 @@ extern bool    defaultsConfirmYes;
 extern bool    rebootConfirming;
 extern bool    rebootConfirmYes;
 
-// Mode change confirmation state
+// Mode picker state (MODE_MODE sub-page)
+extern uint8_t modePickerCursor;
 extern bool    modeConfirming;
 extern bool    modeRebootYes;
 extern uint8_t modeOriginalValue;

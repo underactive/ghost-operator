@@ -394,6 +394,11 @@ void loop() {
       settings.scheduleStart = scheduleOrigStart;
       settings.scheduleEnd = scheduleOrigEnd;
     }
+    if (currentMode == MODE_MODE) {
+      // Revert mode picker — don't persist selection on timeout
+      settings.operationMode = modeOriginalValue;
+      modeConfirming = false;
+    }
     if (modeConfirming) {
       settings.operationMode = modeOriginalValue;
       modeConfirming = false;

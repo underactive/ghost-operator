@@ -62,7 +62,8 @@ bool    defaultsConfirmYes = false;
 bool    rebootConfirming = false;
 bool    rebootConfirmYes = false;
 
-// Mode change confirmation state
+// Mode picker state (MODE_MODE sub-page)
+uint8_t modePickerCursor = 0;
 bool    modeConfirming = false;
 bool    modeRebootYes = true;
 uint8_t modeOriginalValue = 0;

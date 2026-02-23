@@ -11,6 +11,8 @@ bool saveNameEditor();
 void returnToMenuFromName();
 void initDecoyPicker();
 void returnToMenuFromDecoy();
+void initModePicker();
+void returnToMenuFromMode();
 bool isMenuItemHidden(int8_t idx);
 
 #endif // GHOST_INPUT_H
