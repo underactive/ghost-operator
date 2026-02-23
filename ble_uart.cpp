@@ -213,6 +213,11 @@ static void cmdQuerySettings() {
                     (i > 0) ? "," : "", settings.keySlots[i]);
   }
 
+  // Sound settings
+  len += snprintf(buf + len, sizeof(buf) - len,
+    "|sound=%d|soundType=%d",
+    settings.soundEnabled, settings.soundType);
+
   // Simulation mode settings
   snprintf(buf + len, sizeof(buf) - len,
     "|opMode=%d|jobSim=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d",
@@ -335,6 +340,10 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SWITCH_KEYS, (uint32_t)atol(valStr));
   } else if (strcmp(key, "headerDisp") == 0) {
     setSettingValue(SET_HEADER_DISPLAY, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "sound") == 0) {
+    setSettingValue(SET_SOUND_ENABLED, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "soundType") == 0) {
+    setSettingValue(SET_SOUND_TYPE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "time") == 0) {
     syncTime((uint32_t)atol(valStr));
   } else if (strcmp(key, "statusPush") == 0) {

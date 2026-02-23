@@ -30,7 +30,6 @@ void enterDeepSleep() {
     display.ssd1306_command(SSD1306_DISPLAYOFF);
   }
 
-  digitalWrite(PIN_LED, LOW);
   Bluefruit.Advertising.stop();
   NRF_UARTE0->ENABLE = 0;
   NRF_TWIM0->ENABLE = 0;

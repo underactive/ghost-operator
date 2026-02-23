@@ -32,10 +32,7 @@
 #define PIN_FUNC_BTN     3   // D3 - Function button
 #define PIN_SDA          4   // D4 - I2C SDA
 #define PIN_SCL          5   // D5 - I2C SCL
-// Activity LED - use built-in or D6
-#ifndef PIN_LED
-#define PIN_LED          6   // D6 - Activity LED
-#endif
+#define PIN_SOUND        6   // D6 - Piezo buzzer
 #define PIN_MUTE_BTN     7   // D7 - Mute button (SPST, active LOW)
 
 // Internal battery pin - use board defaults if available
@@ -146,7 +143,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -185,6 +182,8 @@ enum SettingId {
   SET_WINDOW_SWITCH,
   SET_SWITCH_KEYS,
   SET_HEADER_DISPLAY,
+  SET_SOUND_ENABLED,
+  SET_SOUND_TYPE,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
   SET_VERSION,
@@ -211,7 +210,8 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 39
+#define MENU_ITEM_COUNT 42
+#define KB_SOUND_COUNT  5
 
 struct Settings {
   uint32_t magic;
@@ -246,6 +246,8 @@ struct Settings {
   uint8_t windowSwitching;  // 0=Off (default), 1=On
   uint8_t switchKeys;       // 0=Alt-Tab (default), 1=Cmd-Tab
   uint8_t headerDisplay;    // 0=Job sim name (default), 1=Device name
+  uint8_t soundEnabled;     // 0=Off (default), 1=On
+  uint8_t soundType;        // 0=MX Blue, 1=MX Brown, 2=Membrane, 3=Buckling, 4=Thock
   uint8_t checksum;         // MUST remain last
 };
 

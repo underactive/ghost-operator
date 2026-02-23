@@ -40,7 +40,7 @@
 | D3 | Function button | Mode/sleep |
 | D4 | I2C SDA | OLED |
 | D5 | I2C SCL | OLED |
-| D6 | LED (optional) | Activity indicator |
+| D6 | Piezo buzzer | Keyboard sound output |
 | D7 | Mute button | SPST momentary, active LOW |
 | D8-D10 | Unused | Available for expansion |
 | BAT+/- | Battery | Direct to LiPo |
@@ -50,7 +50,7 @@
 ## Firmware Architecture
 
 ### Core Files
-Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
+Modular architecture — 17 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 - `ghost_operator.ino` - Entry point: setup(), loop(), BLE + USB HID setup/callbacks
 - `config.h` - All `#define` constants, enums, structs (header-only)
@@ -69,6 +69,7 @@ Modular architecture — 16 `.h/.cpp` module pairs + lean `.ino` entry point:
 - `input.h/.cpp` - Encoder dispatch, buttons, name editor
 - `display.h/.cpp` - All rendering (~800 lines, largest module)
 - `ble_uart.h/.cpp` - BLE UART (NUS) + transport-agnostic config protocol
+- `sound.h/.cpp` - Piezo buzzer keyboard sound profiles (5 types)
 
 ### Dependencies
 - Adafruit Bluefruit (built into Seeed nRF52 core)
@@ -104,10 +105,10 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SC
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (39 entries: 8 headings + 31 items):
+Data-driven architecture using `MenuItem` struct array (42 entries: 9 headings + 33 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
 - `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, `ANIM_NAMES[]`, `MOUSE_STYLE_NAMES[]`, or `SWITCH_KEYS_NAMES[]`
@@ -152,13 +153,15 @@ struct Settings {
   uint8_t windowSwitching;     // 0=Off (default), 1=On
   uint8_t switchKeys;          // 0=Alt-Tab (default), 1=Cmd-Tab
   uint8_t headerDisplay;       // 0=Job sim name (default), 1=Device name
+  uint8_t soundEnabled;        // 0=Off (default), 1=On
+  uint8_t soundType;           // 0=MX Blue, 1=MX Brown, 2=Membrane, 3=Buckling, 4=Thock
   uint8_t checksum;            // must remain last
 };
 
 enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name.
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name, sound = Off, sound type = MX Blue.
 
 #### 4. Timing Profiles
 ```cpp
@@ -227,6 +230,8 @@ WEB → DEVICE                    DEVICE → WEB
 =invertDial:1               →   +ok
 =switchKeys:N               →   +ok
 =clickType:N                →   +ok
+=sound:1                    →   +ok
+=soundType:N                →   +ok
 =statusPush:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok
@@ -406,6 +411,7 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `input.h/.cpp` | Encoder dispatch, buttons, name editor |
 | `display.h/.cpp` | All rendering (~800 lines, largest module) |
 | `ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `sound.h/.cpp` | Piezo buzzer keyboard sound profiles (5 types) |
 | `orchestrator.h/.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
 | `sim_data.h/.cpp` | Simulation data tables (job templates, work modes, phase timing) |
 | `schedule.h/.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |

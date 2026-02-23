@@ -172,6 +172,7 @@ bool isMenuItemHidden(int8_t idx) {
   if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) return true;
   if (item.settingId == SET_CLICK_TYPE && !settings.phantomClicks) return true;
   if (item.settingId == SET_SWITCH_KEYS && !settings.windowSwitching) return true;
+  if (item.settingId == SET_SOUND_TYPE && !settings.soundEnabled) return true;
 
   // Simple-only items: hidden in Simulation mode
   if (isSim) {

@@ -16,7 +16,7 @@
  * D3 (P0.29) - Function Button (mode cycle / long=sleep)
  * D4 (P0.04) - SDA (OLED)
  * D5 (P0.05) - SCL (OLED)
- * D6 (P0.30) - Activity LED (optional)
+ * D6 (P0.30) - Piezo buzzer
  *
  * CONTROLS:
  * - Encoder rotation: Switch profile (NORMAL), navigate/adjust (MENU), cycle slot key (SLOTS)
@@ -44,6 +44,7 @@
 #include "schedule.h"
 #include "orchestrator.h"
 #include "sim_data.h"
+#include "sound.h"
 
 #include <nrf_soc.h>
 #include <nrf_power.h>
@@ -108,9 +109,6 @@ void setupPins() {
   pinMode(PIN_FUNC_BTN, INPUT_PULLUP);
 
   pinMode(PIN_MUTE_BTN, INPUT_PULLUP);
-
-  pinMode(PIN_LED, OUTPUT);
-  digitalWrite(PIN_LED, LOW);
 
   pinMode(PIN_VBAT_ENABLE, OUTPUT);
   digitalWrite(PIN_VBAT_ENABLE, LOW);
@@ -306,6 +304,7 @@ void setup() {
   Serial.println();
 
   setupPins();
+  initSound();
   setupDisplay();
   setupBLE();
 
@@ -554,18 +553,6 @@ void loop() {
       drawLightSleepBreathing();
       lastDisplayUpdate = now;
     }
-  }
-
-  // LED blink
-  static unsigned long lastBlink = 0;
-  if (scheduleSleeping) {
-    digitalWrite(PIN_LED, LOW);
-  } else if ((deviceConnected || usbConnected) && (now - lastBlink >= 1000)) {
-    digitalWrite(PIN_LED, !digitalRead(PIN_LED));
-    lastBlink = now;
-  } else if (!deviceConnected && !usbConnected && (now - lastBlink >= 200)) {
-    digitalWrite(PIN_LED, !digitalRead(PIN_LED));
-    lastBlink = now;
   }
 
   delay(1);  // Short delay -- keeps polling rate high for encoder responsiveness

@@ -61,6 +61,8 @@ void loadDefaults() {
   settings.windowSwitching = 0;   // Off
   settings.switchKeys = SWITCH_KEYS_ALT_TAB;
   settings.headerDisplay = 0;     // Job sim name
+  settings.soundEnabled = 0;      // Off
+  settings.soundType = 0;         // MX Blue
   markDisplayDirty();
 }
 
@@ -159,6 +161,8 @@ void loadSettings() {
         if (settings.windowSwitching > 1) settings.windowSwitching = 0;
         if (settings.switchKeys >= SWITCH_KEYS_COUNT) settings.switchKeys = SWITCH_KEYS_ALT_TAB;
         if (settings.headerDisplay > 1) settings.headerDisplay = 0;
+        if (settings.soundEnabled > 1) settings.soundEnabled = 0;
+        if (settings.soundType >= KB_SOUND_COUNT) settings.soundType = 0;
 
         adcCalStart = millis();
         { const char* ref = COPYRIGHT_TEXT;
@@ -209,6 +213,8 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_WINDOW_SWITCH:  return settings.windowSwitching;
     case SET_SWITCH_KEYS:    return settings.switchKeys;
     case SET_HEADER_DISPLAY: return settings.headerDisplay;
+    case SET_SOUND_ENABLED:  return settings.soundEnabled;
+    case SET_SOUND_TYPE:     return settings.soundType;
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
     case SET_DIE_TEMP:       return 0;  // read-only display
@@ -270,6 +276,8 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_WINDOW_SWITCH:  settings.windowSwitching = (uint8_t)clampVal(value, 0, 1); break;
     case SET_SWITCH_KEYS:    settings.switchKeys = (uint8_t)clampVal(value, 0, SWITCH_KEYS_COUNT - 1); break;
     case SET_HEADER_DISPLAY: settings.headerDisplay = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_SOUND_ENABLED:  settings.soundEnabled = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_SOUND_TYPE:     settings.soundType = (uint8_t)clampVal(value, 0, KB_SOUND_COUNT - 1); break;
   }
   markDisplayDirty();
 }
@@ -310,6 +318,7 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
     case FMT_SWITCH_KEYS:   snprintf(buf, bufSize, "%s", (val < SWITCH_KEYS_COUNT) ? SWITCH_KEYS_NAMES[val] : "???"); return;
     case FMT_HEADER_DISP:   snprintf(buf, bufSize, "%s", (val < 2) ? HEADER_DISP_NAMES[val] : "???"); return;
     case FMT_CLICK_TYPE:    snprintf(buf, bufSize, "%s", (val < 2) ? CLICK_TYPE_NAMES[val] : "???"); return;
+    case FMT_KEY_SOUND:     snprintf(buf, bufSize, "%s", (val < KB_SOUND_COUNT) ? KB_SOUND_NAMES[val] : "???"); return;
     default:                snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
   }
 }

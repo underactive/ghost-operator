@@ -2,6 +2,7 @@
 #include "state.h"
 #include "keys.h"
 #include "display.h"
+#include "sound.h"
 #include <Adafruit_TinyUSB.h>
 
 // RF/ADC calibration gate — shared by keyboard and mouse
@@ -86,11 +87,13 @@ void sendKeystroke() {
   if (key.isModifier) {
     uint8_t mod = 1 << (key.keycode - HID_KEY_CONTROL_LEFT);
     dualKeyboardReport(mod & gain, keycodes);
+    playKeySound();
     delay(30);
     dualKeyboardReport(0, keycodes);
   } else {
     keycodes[0] = key.keycode & gain;
     dualKeyboardReport(0, keycodes);
+    playKeySound();
     delay(50);
     keycodes[0] = 0;
     dualKeyboardReport(0, keycodes);
@@ -119,6 +122,7 @@ void sendKeyDown(uint8_t keyIndex) {
     keycodes[0] = key.keycode;
     dualKeyboardReport(0, keycodes);
   }
+  playKeySound();
 }
 
 void sendKeyUp() {
