@@ -787,7 +787,22 @@ void handleButtons() {
         volD3PressStart = now;
         volD3WasPressed = true;
       }
-      // No sleep on D3 in volume mode — sleep is on D2
+      // Enter menu immediately when hold threshold reached (don't wait for release)
+      if (volD3WasPressed && (now - volD3PressStart >= VOL_D3_HOLD_THRESHOLD_MS)) {
+        volD3WasPressed = false;
+        volD3ClickCount = 0;
+        lastModeActivity = now;
+        currentMode = MODE_MENU;
+        menuCursor = -1;
+        menuScrollOffset = 0;
+        menuEditing = false;
+        helpScrollPos = 0;
+        helpScrollDir = 1;
+        helpScrollTimer = millis();
+        markDisplayDirty();
+        Serial.println("Mode: MENU (vol D3 hold)");
+        pushSerialStatus();
+      }
     } else {
       if (volD3WasPressed) {
         unsigned long holdTime = now - volD3PressStart;
@@ -795,18 +810,7 @@ void handleButtons() {
         lastModeActivity = now;
         markDisplayDirty();
 
-        if (holdTime >= VOL_D3_HOLD_THRESHOLD_MS) {
-          // Long hold: enter menu
-          currentMode = MODE_MENU;
-          menuCursor = -1;
-          menuScrollOffset = 0;
-          menuEditing = false;
-          helpScrollPos = 0;
-          helpScrollDir = 1;
-          helpScrollTimer = millis();
-          Serial.println("Mode: MENU (vol D3 hold)");
-          pushSerialStatus();
-        } else if (holdTime > 50) {
+        if (holdTime > 50) {
           if (screensaverActive) {
             screensaverActive = false;
           } else if (scheduleSleeping) {

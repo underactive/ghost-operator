@@ -1832,20 +1832,58 @@ static void drawVolumeBasic() {
   display.clearDisplay();
   drawVolumeHeader();
 
-  // Center speaker icon (16x16) at x=56, y=18
-  if (volMuted) {
-    display.drawBitmap(56, 18, iconSpeakerMuted16, 16, 16, SSD1306_WHITE);
-  } else {
-    display.drawBitmap(56, 18, iconSpeaker16, 16, 16, SSD1306_WHITE);
-  }
+  // Sony 90s-style segmented volume bar, centered
+  // 21 segments total: center = index 10, left 0-9, right 11-20
+  // Each segment: 4px wide, 2px gap, total = 21 * 6 - 2 = 124px, start at x=2
+  const int numSegs = 21;
+  const int centerSeg = 10;
+  const int segW = 4;
+  const int segGap = 2;
+  const int segH = 20;
+  const int startX = 2;
+  const int segY = 14;
 
-  // Momentary feedback text centered at y=38
+  // Determine how many segments to fill based on feedback
+  int fillCount = 0;  // segments from center (positive = right, negative = left)
   unsigned long now = millis();
   if (volFeedbackDir != 0 && (now - volFeedbackStart < VOL_FEEDBACK_DISPLAY_MS)) {
-    const char* txt = (volFeedbackDir > 0) ? "VOL+" : "VOL-";
+    float progress = 1.0f - (float)(now - volFeedbackStart) / (float)VOL_FEEDBACK_DISPLAY_MS;
+    int maxFill = centerSeg;  // 10 segments max in either direction
+    fillCount = (int)(maxFill * progress + 0.5f);
+    if (fillCount < 1) fillCount = 1;
+    if (volFeedbackDir < 0) fillCount = -fillCount;
+  }
+
+  for (int i = 0; i < numSegs; i++) {
+    int x = startX + i * (segW + segGap);
+
+    if (i == centerSeg) {
+      // Center reference bar — always filled
+      display.fillRect(x, segY, segW, segH, SSD1306_WHITE);
+    } else if (fillCount > 0 && i > centerSeg && i <= centerSeg + fillCount) {
+      // Right fill (volume up)
+      display.fillRect(x, segY, segW, segH, SSD1306_WHITE);
+    } else if (fillCount < 0 && i < centerSeg && i >= centerSeg + fillCount) {
+      // Left fill (volume down)
+      display.fillRect(x, segY, segW, segH, SSD1306_WHITE);
+    } else {
+      // Empty segment — small dot in center
+      display.fillRect(x + 1, segY + segH / 2 - 1, 2, 2, SSD1306_WHITE);
+    }
+  }
+
+  // Direction label below bar
+  if (fillCount != 0) {
+    const char* txt = (fillCount > 0) ? "VOL+" : "VOL-";
     int w = strlen(txt) * 6;
-    display.setCursor((128 - w) / 2, 40);
+    display.setCursor((128 - w) / 2, 37);
     display.print(txt);
+  }
+
+  // Muted overlay
+  if (volMuted) {
+    display.setCursor(46, 46);
+    display.print("MUTED");
   }
 
   drawVolumeFooter();
@@ -1906,62 +1944,59 @@ static void drawVolumeFuturistic() {
   display.clearDisplay();
   drawVolumeHeader();
 
-  int cx = 64, cy = 30;
+  // Slider control — horizontal track with tick marks and draggable thumb
+  const int trackY = 30;       // vertical center of track
+  const int trackX0 = 4;      // left edge
+  const int trackX1 = 123;    // right edge
+  const int trackW = trackX1 - trackX0;
+  const int centerX = trackX0 + trackW / 2;
+  const int numTicks = 21;    // tick marks including endpoints
 
-  // Outer ring
-  display.drawCircle(cx, cy, 20, SSD1306_WHITE);
-  // Inner ring
-  display.drawCircle(cx, cy, 12, SSD1306_WHITE);
+  // Horizontal track line
+  display.drawFastHLine(trackX0, trackY, trackW, SSD1306_WHITE);
 
-  // Corner brackets around the ring
-  display.drawFastHLine(cx - 24, cy - 22, 6, SSD1306_WHITE);
-  display.drawFastVLine(cx - 24, cy - 22, 6, SSD1306_WHITE);
-  display.drawFastHLine(cx + 18, cy - 22, 6, SSD1306_WHITE);
-  display.drawFastVLine(cx + 23, cy - 22, 6, SSD1306_WHITE);
-  display.drawFastHLine(cx - 24, cy + 22, 6, SSD1306_WHITE);
-  display.drawFastVLine(cx - 24, cy + 17, 6, SSD1306_WHITE);
-  display.drawFastHLine(cx + 18, cy + 22, 6, SSD1306_WHITE);
-  display.drawFastVLine(cx + 23, cy + 17, 6, SSD1306_WHITE);
-
-  // Center content: direction arrows or diamond
-  unsigned long now = millis();
-  if (volFeedbackDir != 0 && (now - volFeedbackStart < VOL_FEEDBACK_DISPLAY_MS)) {
-    if (volFeedbackDir > 0) {
-      // Up chevron
-      display.drawLine(cx - 5, cy + 2, cx, cy - 5, SSD1306_WHITE);
-      display.drawLine(cx, cy - 5, cx + 5, cy + 2, SSD1306_WHITE);
-      display.drawLine(cx - 5, cy + 6, cx, cy - 1, SSD1306_WHITE);
-      display.drawLine(cx, cy - 1, cx + 5, cy + 6, SSD1306_WHITE);
-    } else {
-      // Down chevron
-      display.drawLine(cx - 5, cy - 2, cx, cy + 5, SSD1306_WHITE);
-      display.drawLine(cx, cy + 5, cx + 5, cy - 2, SSD1306_WHITE);
-      display.drawLine(cx - 5, cy - 6, cx, cy + 1, SSD1306_WHITE);
-      display.drawLine(cx, cy + 1, cx + 5, cy - 6, SSD1306_WHITE);
-    }
-  } else {
-    // Idle diamond
-    display.drawLine(cx, cy - 4, cx + 4, cy, SSD1306_WHITE);
-    display.drawLine(cx + 4, cy, cx, cy + 4, SSD1306_WHITE);
-    display.drawLine(cx, cy + 4, cx - 4, cy, SSD1306_WHITE);
-    display.drawLine(cx - 4, cy, cx, cy - 4, SSD1306_WHITE);
+  // Tick marks above and below track
+  for (int i = 0; i < numTicks; i++) {
+    int tx = trackX0 + (i * trackW) / (numTicks - 1);
+    int tickH = (i == numTicks / 2) ? 6 : 4;  // center tick taller
+    display.drawFastVLine(tx, trackY - tickH, tickH, SSD1306_WHITE);
+    display.drawFastVLine(tx, trackY + 1, tickH, SSD1306_WHITE);
   }
 
-  // Mute indicator: small X near ring if muted
+  // Thumb position: center at rest, moves left/right on feedback
+  int thumbX = centerX;
+  unsigned long now = millis();
+  if (volFeedbackDir != 0 && (now - volFeedbackStart < VOL_FEEDBACK_DISPLAY_MS)) {
+    float progress = 1.0f - (float)(now - volFeedbackStart) / (float)VOL_FEEDBACK_DISPLAY_MS;
+    int maxTravel = trackW / 2 - 4;  // max offset from center
+    int offset = (int)(maxTravel * progress + 0.5f);
+    if (offset < 1) offset = 1;
+    thumbX = centerX + (volFeedbackDir > 0 ? offset : -offset);
+  }
+
+  // Thumb: filled rectangle with border (5px wide, 14px tall)
+  const int thumbW = 5;
+  const int thumbH = 14;
+  int tx = thumbX - thumbW / 2;
+  int ty = trackY - thumbH / 2;
+  display.fillRect(tx, ty, thumbW, thumbH, SSD1306_WHITE);
+  // Inner cutout for visual depth (1px inset on sides)
+  display.drawFastVLine(tx + 1, ty + 2, thumbH - 4, SSD1306_BLACK);
+  display.drawFastVLine(tx + 3, ty + 2, thumbH - 4, SSD1306_BLACK);
+
+  // Direction labels
+  display.setCursor(trackX0, trackY + 12);
+  display.print("-");
+  display.setCursor(trackX1 - 5, trackY + 12);
+  display.print("+");
+
+  // Muted overlay
   if (volMuted) {
-    display.setCursor(cx + 24, cy - 3);
-    display.print("X");
+    display.setCursor(46, 46);
+    display.print("MUTED");
   }
 
   drawVolumeFooter();
-
-  // Scanning bar animation in footer
-  static uint8_t scanPos = 0;
-  scanPos = (scanPos + 1) % 40;
-  int barX = 80 + (scanPos < 20 ? scanPos : 39 - scanPos);
-  for (int i = 0; i < 4; i++) {
-    display.drawPixel(barX + i, 60, SSD1306_WHITE);
-  }
 }
 
 static void drawVolumeNormal() {
