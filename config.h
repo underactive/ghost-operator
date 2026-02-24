@@ -10,7 +10,7 @@
 #define VERSION "2.2.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F58  // bumped: +systemSoundEnabled
+#define SETTINGS_MAGIC 0x50524F59  // bumped: systemSoundEnabled default Off
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -262,7 +262,7 @@ struct Settings {
   uint8_t headerDisplay;    // 0=Job sim name (default), 1=Device name
   uint8_t soundEnabled;     // 0=Off (default), 1=On
   uint8_t soundType;        // 0=MX Blue, 1=MX Brown, 2=Membrane, 3=Buckling, 4=Thock
-  uint8_t systemSoundEnabled; // 1=On (default), 0=Off — BLE connect/disconnect alert tones
+  uint8_t systemSoundEnabled; // 0=Off (default), 1=On — BLE connect/disconnect alert tones
   // Volume control settings
   uint8_t volumeTheme;      // 0=Basic (default), 1=Retro, 2=Futuristic
   uint8_t checksum;         // MUST remain last

@@ -65,7 +65,7 @@ void loadDefaults() {
   settings.headerDisplay = 0;     // Job sim name
   settings.soundEnabled = 0;      // Off
   settings.soundType = 0;         // MX Blue
-  settings.systemSoundEnabled = 1; // On (BLE connect/disconnect alerts)
+  settings.systemSoundEnabled = 0; // Off (BLE connect/disconnect alerts)
   // Volume control defaults
   settings.volumeTheme = 0;       // Basic
   markDisplayDirty();
