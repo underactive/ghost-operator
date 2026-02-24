@@ -1577,6 +1577,146 @@ static void drawScheduleMode() {
 }
 
 // ============================================================================
+// GENERIC CAROUSEL (MODE_CAROUSEL)
+// ============================================================================
+
+static void drawCarouselPage() {
+  if (!carouselConfig) return;
+  display.setTextSize(1);
+
+  // === Header ===
+  display.setCursor(0, 0);
+  display.print(carouselConfig->title);
+  display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+
+  // === Horizontal carousel strip (same animation style as MODE_MODE) ===
+  {
+    static float crslScrollX = 0.0f;
+    static const CarouselConfig* crslLastConfig = NULL;
+
+    // Reset scroll position when config changes
+    if (carouselConfig != crslLastConfig) {
+      crslScrollX = 0.0f;
+      crslLastConfig = carouselConfig;
+    }
+
+    // Compute cell layout
+    int cellCenterX[16];  // max 16 options
+    int cellWidth[16];
+    int count = carouselConfig->count;
+    if (count > 16) count = 16;
+    int runX = 0;
+    for (int i = 0; i < count; i++) {
+      const char* nm = carouselConfig->names[i];
+      cellWidth[i] = (int)strlen(nm) * 6 + 16;
+      cellCenterX[i] = runX + cellWidth[i] / 2;
+      runX += cellWidth[i];
+    }
+
+    // Animate scroll toward selected item
+    float target = (float)cellCenterX[carouselCursor] - 64.0f;
+    float delta = target - crslScrollX;
+    if (delta > -0.5f && delta < 0.5f) {
+      crslScrollX = target;
+    } else {
+      crslScrollX += delta * 0.25f;
+    }
+    int scrollI = (int)crslScrollX;
+
+    // Render strip at y=24 (centered in content area)
+    const int stripY = 24;
+    const int stripH = 11;
+    display.setTextWrap(false);
+    for (int i = 0; i < count; i++) {
+      const char* nm = carouselConfig->names[i];
+      int tw = (int)strlen(nm) * 6;
+      int tx = cellCenterX[i] - scrollI - tw / 2;
+
+      if (tx >= 128 || tx + tw <= 0) continue;
+
+      if (i == carouselCursor) {
+        int rx = cellCenterX[i] - scrollI - cellWidth[i] / 2;
+        display.fillRect(rx, stripY - 1, cellWidth[i], stripH, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+        display.setCursor(tx, stripY);
+        display.print(nm);
+        display.setTextColor(SSD1306_WHITE);
+      } else {
+        display.setCursor(tx, stripY);
+        display.print(nm);
+      }
+    }
+    display.setTextWrap(true);
+  }
+
+  // === Help text (scrolls if overflow) ===
+  const char* desc = (carouselCursor < carouselConfig->count) ? carouselConfig->descs[carouselCursor] : "???";
+  int descLen = strlen(desc);
+  const int maxChars = 21;  // 128px / 6px per char
+
+  static int crslHelpScroll = 0;
+  static int crslHelpDir = 1;
+  static unsigned long crslHelpTimer = 0;
+  static uint8_t crslHelpLastCursor = 0xFF;
+  static const CarouselConfig* crslHelpLastConfig = NULL;
+  unsigned long now = millis();
+
+  // Reset scroll on cursor or config change
+  if (carouselCursor != crslHelpLastCursor || carouselConfig != crslHelpLastConfig) {
+    crslHelpScroll = 0;
+    crslHelpDir = 1;
+    crslHelpTimer = now;
+    crslHelpLastCursor = carouselCursor;
+    crslHelpLastConfig = carouselConfig;
+  }
+
+  if (descLen <= maxChars) {
+    int descW = descLen * 6;
+    display.setCursor((128 - descW) / 2, 40);
+    display.print(desc);
+  } else {
+    int maxScroll = descLen - maxChars;
+    if (now - crslHelpTimer >= (unsigned long)(crslHelpScroll == 0 || crslHelpScroll == maxScroll ? 1500 : 300)) {
+      crslHelpScroll += crslHelpDir;
+      if (crslHelpScroll >= maxScroll) { crslHelpScroll = maxScroll; crslHelpDir = -1; }
+      if (crslHelpScroll <= 0) { crslHelpScroll = 0; crslHelpDir = 1; }
+      crslHelpTimer = now;
+    }
+    display.setCursor(0, 40);
+    for (int i = 0; i < maxChars && (crslHelpScroll + i) < descLen; i++) {
+      display.print(desc[crslHelpScroll + i]);
+    }
+  }
+
+  // === Footer ===
+  display.drawFastHLine(0, 53, 128, SSD1306_WHITE);
+  const char* footerTxt = "Turn to browse, press to set";
+  int footerLen = strlen(footerTxt);
+
+  static int crslFootScroll = 0;
+  static int crslFootDir = 1;
+  static unsigned long crslFootTimer = 0;
+
+  if (footerLen <= maxChars) {
+    int fw = footerLen * 6;
+    display.setCursor((128 - fw) / 2, 56);
+    display.print(footerTxt);
+  } else {
+    int maxScroll = footerLen - maxChars;
+    if (now - crslFootTimer >= (unsigned long)(crslFootScroll == 0 || crslFootScroll == maxScroll ? 1500 : 300)) {
+      crslFootScroll += crslFootDir;
+      if (crslFootScroll >= maxScroll) { crslFootScroll = maxScroll; crslFootDir = -1; }
+      if (crslFootScroll <= 0) { crslFootScroll = 0; crslFootDir = 1; }
+      crslFootTimer = now;
+    }
+    display.setCursor(0, 56);
+    for (int i = 0; i < maxChars && (crslFootScroll + i) < footerLen; i++) {
+      display.print(footerTxt[crslFootScroll + i]);
+    }
+  }
+}
+
+// ============================================================================
 // MODE PICKER (MODE_MODE sub-page)
 // ============================================================================
 
@@ -2391,6 +2531,8 @@ void updateDisplay() {
     drawSetClockMode();
   } else if (currentMode == MODE_MODE) {
     drawModePickerPage();
+  } else if (currentMode == MODE_CAROUSEL) {
+    drawCarouselPage();
   }
 
   sendDirtyPages();

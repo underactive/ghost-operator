@@ -69,6 +69,11 @@ bool    modeConfirming = false;
 bool    modeRebootYes = true;
 uint8_t modeOriginalValue = 0;
 
+// Generic carousel state (MODE_CAROUSEL)
+uint8_t carouselCursor = 0;
+uint8_t carouselOriginal = 0;
+const CarouselConfig* carouselConfig = NULL;
+
 // UI Mode
 UIMode currentMode = MODE_NORMAL;
 unsigned long lastModeActivity = 0;

@@ -148,7 +148,7 @@
 // ============================================================================
 // ENUMS
 // ============================================================================
-enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_COUNT };
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
@@ -266,6 +266,17 @@ struct Settings {
   // Volume control settings
   uint8_t volumeTheme;      // 0=Basic (default), 1=Retro, 2=Futuristic
   uint8_t checksum;         // MUST remain last
+};
+
+// Carousel page config (generic full-screen picker for named-option settings)
+typedef void (*CarouselCursorCallback)(uint8_t newIndex);
+struct CarouselConfig {
+  const char*            title;      // Header text (e.g., "ANIMATION STYLE")
+  const char* const*     names;      // Option name array (reuse existing)
+  const char* const*     descs;      // Per-option help descriptions
+  uint8_t                count;      // Number of options
+  uint8_t                settingId;  // SettingId to read/write
+  CarouselCursorCallback onCursorChange; // NULL or callback (e.g., sound preview)
 };
 
 #endif // GHOST_CONFIG_H

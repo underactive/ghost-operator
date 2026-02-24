@@ -25,6 +25,7 @@ extern const char* const DECOY_NAMES[];
 extern const char* const DECOY_MANUFACTURERS[];
 
 void validateMenuIndices();
+const CarouselConfig* getCarouselConfig(uint8_t settingId);
 
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
 #define MENU_IDX_KEY_SLOTS    9

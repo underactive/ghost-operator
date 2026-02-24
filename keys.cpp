@@ -1,4 +1,5 @@
 #include "keys.h"
+#include "sim_data.h"
 
 const KeyDef AVAILABLE_KEYS[] = {
   // Ghost keys (F13-F24) -- invisible to OS, ideal for keep-alive
@@ -148,7 +149,7 @@ const char*   SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min",
 
 const char NAME_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_";
 
-const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY", "SCHED", "MODE", "CLOCK" };
+const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY", "SCHED", "MODE", "CLOCK", "CRSL" };
 const char* PROFILE_NAMES[] = { "LAZY", "NORMAL", "BUSY" };
 const char* PROFILE_NAMES_TITLE[] = { "Lazy", "Normal", "Busy" };
 const char* ANIM_NAMES[] = { "ECG", "EQ", "Ghost", "Matrix", "Radar", "None" };
@@ -184,3 +185,89 @@ const char* const DECOY_MANUFACTURERS[] = {
   "Keychron",
   "Keychron"
 };
+
+// ============================================================================
+// CAROUSEL DESCRIPTIONS (per-option help text)
+// ============================================================================
+
+static const char* const ANIM_DESCS[] = {
+  "Heart rate monitor line",
+  "Audio spectrum bars",
+  "Floating ghost sprite",
+  "Falling character rain",
+  "Rotating radar sweep",
+  "No animation"
+};
+
+static const char* const MOUSE_STYLE_DESCS[] = {
+  "Smooth curved sweeps",
+  "Random jitter movement"
+};
+
+static const char* const SAVER_TIMEOUT_DESCS[] = {
+  "Screensaver disabled",
+  "Activate after 1 minute",
+  "Activate after 5 minutes",
+  "Activate after 10 minutes",
+  "Activate after 15 minutes",
+  "Activate after 30 minutes"
+};
+
+static const char* const KB_SOUND_DESCS[] = {
+  "Clicky mechanical switch",
+  "Tactile quiet switch",
+  "Soft rubber dome press",
+  "Classic IBM spring snap",
+  "Deep muted keystroke"
+};
+
+static const char* const CLICK_TYPE_DESCS[] = {
+  "Middle click (least visible)",
+  "Left click (standard)"
+};
+
+static const char* const SWITCH_KEYS_DESCS[] = {
+  "Alt-Tab (Windows/Linux)",
+  "Cmd-Tab (macOS)"
+};
+
+static const char* const HEADER_DISP_DESCS[] = {
+  "Show job simulation name",
+  "Show custom device name"
+};
+
+static const char* const VOLUME_THEME_DESCS[] = {
+  "Clean minimal volume bar",
+  "Pixelated retro style",
+  "Sleek sci-fi interface"
+};
+
+static const char* const JOB_SIM_DESCS[] = {
+  "General office worker",
+  "Software dev workflow",
+  "Creative design workflow"
+};
+
+// ============================================================================
+// CAROUSEL CONFIG TABLE
+// ============================================================================
+
+static const CarouselConfig CAROUSEL_CONFIGS[] = {
+  { "ANIMATION STYLE",   (const char* const*)ANIM_NAMES,          ANIM_DESCS,          ANIM_STYLE_COUNT,    SET_ANIMATION,     NULL },
+  { "MOVE STYLE",        (const char* const*)MOUSE_STYLE_NAMES,   MOUSE_STYLE_DESCS,   MOUSE_STYLE_COUNT,   SET_MOUSE_STYLE,   NULL },
+  { "SCREENSAVER T.O.",  (const char* const*)SAVER_NAMES,         SAVER_TIMEOUT_DESCS,  SAVER_TIMEOUT_COUNT, SET_SAVER_TIMEOUT, NULL },
+  { "KEY SOUND",         (const char* const*)KB_SOUND_NAMES,      KB_SOUND_DESCS,       KB_SOUND_COUNT,      SET_SOUND_TYPE,    NULL }, // onCursorChange set at runtime
+  { "CLICK TYPE",        (const char* const*)CLICK_TYPE_NAMES,    CLICK_TYPE_DESCS,     2,                   SET_CLICK_TYPE,    NULL },
+  { "SWITCH KEYS",       (const char* const*)SWITCH_KEYS_NAMES,   SWITCH_KEYS_DESCS,    SWITCH_KEYS_COUNT,   SET_SWITCH_KEYS,   NULL },
+  { "HEADER TEXT",       (const char* const*)HEADER_DISP_NAMES,   HEADER_DISP_DESCS,    2,                   SET_HEADER_DISPLAY, NULL },
+  { "VOLUME THEME",      (const char* const*)VOLUME_THEME_NAMES,  VOLUME_THEME_DESCS,   VOLUME_THEME_COUNT,  SET_VOLUME_THEME,  NULL },
+  { "JOB TYPE",          (const char* const*)JOB_SIM_NAMES,       JOB_SIM_DESCS,        JOB_SIM_COUNT,       SET_JOB_SIM,       NULL },
+};
+#define CAROUSEL_CONFIG_COUNT (sizeof(CAROUSEL_CONFIGS) / sizeof(CAROUSEL_CONFIGS[0]))
+
+const CarouselConfig* getCarouselConfig(uint8_t settingId) {
+  for (uint8_t i = 0; i < CAROUSEL_CONFIG_COUNT; i++) {
+    if (CAROUSEL_CONFIGS[i].settingId == settingId) return &CAROUSEL_CONFIGS[i];
+  }
+  return NULL;
+}

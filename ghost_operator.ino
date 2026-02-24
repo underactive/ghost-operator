@@ -419,6 +419,15 @@ void loop() {
       settings.operationMode = modeOriginalValue;
       modeConfirming = false;
     }
+    if (currentMode == MODE_CAROUSEL && carouselConfig) {
+      // Revert carousel — don't persist selection on timeout
+      setSettingValue(carouselConfig->settingId, carouselOriginal);
+      stopSoundPreview();
+      if (carouselConfig->settingId == SET_SOUND_TYPE) {
+        ((CarouselConfig*)carouselConfig)->onCursorChange = NULL;
+      }
+      carouselConfig = NULL;
+    }
     if (modeConfirming) {
       settings.operationMode = modeOriginalValue;
       modeConfirming = false;
