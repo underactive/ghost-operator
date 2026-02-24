@@ -1018,6 +1018,7 @@ void handleButtons() {
     if (sleepConfirmActive || sleepCancelActive) { lastMuteBtn = muteBtn; return; }
     if (scheduleSleeping) { exitLightSleep(); lastMuteBtn = muteBtn; return; }
     if (screensaverActive) { screensaverActive = false; lastMuteBtn = muteBtn; return; }
+    if (currentMode != MODE_NORMAL) { lastMuteBtn = muteBtn; return; }
 
     if (settings.operationMode == 2) {
       // Volume Control: D7 = play/pause

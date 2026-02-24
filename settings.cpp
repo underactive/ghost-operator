@@ -65,6 +65,7 @@ void loadDefaults() {
   settings.headerDisplay = 0;     // Job sim name
   settings.soundEnabled = 0;      // Off
   settings.soundType = 0;         // MX Blue
+  settings.systemSoundEnabled = 1; // On (BLE connect/disconnect alerts)
   // Volume control defaults
   settings.volumeTheme = 0;       // Basic
   markDisplayDirty();
@@ -169,6 +170,7 @@ void loadSettings() {
         if (settings.headerDisplay > 1) settings.headerDisplay = 0;
         if (settings.soundEnabled > 1) settings.soundEnabled = 0;
         if (settings.soundType >= KB_SOUND_COUNT) settings.soundType = 0;
+        if (settings.systemSoundEnabled > 1) settings.systemSoundEnabled = 1;
         // Volume control bounds
         if (settings.volumeTheme >= VOLUME_THEME_COUNT) settings.volumeTheme = 0;
 
@@ -225,6 +227,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_HEADER_DISPLAY: return settings.headerDisplay;
     case SET_SOUND_ENABLED:  return settings.soundEnabled;
     case SET_SOUND_TYPE:     return settings.soundType;
+    case SET_SYSTEM_SOUND:   return settings.systemSoundEnabled;
     case SET_VOLUME_THEME:   return settings.volumeTheme;
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
@@ -291,6 +294,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_HEADER_DISPLAY: settings.headerDisplay = (uint8_t)clampVal(value, 0, 1); break;
     case SET_SOUND_ENABLED:  settings.soundEnabled = (uint8_t)clampVal(value, 0, 1); break;
     case SET_SOUND_TYPE:     settings.soundType = (uint8_t)clampVal(value, 0, KB_SOUND_COUNT - 1); break;
+    case SET_SYSTEM_SOUND:   settings.systemSoundEnabled = (uint8_t)clampVal(value, 0, 1); break;
     case SET_VOLUME_THEME:   settings.volumeTheme = (uint8_t)clampVal(value, 0, VOLUME_THEME_COUNT - 1); break;
   }
   markDisplayDirty();

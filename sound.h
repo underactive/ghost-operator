@@ -13,6 +13,8 @@ enum KeyboardSound {
 
 void initSound();
 void playKeySound();
+void playConnectSound();
+void playDisconnectSound();
 void startSoundPreview(uint8_t soundType);
 void stopSoundPreview();
 void updateSoundPreview();

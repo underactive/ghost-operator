@@ -83,6 +83,7 @@ void connect_callback(uint16_t conn_handle) {
   conn->requestConnectionParameter(BLE_INTERVAL_ACTIVE);
   lastHidActivity = millis();
   bleIdleMode = false;
+  playConnectSound();  // audible alert (ungated — system sound)
   markDisplayDirty();
 }
 
@@ -95,6 +96,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   easterEggActive = false;
   bleIdleMode = false;
   resetBleUartBuffer();  // discard stale partial commands
+  playDisconnectSound();  // audible alert (ungated — system sound)
   markDisplayDirty();
 }
 

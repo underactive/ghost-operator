@@ -128,8 +128,10 @@ static unsigned long phaseDuration(ActivityPhase phase, const WorkModeDef& mode,
       return jitter(scaleByPerformance(randRange(15000, 60000), true));
     case PHASE_MOUSING:
       return jitter(scaleByPerformance(randRange(t.mouseDurMinMs, t.mouseDurMaxMs), true));
-    case PHASE_IDLE:
-      return jitter(scaleByPerformance(randRange(t.idleDurMinMs, t.idleDurMaxMs), false));
+    case PHASE_IDLE: {
+      unsigned long dur = jitter(scaleByPerformance(randRange(t.idleDurMinMs, t.idleDurMaxMs), false));
+      return min(dur, 60000UL);  // cap at 60s to prevent extended silence
+    }
     case PHASE_SWITCHING:
       return randRange(100, 500);
     default:

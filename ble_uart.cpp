@@ -219,8 +219,8 @@ static void cmdQuerySettings() {
 
   // Sound settings
   len += snprintf(buf + len, sizeof(buf) - len,
-    "|sound=%d|soundType=%d",
-    settings.soundEnabled, settings.soundType);
+    "|sound=%d|soundType=%d|sysSounds=%d",
+    settings.soundEnabled, settings.soundType, settings.systemSoundEnabled);
 
   // Simulation mode settings + volume control
   len += snprintf(buf + len, sizeof(buf) - len,
@@ -354,6 +354,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SOUND_ENABLED, (uint32_t)atol(valStr));
   } else if (strcmp(key, "soundType") == 0) {
     setSettingValue(SET_SOUND_TYPE, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "sysSounds") == 0) {
+    setSettingValue(SET_SYSTEM_SOUND, (uint32_t)atol(valStr));
   } else if (strcmp(key, "volumeTheme") == 0) {
     setSettingValue(SET_VOLUME_THEME, (uint32_t)atol(valStr));
   } else if (strcmp(key, "time") == 0) {

@@ -28,12 +28,12 @@ void validateMenuIndices();
 
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
 #define MENU_IDX_KEY_SLOTS    9
-#define MENU_IDX_SET_CLOCK    33
-#define MENU_IDX_SCHEDULE     34
-#define MENU_IDX_OP_MODE      36   // "Mode" (Simple/Simulation/Volume) — under Device heading
-#define MENU_IDX_BLE_IDENTITY 37
-#define MENU_IDX_UPTIME       44
-#define MENU_IDX_DIE_TEMP     45
-#define MENU_IDX_VERSION      46
+#define MENU_IDX_SET_CLOCK    34
+#define MENU_IDX_SCHEDULE     35
+#define MENU_IDX_OP_MODE      37   // "Mode" (Simple/Simulation/Volume) — under Device heading
+#define MENU_IDX_BLE_IDENTITY 38
+#define MENU_IDX_UPTIME       45
+#define MENU_IDX_DIE_TEMP     46
+#define MENU_IDX_VERSION      47
 
 #endif // GHOST_KEYS_H

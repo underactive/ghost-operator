@@ -80,6 +80,46 @@ void playKeySound() {
   playOnce(settings.soundType);
 }
 
+void playConnectSound() {
+  if (!settings.systemSoundEnabled) return;
+  // Lo-hi two-tone alert (~200ms total)
+  // Low tone (~600Hz, ~80ms)
+  for (uint8_t i = 0; i < 48; i++) {
+    digitalWrite(PIN_SOUND, HIGH);
+    delayMicroseconds(833);
+    digitalWrite(PIN_SOUND, LOW);
+    delayMicroseconds(833);
+  }
+  delay(40);
+  // High tone (~1.2kHz, ~80ms)
+  for (uint8_t i = 0; i < 96; i++) {
+    digitalWrite(PIN_SOUND, HIGH);
+    delayMicroseconds(417);
+    digitalWrite(PIN_SOUND, LOW);
+    delayMicroseconds(417);
+  }
+}
+
+void playDisconnectSound() {
+  if (!settings.systemSoundEnabled) return;
+  // Hi-lo two-tone alert (~200ms total)
+  // High tone (~1.2kHz, ~80ms)
+  for (uint8_t i = 0; i < 96; i++) {
+    digitalWrite(PIN_SOUND, HIGH);
+    delayMicroseconds(417);
+    digitalWrite(PIN_SOUND, LOW);
+    delayMicroseconds(417);
+  }
+  delay(40);
+  // Low tone (~600Hz, ~80ms)
+  for (uint8_t i = 0; i < 48; i++) {
+    digitalWrite(PIN_SOUND, HIGH);
+    delayMicroseconds(833);
+    digitalWrite(PIN_SOUND, LOW);
+    delayMicroseconds(833);
+  }
+}
+
 // Non-blocking continuous preview state
 static bool previewActive = false;
 static uint8_t previewType = 0;
