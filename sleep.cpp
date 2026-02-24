@@ -41,7 +41,11 @@ void enterDeepSleep() {
   nrf_gpio_cfg_sense_set(PIN_FUNC_BTN_NRF, NRF_GPIO_PIN_SENSE_LOW);
 
   delay(100);
-  while (digitalRead(PIN_FUNC_BTN) == LOW) delay(10);
+  unsigned long waitStart = millis();
+  while (digitalRead(PIN_FUNC_BTN) == LOW) {
+    if (millis() - waitStart >= 30000UL) break;  // 30s timeout — don't drain battery on stuck GPIO
+    delay(10);
+  }
   delay(100);
 
   sd_power_system_off();

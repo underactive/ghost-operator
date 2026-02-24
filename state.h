@@ -36,8 +36,8 @@ extern unsigned long profileDisplayStart;
 // Encoder
 extern volatile int encoderPos;
 extern int lastEncoderPos;
-extern uint8_t encoderPrevState;
-extern int8_t lastEncoderDir;
+extern volatile uint8_t encoderPrevState;
+extern volatile int8_t lastEncoderDir;
 
 // Connection & enables
 extern bool deviceConnected;

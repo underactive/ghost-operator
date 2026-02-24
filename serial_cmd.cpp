@@ -16,7 +16,7 @@ static uint8_t serialBufPos = 0;
 static bool serialBufOverflow = false;
 
 // Serial response writer — plain println, no chunking needed for USB
-static void serialWrite(const String& msg) {
+static void serialWrite(const char* msg) {
   Serial.println(msg);
 }
 

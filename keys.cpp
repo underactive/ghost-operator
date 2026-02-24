@@ -102,6 +102,40 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Version",       COPYRIGHT_TEXT, FMT_VERSION, 0, 0, 0, SET_VERSION },
 };
 
+// Verify MENU_ITEM_COUNT matches array (compile-time check)
+static_assert(sizeof(MENU_ITEMS) / sizeof(MENU_ITEMS[0]) == MENU_ITEM_COUNT,
+              "MENU_ITEM_COUNT define must match MENU_ITEMS[] size");
+
+// Runtime validation of MENU_IDX_* defines — called once from setup().
+// static_assert can't evaluate const (non-constexpr) array elements on ARM GCC,
+// so we validate at boot and halt on mismatch (developer-only safety net).
+void validateMenuIndices() {
+  bool ok = true;
+  auto check = [&](int idx, uint16_t expected, const char* name) {
+    if (idx >= MENU_ITEM_COUNT || MENU_ITEMS[idx].settingId != expected) {
+      Serial.print("[FATAL] MENU_IDX_");
+      Serial.print(name);
+      Serial.print(" (");
+      Serial.print(idx);
+      Serial.print(") != ");
+      Serial.println(expected);
+      ok = false;
+    }
+  };
+  check(MENU_IDX_KEY_SLOTS,    SET_KEY_SLOTS,     "KEY_SLOTS");
+  check(MENU_IDX_SET_CLOCK,    SET_SET_CLOCK,     "SET_CLOCK");
+  check(MENU_IDX_SCHEDULE,     SET_SCHEDULE_MODE, "SCHEDULE");
+  check(MENU_IDX_OP_MODE,      SET_OP_MODE,       "OP_MODE");
+  check(MENU_IDX_BLE_IDENTITY, SET_BLE_IDENTITY,  "BLE_IDENTITY");
+  check(MENU_IDX_UPTIME,       SET_UPTIME,        "UPTIME");
+  check(MENU_IDX_DIE_TEMP,     SET_DIE_TEMP,      "DIE_TEMP");
+  check(MENU_IDX_VERSION,      SET_VERSION,        "VERSION");
+  if (!ok) {
+    Serial.println("[FATAL] MENU_IDX mismatch — halting");
+    while (1) delay(1000);
+  }
+}
+
 const int8_t MOUSE_DIRS[][2] = {
   { 1,  0}, {-1,  0}, { 0,  1}, { 0, -1},
   { 1,  1}, {-1,  1}, { 1, -1}, {-1, -1},

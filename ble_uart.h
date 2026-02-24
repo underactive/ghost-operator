@@ -5,7 +5,7 @@
 
 // Response writer function pointer — allows processCommand() to send
 // responses over BLE UART or USB serial (or any future transport).
-typedef void (*ResponseWriter)(const String& msg);
+typedef void (*ResponseWriter)(const char* msg);
 
 void setupBleUart();
 void handleBleUart();

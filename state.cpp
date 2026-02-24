@@ -28,8 +28,8 @@ unsigned long profileDisplayStart = 0;
 // Encoder
 volatile int encoderPos = 0;
 int lastEncoderPos = 0;
-uint8_t encoderPrevState = 0;
-int8_t  lastEncoderDir  = 0;
+volatile uint8_t encoderPrevState = 0;
+volatile int8_t  lastEncoderDir  = 0;
 
 // Connection & enables
 bool deviceConnected = false;

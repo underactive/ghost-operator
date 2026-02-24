@@ -308,6 +308,7 @@ void setup() {
   Serial.println("╚══════════════════════════════════════════");
   Serial.println();
 
+  validateMenuIndices();
   setupPins();
   initSound();
   setupDisplay();

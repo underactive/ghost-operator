@@ -19,7 +19,7 @@ static bool uartBufOverflow = false;
 static ResponseWriter currentWriter = nullptr;
 
 // Forward declarations
-static void bleWrite(const String& msg);
+static void bleWrite(const char* msg);
 static void cmdQueryStatus();
 static void cmdQuerySettings();
 static void cmdQueryKeys();
@@ -88,16 +88,15 @@ void handleBleUart() {
 // Send a response string over BLE UART (appends newline)
 // Chunks writes to 20 bytes for default MTU compatibility
 // ----------------------------------------------------------------------------
-static void bleWrite(const String& msg) {
-  String out = msg + "\n";
-  const char* data = out.c_str();
-  uint16_t len = out.length();
+static void bleWrite(const char* msg) {
+  uint16_t len = strlen(msg);
   uint16_t offset = 0;
   while (offset < len) {
     uint16_t chunk = min((uint16_t)20, (uint16_t)(len - offset));
-    bleuart.write((const uint8_t*)(data + offset), chunk);
+    bleuart.write((const uint8_t*)(msg + offset), chunk);
     offset += chunk;
   }
+  bleuart.write((const uint8_t*)"\n", 1);
 }
 
 // ----------------------------------------------------------------------------
@@ -166,7 +165,8 @@ static void cmdQueryStatus() {
     keyEnabled ? 1 : 0, mouseEnabled ? 1 : 0,
     batteryPercent, (int)(batteryVoltage * 1000),
     (int)currentProfile, (int)currentMode,
-    (int)mouseState, uptime, AVAILABLE_KEYS[nextKeyIndex].name,
+    (int)mouseState, uptime,
+    (nextKeyIndex < NUM_KEYS) ? AVAILABLE_KEYS[nextKeyIndex].name : "???",
     timeSynced ? 1 : 0, scheduleSleeping ? 1 : 0);
 
   if (timeSynced) {
@@ -184,7 +184,7 @@ static void cmdQueryStatus() {
       orch.blockIdx, (int)orch.modeId, (int)orch.phase, (int)orch.autoProfile);
   }
 
-  currentWriter(String(buf));
+  currentWriter(buf);
 }
 
 // ----------------------------------------------------------------------------
@@ -231,31 +231,31 @@ static void cmdQuerySettings() {
     settings.switchKeys, settings.headerDisplay,
     settings.volumeTheme);
 
-  currentWriter(String(buf));
+  currentWriter(buf);
 }
 
 // ----------------------------------------------------------------------------
 // ?keys — list of all available key names (populates dropdowns)
 // ----------------------------------------------------------------------------
 static void cmdQueryKeys() {
-  String resp = "!keys";
+  char buf[220];
+  int len = snprintf(buf, sizeof(buf), "!keys");
   for (int i = 0; i < NUM_KEYS; i++) {
-    resp += "|";
-    resp += AVAILABLE_KEYS[i].name;
+    len += snprintf(buf + len, sizeof(buf) - len, "|%s", AVAILABLE_KEYS[i].name);
   }
-  currentWriter(resp);
+  currentWriter(buf);
 }
 
 // ----------------------------------------------------------------------------
 // ?decoys — list of all decoy preset names (populates dropdown)
 // ----------------------------------------------------------------------------
 static void cmdQueryDecoys() {
-  String resp = "!decoys";
+  char buf[200];
+  int len = snprintf(buf, sizeof(buf), "!decoys");
   for (int i = 0; i < DECOY_COUNT; i++) {
-    resp += "|";
-    resp += DECOY_NAMES[i];
+    len += snprintf(buf + len, sizeof(buf) - len, "|%s", DECOY_NAMES[i]);
   }
-  currentWriter(resp);
+  currentWriter(buf);
 }
 
 // ----------------------------------------------------------------------------
@@ -322,7 +322,7 @@ static void cmdSetValue(const char* body) {
     if (idx > DECOY_COUNT) idx = 0;
     settings.decoyIndex = idx;
     // Sync deviceName when selecting a preset
-    if (idx > 0) {
+    if (idx > 0 && idx <= DECOY_COUNT) {
       strncpy(settings.deviceName, DECOY_NAMES[idx - 1], NAME_MAX_LEN);
       settings.deviceName[NAME_MAX_LEN] = '\0';
     }
@@ -357,7 +357,9 @@ static void cmdSetValue(const char* body) {
   } else if (strcmp(key, "volumeTheme") == 0) {
     setSettingValue(SET_VOLUME_THEME, (uint32_t)atol(valStr));
   } else if (strcmp(key, "time") == 0) {
-    syncTime((uint32_t)atol(valStr));
+    uint32_t secs = (uint32_t)atol(valStr);
+    if (secs >= 86400) secs = 0;
+    syncTime(secs);
   } else if (strcmp(key, "statusPush") == 0) {
     serialStatusPush = atoi(valStr) != 0;
     currentWriter("+ok");

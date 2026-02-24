@@ -24,6 +24,8 @@ extern const char* SCHEDULE_MODE_NAMES[];
 extern const char* const DECOY_NAMES[];
 extern const char* const DECOY_MANUFACTURERS[];
 
+void validateMenuIndices();
+
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
 #define MENU_IDX_KEY_SLOTS    9
 #define MENU_IDX_SET_CLOCK    33
