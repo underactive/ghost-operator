@@ -5,6 +5,31 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-02-24
+
+### Added
+
+- **System sounds**: BLE connect/disconnect alert tones (lo-hi on connect, hi-lo on disconnect) provide immediate audible feedback when the connection drops — the most likely cause of unexplained activity stoppage
+  - New "Sys. sounds" menu setting under Sound heading (default: Off)
+  - Tones play through the existing piezo buzzer circuit
+- **Carousel settings page**: 9 named-option menu settings (Animation, Move style, Saver T.O., Key sound, Click type, Switch keys, Header txt, Volume theme, Job type) now open as full-screen horizontal carousels with smooth scrolling and per-option help text, matching the MODE_MODE UX
+  - Boolean On/Off toggles and numeric settings remain as inline edits
+- **Dashboard Bluetooth transport**: Web dashboard can now connect via Bluetooth (BLE) in addition to USB serial; `ble.js` with `getDevices()` auto-reconnect after first Chrome pairing; DFU remains USB-only with a BLE guard message
+
+### Changed
+
+- **Carousel pages snap on open**: Selected option is centered immediately when entering a carousel page instead of easing slowly from position 0; MODE_CAROUSEL added to time-based display refresh for continuous 20 Hz redraws
+- **Mute button scope**: D7 mute button now only responds in MODE_NORMAL, preventing accidental KB/MS state changes while navigating menus
+- **Orchestrator idle cap**: PHASE_IDLE capped at 60 seconds to prevent extended silence at low job performance levels
+- **ResponseWriter zero-alloc**: Typedef changed from `const String&` to `const char*`, eliminating heap allocation per protocol response
+
+### Fixed
+
+- **ISR state volatility**: Added `volatile` qualifier to `encoderPrevState` and `lastEncoderDir` — compiler could cache stale values for ISR-shared state, causing missed encoder transitions
+- **Sleep button stuck GPIO**: Added 30-second `millis()` timeout to sleep button-release polling loop to prevent battery drain if GPIO is held low by hardware fault
+- **Heap fragmentation in protocol handlers**: Replaced `String +=` loops in `cmdQueryKeys()`/`cmdQueryDecoys()` with `snprintf()` into stack buffers; removed `String(buf)` wrappers in status/settings responses; rewrote `bleWrite()` to send newline as separate BLE write instead of String concatenation
+- **Array bounds safety**: Added compile-time `MENU_IDX` array size check and runtime index validation in `setup()`; bounds guard on `nextKeyIndex` before `AVAILABLE_KEYS[]` access in status response; defensive `<= DECOY_COUNT` upper bound on decoy iteration; time sync value clamped at protocol boundary before `syncTime()`
+
 ## [2.2.0] - 2026-02-23
 
 ### Added
