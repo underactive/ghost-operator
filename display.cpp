@@ -1634,70 +1634,83 @@ static void drawModePickerPage() {
 
   // === Header ===
   display.setCursor(0, 0);
-  display.print("DEVICE MODE");
-
-  // BT/USB icon + battery right-aligned
-  char batStr[16];
-  snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
-  int batWidth = strlen(batStr) * 6;
-  int batX = 128 - batWidth;
-  int btX = batX - 5 - 3;
-  if (usbConnected) {
-    display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
-  } else if (deviceConnected) {
-    display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
-  } else {
-    if ((millis() / 500) % 2 == 0)
-      display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
-  }
-  display.setCursor(batX, 0);
-  display.print(batStr);
-
+  display.print("DEVICE MODE SELECT");
   display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
 
-  // === Option 0: Simple ===
-  int y0 = 11;
-  if (modePickerCursor == 0) {
-    display.fillRect(0, y0, 128, 8, SSD1306_WHITE);
-    display.setTextColor(SSD1306_BLACK);
+  // === Centered mode name with arrows ===
+  const char* modeName = (modePickerCursor < 3) ? OP_MODE_NAMES[modePickerCursor] : "???";
+  char labelBuf[24];
+  snprintf(labelBuf, sizeof(labelBuf), "> %s <", modeName);
+  int labelW = strlen(labelBuf) * 6;
+  display.setCursor((128 - labelW) / 2, 26);
+  display.print(labelBuf);
+
+  // === Help text (scrolls if overflow) ===
+  static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller" };
+  const char* desc = (modePickerCursor < 3) ? MODE_DESCS[modePickerCursor] : "???";
+  int descLen = strlen(desc);
+  const int maxChars = 21;  // 128px / 6px per char
+
+  static int modeHelpScroll = 0;
+  static int modeHelpDir = 1;
+  static unsigned long modeHelpTimer = 0;
+  static uint8_t modeHelpLastCursor = 0xFF;
+  unsigned long now = millis();
+
+  // Reset scroll on cursor change
+  if (modePickerCursor != modeHelpLastCursor) {
+    modeHelpScroll = 0;
+    modeHelpDir = 1;
+    modeHelpTimer = now;
+    modeHelpLastCursor = modePickerCursor;
   }
-  display.setCursor(2, y0);
-  display.print("Simple");
-  if (modePickerCursor == 0) display.setTextColor(SSD1306_WHITE);
 
-  display.setCursor(8, y0 + 8);
-  display.print("Direct timing");
-
-  // === Option 1: Simulation ===
-  int y1 = 27;
-  if (modePickerCursor == 1) {
-    display.fillRect(0, y1, 128, 8, SSD1306_WHITE);
-    display.setTextColor(SSD1306_BLACK);
+  display.setCursor(0, 40);
+  if (descLen <= maxChars) {
+    // Center short text
+    int descW = descLen * 6;
+    display.setCursor((128 - descW) / 2, 40);
+    display.print(desc);
+  } else {
+    int maxScroll = descLen - maxChars;
+    if (now - modeHelpTimer >= (unsigned long)(modeHelpScroll == 0 || modeHelpScroll == maxScroll ? 1500 : 300)) {
+      modeHelpScroll += modeHelpDir;
+      if (modeHelpScroll >= maxScroll) { modeHelpScroll = maxScroll; modeHelpDir = -1; }
+      if (modeHelpScroll <= 0) { modeHelpScroll = 0; modeHelpDir = 1; }
+      modeHelpTimer = now;
+    }
+    display.setCursor(0, 40);
+    for (int i = 0; i < maxChars && (modeHelpScroll + i) < descLen; i++) {
+      display.print(desc[modeHelpScroll + i]);
+    }
   }
-  display.setCursor(2, y1);
-  display.print("Simulation");
-  if (modePickerCursor == 1) display.setTextColor(SSD1306_WHITE);
 
-  display.setCursor(8, y1 + 8);
-  display.print("Human work patterns");
+  // === Footer (scrolls if overflow) ===
+  display.drawFastHLine(0, 53, 128, SSD1306_WHITE);
+  const char* footerTxt = "Turn dial to adjust, press to select";
+  int footerLen = strlen(footerTxt);
 
-  // === Option 2: Volume Control ===
-  int y2 = 43;
-  if (modePickerCursor == 2) {
-    display.fillRect(0, y2, 128, 8, SSD1306_WHITE);
-    display.setTextColor(SSD1306_BLACK);
+  static int modeFootScroll = 0;
+  static int modeFootDir = 1;
+  static unsigned long modeFootTimer = 0;
+
+  if (footerLen <= maxChars) {
+    int fw = footerLen * 6;
+    display.setCursor((128 - fw) / 2, 56);
+    display.print(footerTxt);
+  } else {
+    int maxScroll = footerLen - maxChars;
+    if (now - modeFootTimer >= (unsigned long)(modeFootScroll == 0 || modeFootScroll == maxScroll ? 1500 : 300)) {
+      modeFootScroll += modeFootDir;
+      if (modeFootScroll >= maxScroll) { modeFootScroll = maxScroll; modeFootDir = -1; }
+      if (modeFootScroll <= 0) { modeFootScroll = 0; modeFootDir = 1; }
+      modeFootTimer = now;
+    }
+    display.setCursor(0, 56);
+    for (int i = 0; i < maxChars && (modeFootScroll + i) < footerLen; i++) {
+      display.print(footerTxt[modeFootScroll + i]);
+    }
   }
-  display.setCursor(2, y2);
-  display.print("Volume Control");
-  if (modePickerCursor == 2) display.setTextColor(SSD1306_WHITE);
-
-  display.setCursor(8, y2 + 8);
-  display.print("Media controller");
-
-  // === Footer ===
-  display.drawFastHLine(0, 55, 128, SSD1306_WHITE);
-  display.setCursor(0, 57);
-  display.print("Turn=select Press=OK");
 }
 
 // ============================================================================
