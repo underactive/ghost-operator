@@ -225,7 +225,7 @@ bool isMenuItemHidden(int8_t idx) {
     }
   }
 
-  // Volume Control mode: hide all jiggler/sim settings
+  // Volume Control mode: hide all jiggler/sim settings + animation/schedule/sound
   if (isVol) {
     switch (item.settingId) {
       case SET_KEY_MIN: case SET_KEY_MAX: case SET_KEY_SLOTS:
@@ -235,6 +235,9 @@ bool isMenuItemHidden(int8_t idx) {
       case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
       case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
       case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
+      case SET_ANIMATION:
+      case SET_SCHEDULE_MODE: case SET_SET_CLOCK:
+      case SET_SOUND_ENABLED: case SET_SOUND_TYPE:
         return true;
     }
   }

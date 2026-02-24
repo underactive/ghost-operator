@@ -2007,25 +2007,6 @@ static void drawVolumeNormal() {
   }
 }
 
-static void drawVolumeScreensaver() {
-  display.clearDisplay();
-
-  // Centered speaker icon
-  if (volMuted) {
-    display.drawBitmap(56, 20, iconSpeakerMuted16, 16, 16, SSD1306_WHITE);
-  } else {
-    display.drawBitmap(56, 20, iconSpeaker16, 16, 16, SSD1306_WHITE);
-  }
-
-  // Battery warning if low
-  if (batteryPercent < 15) {
-    char buf[8];
-    snprintf(buf, sizeof(buf), "%d%%", batteryPercent);
-    int w = strlen(buf) * 6;
-    display.setCursor((128 - w) / 2, 48);
-    display.print(buf);
-  }
-}
 
 // ============================================================================
 // HELP BAR
@@ -2333,7 +2314,7 @@ void updateDisplay() {
   } else if (sleepConfirmActive) {
     drawSleepConfirm();
   } else if (screensaverActive) {
-    if (settings.operationMode == 2) drawVolumeScreensaver();
+    if (settings.operationMode == 2) drawVolumeNormal();  // just dim the normal display
     else if (settings.operationMode == 1) drawSimulationScreensaver();
     else drawScreensaver();
   } else if (currentMode == MODE_NORMAL) {

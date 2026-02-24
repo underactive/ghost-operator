@@ -43,19 +43,22 @@ static_assert(sizeof(AVAILABLE_KEYS) / sizeof(AVAILABLE_KEYS[0]) == NUM_KEYS,
               "NUM_KEYS define must match AVAILABLE_KEYS[] size");
 
 const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
-  // idx 0-3: Simulation (sim-only; orphan heading auto-hides in simple mode)
+  // idx 0-1: Volume (vol-only; orphan heading auto-hides in other modes)
+  { MENU_HEADING, "Volume",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_VALUE,   "Theme",         "Volume control display theme", FMT_VOLUME_THEME, 0, 2, 1, SET_VOLUME_THEME },
+  // idx 2-5: Simulation (sim-only; orphan heading auto-hides in simple mode)
   { MENU_HEADING, "Simulation",    NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Job type",      "Daily schedule template for work simulation", FMT_JOB_SIM, 0, 2, 1, SET_JOB_SIM },
   { MENU_VALUE,   "Job start",     "Time of day your workday begins", FMT_TIME_5MIN, 0, 287, 1, SET_JOB_START_TIME },
   { MENU_VALUE,   "Performance",   "Job performance level (0-11)", FMT_PERF_LEVEL, 0, 11, 1, SET_JOB_PERFORMANCE },
-  // idx 4-9: Keyboard
+  // idx 6-11: Keyboard
   { MENU_HEADING, "Keyboard",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Key min",       "Minimum delay between keystrokes", FMT_DURATION_MS, 500, 30000, 500, SET_KEY_MIN },
   { MENU_VALUE,   "Key max",       "Maximum delay between keystrokes", FMT_DURATION_MS, 500, 30000, 500, SET_KEY_MAX },
   { MENU_ACTION,  "Key slots",     "Configure 8 key slots", FMT_DURATION_MS, 0, 0, 0, SET_KEY_SLOTS },
   { MENU_VALUE,   "Window switch", "Alt/Cmd-Tab at long intervals (WARNING: may move focus)", FMT_ON_OFF, 0, 1, 1, SET_WINDOW_SWITCH },
   { MENU_VALUE,   "Switch keys",   "Key combo for window switching", FMT_SWITCH_KEYS, 0, 1, 1, SET_SWITCH_KEYS },
-  // idx 10-17: Mouse
+  // idx 12-19: Mouse
   { MENU_HEADING, "Mouse",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Move duration", "Duration of mouse jiggle movement", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_JIG },
   { MENU_VALUE,   "Idle duration", "Pause between mouse jiggles", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_IDLE },
@@ -64,25 +67,22 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Scroll",        "Random scroll wheel during mouse movement", FMT_ON_OFF, 0, 1, 1, SET_SCROLL },
   { MENU_VALUE,   "Auto-clicks",   "Inject clicks during mouse phases", FMT_ON_OFF, 0, 1, 1, SET_PHANTOM_CLICKS },
   { MENU_VALUE,   "Click type",    "Mouse button for auto-clicks", FMT_CLICK_TYPE, 0, 1, 1, SET_CLICK_TYPE },
-  // idx 18-20: Profiles
+  // idx 20-22: Profiles
   { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },
   { MENU_VALUE,   "Busy adjust",   "Speed up timing by this percent", FMT_PERCENT, 0, 50, 5, SET_BUSY_PCT },
-  // idx 21-26: Display
+  // idx 23-28: Display
   { MENU_HEADING, "Display",       NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Brightness",    "OLED display brightness", FMT_PERCENT, 10, 100, 10, SET_DISPLAY_BRIGHT },
   { MENU_VALUE,   "Saver bright",  "Screensaver dimmed brightness", FMT_PERCENT, 10, 100, 10, SET_SAVER_BRIGHT },
   { MENU_VALUE,   "Saver T.O.",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
   { MENU_VALUE,   "Animation",     "Status animation style", FMT_ANIM_NAME, 0, 5, 1, SET_ANIMATION },
   { MENU_VALUE,   "Header txt",   "Normal screen header shows job or device name", FMT_HEADER_DISP, 0, 1, 1, SET_HEADER_DISPLAY },
-  // idx 27-29: Sound
+  // idx 29-31: Sound
   { MENU_HEADING, "Sound",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Sound",        "Mechanical keyboard sound on keystroke", FMT_ON_OFF, 0, 1, 1, SET_SOUND_ENABLED },
   { MENU_VALUE,   "Key sound",    "Keyboard switch sound profile", FMT_KEY_SOUND, 0, 4, 1, SET_SOUND_TYPE },
-  // idx 30-31: Volume (vol-only; orphan heading auto-hides in other modes)
-  { MENU_HEADING, "Volume",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
-  { MENU_VALUE,   "Theme",         "Volume control display theme", FMT_VOLUME_THEME, 0, 2, 1, SET_VOLUME_THEME },
-  // idx 32-34: Schedule (shifted +2 from Volume insertion)
+  // idx 32-34: Schedule
   { MENU_HEADING, "Schedule",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Set clock",     "Set device time manually", FMT_DURATION_MS, 0, 0, 0, SET_SET_CLOCK },
   { MENU_ACTION,  "Schedule",      "Configure schedule mode & times", FMT_DURATION_MS, 0, 0, 0, SET_SCHEDULE_MODE },
