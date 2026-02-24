@@ -1593,10 +1593,11 @@ static void drawCarouselPage() {
   {
     static float crslScrollX = 0.0f;
     static const CarouselConfig* crslLastConfig = NULL;
+    static bool crslSnap = true;
 
     // Reset scroll position when config changes
     if (carouselConfig != crslLastConfig) {
-      crslScrollX = 0.0f;
+      crslSnap = true;
       crslLastConfig = carouselConfig;
     }
 
@@ -1613,13 +1614,19 @@ static void drawCarouselPage() {
       runX += cellWidth[i];
     }
 
-    // Animate scroll toward selected item
+    // Animate scroll toward selected item (snap on first frame)
     float target = (float)cellCenterX[carouselCursor] - 64.0f;
-    float delta = target - crslScrollX;
-    if (delta > -0.5f && delta < 0.5f) {
+    if (crslSnap) {
       crslScrollX = target;
+      crslSnap = false;
     } else {
-      crslScrollX += delta * 0.25f;
+      float delta = target - crslScrollX;
+      if (delta > -0.5f && delta < 0.5f) {
+        crslScrollX = target;
+      } else {
+        crslScrollX += delta * 0.25f;
+        markDisplayDirty();  // keep animating until converged
+      }
     }
     int scrollI = (int)crslScrollX;
 
@@ -1781,7 +1788,7 @@ static void drawModePickerPage() {
   {
     static float modeScrollX = 0.0f;
 
-    // Compute cell layout
+    // Compute cell layout (snap handled after target computation)
     int cellWidth[3];
     int cellCenterX[3];
     int runX = 0;
@@ -1792,13 +1799,19 @@ static void drawModePickerPage() {
       runX += cellWidth[i];
     }
 
-    // Animate scroll toward selected item
+    // Animate scroll toward selected item (snap on first frame)
     float target = (float)cellCenterX[modePickerCursor] - 64.0f;
-    float delta = target - modeScrollX;
-    if (delta > -0.5f && delta < 0.5f) {
+    if (modePickerSnap) {
       modeScrollX = target;
+      modePickerSnap = false;
     } else {
-      modeScrollX += delta * 0.25f;
+      float delta = target - modeScrollX;
+      if (delta > -0.5f && delta < 0.5f) {
+        modeScrollX = target;
+      } else {
+        modeScrollX += delta * 0.25f;
+        markDisplayDirty();  // keep animating until converged
+      }
     }
     int scrollI = (int)modeScrollX;
 

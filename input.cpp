@@ -159,6 +159,7 @@ void returnToMenuFromClock() {
 void initModePicker() {
   modeOriginalValue = settings.operationMode;
   modePickerCursor = settings.operationMode;  // 0=Simple, 1=Simulation
+  modePickerSnap = true;
   modeConfirming = false;
   modeRebootYes = true;
 }

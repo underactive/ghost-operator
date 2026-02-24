@@ -65,6 +65,7 @@ bool    rebootConfirmYes = false;
 
 // Mode picker state (MODE_MODE sub-page)
 uint8_t modePickerCursor = 0;
+bool    modePickerSnap = true;
 bool    modeConfirming = false;
 bool    modeRebootYes = true;
 uint8_t modeOriginalValue = 0;
