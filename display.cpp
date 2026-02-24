@@ -1665,6 +1665,7 @@ static void drawModePickerPage() {
     // Render strip at y=24 (centered in content area)
     const int stripY = 24;
     const int stripH = 11;
+    display.setTextWrap(false);
     for (int i = 0; i < 3; i++) {
       const char* nm = OP_MODE_NAMES[i];
       int tw = (int)strlen(nm) * 6;
@@ -1684,6 +1685,7 @@ static void drawModePickerPage() {
         display.print(nm);
       }
     }
+    display.setTextWrap(true);
   }
 
   // === Help text (scrolls if overflow) ===
