@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 2.0.0
+**Current Version:** 2.1.0
 **Status:** Production-ready
 
 ---
@@ -50,7 +50,7 @@
 ## Firmware Architecture
 
 ### Core Files
-Modular architecture — 17 `.h/.cpp` module pairs + lean `.ino` entry point:
+Modular architecture — 20 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 - `ghost_operator.ino` - Entry point: setup(), loop(), BLE + USB HID setup/callbacks
 - `config.h` - All `#define` constants, enums, structs (header-only)
@@ -67,9 +67,12 @@ Modular architecture — 17 `.h/.cpp` module pairs + lean `.ino` entry point:
 - `screenshot.h/.cpp` - PNG encoder + base64 serial output
 - `serial_cmd.h/.cpp` - Serial debug commands + status
 - `input.h/.cpp` - Encoder dispatch, buttons, name editor
-- `display.h/.cpp` - All rendering (~800 lines, largest module)
+- `display.h/.cpp` - All rendering (dirty flag, shadow buffer page redraw, ~800 lines, largest module)
 - `ble_uart.h/.cpp` - BLE UART (NUS) + transport-agnostic config protocol
-- `sound.h/.cpp` - Piezo buzzer keyboard sound profiles (5 types)
+- `sound.h/.cpp` - Piezo buzzer keyboard sound profiles (5 types) with live preview
+- `orchestrator.h/.cpp` - Simulation activity orchestrator (phase cycling, mutual exclusion, job performance scaling)
+- `sim_data.h/.cpp` - Simulation data tables (job templates, work modes, phase timing)
+- `schedule.h/.cpp` - Timed schedule (auto-sleep/full auto, light/deep sleep, time sync)
 
 ### Dependencies
 - Adafruit Bluefruit (built into Seeed nRF52 core)
@@ -92,23 +95,24 @@ Modular architecture — 17 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 #### 2. UI Modes
 ```cpp
-enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_COUNT };
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_COUNT };
 ```
-- **NORMAL**: Live status; encoder switches profile, button cycles KB/MS combos
+- **NORMAL**: Live status; encoder switches profile (Simple) or adjusts job performance (Simulation), button cycles KB/MS combos
 - **MENU**: Scrollable settings menu; encoder navigates/edits, button selects/confirms
 - **SLOTS**: 8-key slot editor; encoder cycles key, button advances slot
 - **NAME**: Device name editor; encoder cycles character, button advances position
 - **DECOY**: BLE identity picker; encoder navigates presets (with active marker `*`), button selects, reboot confirmation on change
 - **SCHEDULE**: Schedule editor; 3-row layout (Mode/Start/End) with contextual help; rows hidden based on mode selection
 - **MODE**: Operation mode picker (Simple/Simulation) with descriptions and reboot confirmation
-- Function button toggles NORMAL ↔ MENU; from SLOTS/NAME/DECOY/SCHEDULE/MODE returns to MENU
+- **SET_CLOCK**: Manual time editor; encoder cycles hour/minute values, button advances field, function button confirms and calls `syncTime()`; pre-fills from current time if synced
+- Function button toggles NORMAL ↔ MENU; from SLOTS/NAME/DECOY/SCHEDULE/MODE/SET_CLOCK returns to MENU
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
 Data-driven architecture using `MenuItem` struct array (45 entries: 9 headings + 36 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
 - `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, `ANIM_NAMES[]`, `MOUSE_STYLE_NAMES[]`, or `SWITCH_KEYS_NAMES[]`
@@ -216,6 +220,20 @@ enum MouseStyle { MOUSE_BEZIER, MOUSE_BROWNIAN, MOUSE_STYLE_COUNT };
 - Long-press sleep still works from screensaver (not consumed)
 - Timeout and brightness configurable via MENU items ("Saver time" and "Saver bright")
 
+#### 8a. Display Rendering
+- **Dirty flag**: `markDisplayDirty()` called from all state-change sites (BLE connect/disconnect, keystroke, mouse transition, encoder, buttons, settings, battery, orchestrator); static modes skip I2C entirely when idle
+- **20 Hz refresh**: `DISPLAY_UPDATE_MS` = 50ms with dirty flag gating; time-based modes (NORMAL, MENU, screensaver, overlays) redraw every frame; screensaver runs at 5 Hz (`DISPLAY_UPDATE_SAVER_MS` = 200ms)
+- **Shadow buffer**: 1024-byte page cache compares each render via `memcmp`, sends only contiguous dirty page ranges via SSD1306 page addressing (~60–75% I2C savings on typical NORMAL frames)
+- `invalidateDisplayShadow()` for code paths that bypass the shadow (e.g., scheduled light sleep screen)
+
+#### 8b. Sound
+- **Piezo buzzer** on D6 (transistor-driven: Q1 2N2222, R1 1kΩ, R2 10kΩ)
+- 5 keyboard sound profiles: MX Blue, MX Brown, Membrane, Buckling Spring, Deep Thock
+- `playKeySound()`: plays on key-down when `soundEnabled` AND connected AND in `MODE_NORMAL`; per-call frequency variation for realism
+- Uses direct `digitalWrite()` GPIO pulses with microsecond timing (not `tone()`) for sharp percussive transients
+- **Live preview**: non-blocking state machine plays continuous typing (80–180ms intervals) while editing sound type in menu; `startSoundPreview()`/`stopSoundPreview()`/`updateSoundPreview()` (called from main loop)
+- Menu items: "Sound" (On/Off toggle), "Key sound" (profile selector, hidden when sound disabled)
+
 #### 9. Config Protocol (BLE UART + USB Serial)
 ```
 WEB → DEVICE                    DEVICE → WEB
@@ -232,6 +250,7 @@ WEB → DEVICE                    DEVICE → WEB
 =invertDial:1               →   +ok
 =switchKeys:N               →   +ok
 =jobStart:N                 →   +ok
+=jobPerf:N                  →   +ok
 =clickType:N                →   +ok
 =sound:1                    →   +ok
 =soundType:N                →   +ok
@@ -297,7 +316,7 @@ See [docs/CLAUDE.md/display-layout.md](docs/CLAUDE.md/display-layout.md) for ASC
 
 ## Version History
 
-See [docs/CLAUDE.md/version-history.md](docs/CLAUDE.md/version-history.md) for full changelog (v1.0.0 through v2.0.0).
+See [docs/CLAUDE.md/version-history.md](docs/CLAUDE.md/version-history.md) for full changelog (v1.0.0 through v2.1.0).
 
 ---
 
@@ -346,9 +365,9 @@ Command buffers track an overflow flag (`uartBufOverflow`, `serialBufOverflow`).
 ## Common Modifications
 
 ### Version bumps
-Version appears in 7 files: `config.h`, `ghost_operator.ino`, `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `App.vue`, `USER_MANUAL.md` (x2), plus `dashboard/package.json`.
+Version string appears in 8 files: `config.h` (firmware `VERSION` define), `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `App.vue`, `USER_MANUAL.md` (x2 — header + footer), `dashboard/package.json`, and `dashboard/package-lock.json` (x2).
 
-**Dashboard version is kept in sync with the firmware version.** Always bump `App.vue` and `dashboard/package.json` alongside the other version files during any version bump.
+**Dashboard version is kept in sync with the firmware version.** Always bump `App.vue`, `dashboard/package.json`, and `dashboard/package-lock.json` alongside the other version files during any version bump.
 
 ### Add a new keystroke option
 1. Add entry to `AVAILABLE_KEYS[]` array in `keys.cpp`

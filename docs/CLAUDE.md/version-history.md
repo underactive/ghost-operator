@@ -2,6 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
+| 2.1.0 | Piezo buzzer keyboard sounds (5 profiles with live preview), job performance scaling (0–11), job start time (decoupled from schedule), manual clock setting mode (MODE_SET_CLOCK), display optimization (dirty flag + shadow buffer + 20 Hz refresh), dashboard sound section |
 | 2.0.0 | Simulation mode (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules), mute button (D7), hardware watchdog (WDT), two-stage sleep (light at 3s / deep at 6s), click type setting (Middle/Left), mode picker UI (MODE_MODE), pixel art keycap/mouse icons, footer info cycling, dashboard simulation support, heap fragmentation elimination, Host OS → Switch Keys simplification, `-Wall` build warnings resolved |
 | 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
 | 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto), schedule editor UI |

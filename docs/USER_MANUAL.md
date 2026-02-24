@@ -1,4 +1,4 @@
-# Ghost Operator v2.0.0 - User Manual
+# Ghost Operator v2.1.0 - User Manual
 
 ## Quick Start
 
@@ -13,13 +13,13 @@
 
 ## Controls Overview
 
-| Control | NORMAL | MENU | SLOTS | NAME |
-|---------|--------|------|-------|------|
-| **Encoder Turn** | Switch profile | Navigate / adjust value | Cycle slot key | Cycle character / Yes-No |
-| **Encoder Press** | Cycle KB/MS enable | Select / confirm | Advance slot cursor | Advance position / confirm |
-| **Button Short** | Open menu | Close menu (save) | Back to menu (save) | Save name (reboot prompt) |
-| **Button Hold (5s)** | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) | Sleep (countdown) |
-| **Button (sleeping)** | Wake up | - | - | - |
+| Control | NORMAL (Simple) | NORMAL (Simulation) | MENU | SLOTS / NAME |
+|---------|-----------------|---------------------|------|--------------|
+| **Encoder Turn** | Switch profile | Adjust job performance (0–11) | Navigate / adjust value | Cycle key or character |
+| **Encoder Press** | Cycle KB/MS enable | Cycle footer info | Select / confirm | Advance cursor |
+| **Mute Button (SW2)** | Cycle KB/MS enable | Cycle footer info | — | — |
+| **Function Short** | Open menu | Open menu | Close menu (save) | Back to menu |
+| **Function Hold (6s)** | Sleep (light 0–3s, deep 3–6s) | Sleep | Sleep | Sleep |
 
 ---
 
@@ -102,26 +102,47 @@
 
 | Heading | Setting | What It Does |
 |---------|---------|-------------|
-| **Keyboard** | Key min | Minimum delay between keystrokes (0.5s-30s) |
-| | Key max | Maximum delay between keystrokes (0.5s-30s) |
+| **Simulation** | Mode | Simple (direct timing) or Simulation (human work patterns) — reboot required |
+| | Job type | Staff / Developer / Designer — different daily work patterns |
+| | Job start | Time-of-day when simulated workday begins (default 8:00 AM) |
+| | Performance | Activity intensity 0–11 (5 = baseline); also adjustable via encoder in NORMAL |
+| | Auto-clicks | Random mouse button clicks at activity transitions (Off / On) |
+| | Click type | Which button for auto-clicks: Middle (default) or Left |
+| | Window switch | Simulate Alt-Tab / Cmd-Tab window switching (Off / On) |
+| | Switch keys | Alt-Tab (default) or Cmd-Tab — only shown when window switch is On |
+| | Header txt | Normal screen header: Job sim name (default) or Device name |
+| **Keyboard** | Key min | Minimum delay between keystrokes (0.5s-30s) — Simple mode only |
+| | Key max | Maximum delay between keystrokes (0.5s-30s) — Simple mode only |
 | | Key slots | Opens the slot editor (press encoder to enter) |
 | **Mouse** | Move duration | How long the mouse moves (0.5s-90s) |
 | | Idle duration | Pause between moves (0.5s-90s) |
 | | Move style | Movement pattern: Bezier (smooth curves) or Brownian (jiggle) |
 | | Move size | Mouse step size, Brownian only (1-5px, default 1px) |
 | | Scroll | Random scroll wheel during mouse movement (Off / On, default Off) |
-| **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) |
-| | Busy adjust | Speed up timing (0% to 50%, 5% steps) |
+| **Profiles** | Lazy adjust | Slow down timing (-50% to 0%, 5% steps) — Simple mode only |
+| | Busy adjust | Speed up timing (0% to 50%, 5% steps) — Simple mode only |
+| **Schedule** | Schedule | Off / Auto-sleep / Full auto |
+| | Set clock | Manually set device clock (opens clock editor) |
+| | Start time | When jiggler should start (5-min steps) |
+| | End time | When jiggler should stop (5-min steps) |
 | **Display** | Brightness | OLED display brightness (10-100%, default 80%) |
 | | Saver bright | Screensaver dimmed brightness (10-100%, default 20%) |
 | | Saver time | Screensaver timeout (Never / 1 / 5 / 10 / 15 / 30 min) |
 | | Animation | Status animation style (ECG / EQ / Ghost / Matrix / Radar / None, default Ghost) |
-| **Device** | Device name | Device name editor (press encoder to enter) |
+| **Device** | BLE identity | Disguise as common Bluetooth peripherals (Apple/Logitech/Keychron presets) |
+| | Device name | Custom BLE device name editor (when identity is "Custom") |
 | | BT while USB | Keep Bluetooth active when USB plugged in (Off / On, default Off) |
-| | Dashboard | Show Chrome notification linking to web dashboard on USB connect (On / Off, default On — auto-disables after 3 boots if untouched) |
+| | Sound | Mechanical keyboard sound effects on each keystroke (Off / On) |
+| | Key sound | Sound profile: MX Blue / MX Brown / Membrane / Buckling / Thock — live preview while browsing |
+| | Dashboard | Chrome notification linking to web dashboard (On / Off) |
+| | Invert dial | Reverse encoder rotation direction (Off / On) |
 | | Reset defaults | Restore all settings to factory defaults (confirmation required) |
 | | Reboot | Restart the device (confirmation required) |
 | **About** | Version | Firmware version (read-only) |
+| | Uptime | Time since last boot (read-only) |
+| | Die temp | Internal chip temperature (read-only) |
+
+**Note:** Some menu items are conditionally visible. In Simple mode, the Simulation heading is hidden. In Simulation mode, Key min/max and Profiles are hidden. "Switch keys" only appears when window switching is enabled. "Key sound" only appears when sound is enabled. "Move size" only appears in Brownian mouse style.
 
 **Help bar:** The bottom line shows context-sensitive help for the selected item. Long text scrolls automatically.
 
@@ -205,34 +226,39 @@
 
 ## Navigating Modes
 
-The device has four modes:
+The device has eight modes:
 
 ```
-NORMAL ←→ MENU → SLOTS → MENU
-         (func)  (func)  (func)
-                → NAME  → MENU
-                 (func)  (func)
+NORMAL ←→ MENU → SLOTS     → MENU
+         (func)  → NAME      → MENU
+                 → DECOY     → MENU
+                 → SCHEDULE  → MENU
+                 → MODE      → MENU
+                 → SET CLOCK → MENU
 ```
 
 | Mode | Purpose |
 |------|---------|
-| **NORMAL** | Live status display — turn encoder to switch profile, press encoder to toggle KB/MS |
-| **MENU** | Scrollable settings menu — turn encoder to navigate, press to select/edit |
+| **NORMAL** | Live status — encoder switches profile (Simple) or adjusts job performance (Simulation) |
+| **MENU** | Scrollable settings — turn encoder to navigate, press to select/edit |
 | **SLOTS** | Key slot editor — turn encoder to change key, press to advance slot |
 | **NAME** | Device name editor — turn encoder to change character, press to advance position |
+| **DECOY** | BLE identity picker — choose from 10 commercial device presets |
+| **SCHEDULE** | Schedule editor — set mode, start/end times for auto-sleep/wake |
+| **MODE** | Operation mode picker — Simple or Simulation (reboot required) |
+| **SET CLOCK** | Manual clock editor — set hours and minutes without USB connection |
 
 - **Function button** toggles between NORMAL and MENU
-- From SLOTS, **function button** returns to MENU (at the "Key slots" item)
-- From NAME, **function button** saves and returns to MENU (with optional reboot prompt)
+- From sub-modes (SLOTS, NAME, DECOY, etc.), **function button** returns to MENU
 - **Auto-return:** If you don't touch anything for 30 seconds in MENU, SLOTS, or NAME, it returns to NORMAL and saves
 
 ---
 
 ## Adjusting Settings
 
-### Timing Profiles (NORMAL mode)
+### Timing Profiles (Simple Mode)
 
-Ghost Operator has three timing profiles that scale all timing values:
+In **Simple mode**, Ghost Operator has three timing profiles that scale all timing values:
 
 | Profile | Effect |
 |---------|--------|
@@ -246,6 +272,21 @@ Ghost Operator has three timing profiles that scale all timing values:
 4. Adjust how much each profile scales values in **"Lazy adjust"** and **"Busy adjust"** in the menu (default: 15%)
 
 Profiles do **not** change your saved base settings — they apply scaling at runtime only. Profile resets to NORMAL after sleep/wake.
+
+### Job Performance (Simulation Mode)
+
+In **Simulation mode**, the encoder adjusts **job performance** (0–11) instead of switching profiles:
+
+| Level | Effect |
+|-------|--------|
+| **0** | Near-idle: minimal activity, long pauses |
+| **5** | Baseline: default simulation behavior |
+| **11** | High activity: frequent keystrokes, short idle phases |
+
+1. In **NORMAL mode**, **turn the encoder** to adjust performance level
+2. An overlay shows "Job Performance" with a fill-bar gauge
+3. The simulation orchestrator scales all activity timing based on this level
+4. Performance can also be adjusted in the menu (Simulation → Performance) or via the web dashboard
 
 ### Change Device Name
 
@@ -321,6 +362,48 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 | 3rd | OFF | OFF |
 | 4th | ON | ON (wraps) |
 
+### Operation Modes
+
+Ghost Operator has two operation modes, selectable via Menu → Simulation → Mode (reboot required):
+
+| Mode | Behavior |
+|------|----------|
+| **Simple** (default) | Direct timing — keystrokes at random intervals between min/max, independent mouse jiggle. You control all timing values directly. |
+| **Simulation** | Human work patterns — the device simulates a realistic workday with keystroke bursting, mouse activity phases, and idle periods based on the selected job type. |
+
+**Simulation mode features:**
+- **Job types** (Staff / Developer / Designer): Different daily schedules with weighted work activities (email, programming, browsing, meetings, etc.)
+- **Job start time**: When the simulated workday begins (default 8:00 AM, independent of schedule)
+- **Keystroke bursting**: Rapid key sequences (5–100 keys) with humanized press durations instead of uniform single-key timing
+- **Activity phases**: Cycling through TYPING → SWITCHING → MOUSING → IDLE with mutual exclusion (keyboard and mouse never active simultaneously)
+- **Auto-clicks**: Optional mouse button clicks at activity transitions (configurable: Middle or Left button)
+- **Window switching**: Optional Alt-Tab or Cmd-Tab keystrokes at configurable intervals
+
+### Schedule (Auto-Sleep / Auto-Wake)
+
+Set the device to automatically sleep and wake on a daily schedule:
+
+| Mode | Behavior |
+|------|----------|
+| **Off** | No scheduling — device runs until manually put to sleep |
+| **Auto-sleep** | Deep sleep at end time; manual wake required (press function button) |
+| **Full auto** | Light sleep at end time; auto-wake at start time the next day |
+
+1. Open Menu → Schedule → Schedule and select a mode
+2. Set **Start time** and **End time** (5-minute increments, default 9:00–17:00)
+3. **Sync the clock**: connect via USB dashboard (auto-syncs) or use "Set clock" to set time manually on-device
+4. The schedule editor is locked until the clock is synced
+
+### BLE Identity (Decoy Mode)
+
+Disguise your Ghost Operator as a common commercial Bluetooth device to blend into corporate BLE scans:
+
+1. Open Menu → Device → BLE identity
+2. Browse 10 presets: Apple Magic Keyboard, Logitech MX Master 3S, Keychron K2, etc.
+3. Press encoder to select — active preset is marked with `*`
+4. If you changed the identity, a reboot confirmation appears
+5. Select **Custom** (index 0) to use your own device name from the name editor
+
 ---
 
 ## Timing Behavior
@@ -347,11 +430,13 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 ## Sleep Mode
 
 ### Enter Sleep
-- **Hold function button** — after 0.5 seconds, a "Hold to sleep..." overlay appears with a 5-second countdown bar
-- **Keep holding** to complete the countdown — display briefly shows "SLEEPING..." then enters deep sleep (~3µA)
-- **Release during countdown** to cancel — shows "Cancelled" briefly and returns to the previous screen
+- **Hold function button** — after 0.5 seconds, a "Hold to sleep..." overlay appears with a 6-second countdown bar
+- The bar has two segments: **Light** (0–3s) and **Deep** (3–6s)
+  - **Release in the Light zone** → light sleep: display dims, shows a breathing circle animation, BLE advertising stops. Press encoder button to wake.
+  - **Release in the Deep zone** (or hold to completion) → deep sleep (~3µA): full shutdown, only function button wakes
+- **Release before 0.5s** cancels — shows "Cancelled" briefly and returns to the previous screen
 - Bluetooth disconnects when sleep begins
-- Works from any mode (NORMAL, MENU, SLOTS, NAME) and from the screensaver
+- Works from any mode and from the screensaver
 
 ### Wake Up
 - **Press function button**
@@ -497,6 +582,8 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 | Mouse amplitude | 1-5px (1px steps, default 1px, Brownian only) |
 | Scroll wheel | ±1 tick every 2-5s during jiggle (optional) |
 | Mouse randomness | ±20% |
+| Sound profiles | MX Blue, MX Brown, Membrane, Buckling Spring, Thock |
+| Job performance | 0–11 (5 = baseline) |
 | Sleep current | ~3µA |
 | Active current | ~15mA (with display) |
 | Battery life | ~60+ hours (1000mAh) |
@@ -527,6 +614,6 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 
 ---
 
-*Ghost Operator v2.0.0 | TARS Industrial Technical Solutions*
+*Ghost Operator v2.1.0 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*

@@ -5,6 +5,42 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-02-23
+
+### Added
+
+- **Piezo buzzer keyboard sounds**: 5 mechanical keyboard sound profiles (MX Blue, MX Brown, Membrane, Buckling Spring, Deep Thock) with per-keystroke frequency variation for realism
+  - New "Sound" heading in menu with "Sound" (On/Off) and "Key sound" (profile selector) items
+  - Sound plays on key-down in both Simple and Simulation modes; auto-muted outside NORMAL mode
+  - Live preview: continuous typing plays while cycling sound types in menu, switches profile instantly on encoder rotation
+  - Protocol support: `=sound:N`, `=soundType:N`
+  - Dashboard: new Sound section with toggle and type dropdown
+- **Job performance scaling**: 0–11 "Performance" knob in Simulation menu globally scales activity intensity
+  - Level 5 = baseline (current behavior); higher = more keystrokes, shorter idle; lower = near-idle
+  - Encoder adjusts job performance directly from NORMAL screen in Simulation mode (replaces profile switching), with OLED overlay showing fill-bar gauge
+  - Dashboard: performance slider in Simulation section
+  - Protocol: `=jobPerf:N`, `jobPerf` field in `?settings` response
+- **Job start time**: Separate `jobStartTime` setting (default 8:00 AM) decouples simulation day-block anchoring from the sleep schedule's start time
+  - Dashboard: job start time slider in Simulation section
+  - Protocol: `=jobStart:N` (0–287 five-minute slots)
+- **Manual clock setting (MODE_SET_CLOCK)**: On-device time editor accessible via "Set clock" menu action in Schedule section — set hours (0–23) and minutes (0–59) without USB connection
+  - Pre-fills from current time if already synced; encoder cycles values, button advances field, function button confirms
+
+### Changed
+
+- **Display optimization**: Three-layer rendering overhaul minimizes I2C traffic to SSD1306 OLED
+  - Dirty flag: `markDisplayDirty()` called from all state-change sites; static modes skip I2C entirely when idle
+  - 20 Hz refresh (50ms): time-based modes redraw every frame, others only when dirty
+  - Shadow buffer: 1024-byte page cache sends only changed pages via SSD1306 page addressing (~60–75% I2C savings on typical NORMAL frames)
+  - `invalidateDisplayShadow()` added for code paths that bypass the shadow (e.g., light sleep screen)
+- **Settings struct**: +3 bytes (`jobPerformance`, `jobStartTime` as uint16, clock editor state); `SETTINGS_MAGIC` bumped to `0x50524F56`
+- **Menu items**: 45 entries (9 headings + 36 items) — added Performance, Job start, Set clock, Sound, Key sound; new `FMT_PERF_LEVEL` value format
+- **Schematic**: Updated encoder from KY-040 breakout to bare EC11 with internal pull-ups; added transistor-driven buzzer circuit (Q1 2N2222, R1 1kΩ, R2 10kΩ)
+
+### Fixed
+
+- **Piezo chirping**: Replaced `tone()` (sustained square wave causing piezo resonance) with direct GPIO pulses using microsecond timing for sharp percussive transients
+
 ## [2.0.0] - 2026-02-22
 
 ### Added

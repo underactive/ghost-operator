@@ -1,6 +1,6 @@
 # Ghost Operator - BLE HID Device
 
-## Version 2.0.0
+## Version 2.1.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -360,7 +360,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **2.0.0** | **Simulation mode: realistic human work patterns (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules); hardware watchdog (WDT); two-stage sleep (light/deep); click type setting; mode picker UI; pixel art icons; dashboard simulation support** |
+| **2.1.0** | **Piezo buzzer keyboard sounds (5 profiles with live preview); job performance scaling (0–11); job start time (decoupled from schedule); manual clock setting mode; display optimization (dirty flag, shadow buffer, 20 Hz refresh)** |
+| 2.0.0 | Simulation mode: realistic human work patterns (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules); hardware watchdog (WDT); two-stage sleep (light/deep); click type setting; mode picker UI; pixel art icons; dashboard simulation support |
 | 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
 | 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto) |
 | 1.9.1 | Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization |
