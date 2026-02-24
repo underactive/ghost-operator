@@ -330,6 +330,7 @@ void handleEncoder() {
             ? HID_USAGE_CONSUMER_VOLUME_INCREMENT
             : HID_USAGE_CONSUMER_VOLUME_DECREMENT;
           sendConsumerPress(key);
+          delay(30);
           sendConsumerRelease();
           volFeedbackDir = (int8_t)direction;
           volFeedbackStart = millis();
@@ -511,6 +512,7 @@ void handleButtons() {
       && (now - volD3LastPress >= VOL_D3_DOUBLECLICK_MS)) {
     volD3ClickCount = 0;
     sendConsumerPress(HID_USAGE_CONSUMER_SCAN_NEXT);
+    delay(30);
     sendConsumerRelease();
     markDisplayDirty();
     pushSerialStatus();
@@ -559,6 +561,7 @@ void handleButtons() {
           else {
             volMuted = !volMuted;
             sendConsumerPress(HID_USAGE_CONSUMER_MUTE);
+            delay(30);
             sendConsumerRelease();
             pushSerialStatus();
           }
@@ -815,6 +818,7 @@ void handleButtons() {
             if (volD3ClickCount == 1 && (now - volD3LastPress < VOL_D3_DOUBLECLICK_MS)) {
               volD3ClickCount = 0;
               sendConsumerPress(HID_USAGE_CONSUMER_SCAN_PREVIOUS);
+              delay(30);
               sendConsumerRelease();
               pushSerialStatus();
             } else {
@@ -999,6 +1003,7 @@ void handleButtons() {
       // Volume Control: D7 = play/pause
       volPlaying = !volPlaying;
       sendConsumerPress(HID_USAGE_CONSUMER_PLAY_PAUSE);
+      delay(30);
       sendConsumerRelease();
       pushSerialStatus();
     } else {
