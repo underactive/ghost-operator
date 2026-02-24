@@ -1637,13 +1637,54 @@ static void drawModePickerPage() {
   display.print("DEVICE MODE SELECT");
   display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
 
-  // === Centered mode name with arrows ===
-  const char* modeName = (modePickerCursor < 3) ? OP_MODE_NAMES[modePickerCursor] : "???";
-  char labelBuf[24];
-  snprintf(labelBuf, sizeof(labelBuf), "> %s <", modeName);
-  int labelW = strlen(labelBuf) * 6;
-  display.setCursor((128 - labelW) / 2, 26);
-  display.print(labelBuf);
+  // === Horizontal carousel strip ===
+  {
+    static float modeScrollX = 0.0f;
+
+    // Compute cell layout
+    int cellWidth[3];
+    int cellCenterX[3];
+    int runX = 0;
+    for (int i = 0; i < 3; i++) {
+      const char* nm = (i < 3) ? OP_MODE_NAMES[i] : "???";
+      cellWidth[i] = (int)strlen(nm) * 6 + 16;
+      cellCenterX[i] = runX + cellWidth[i] / 2;
+      runX += cellWidth[i];
+    }
+
+    // Animate scroll toward selected item
+    float target = (float)cellCenterX[modePickerCursor] - 64.0f;
+    float delta = target - modeScrollX;
+    if (delta > -0.5f && delta < 0.5f) {
+      modeScrollX = target;
+    } else {
+      modeScrollX += delta * 0.25f;
+    }
+    int scrollI = (int)modeScrollX;
+
+    // Render strip at y=24 (centered in content area)
+    const int stripY = 24;
+    const int stripH = 11;
+    for (int i = 0; i < 3; i++) {
+      const char* nm = OP_MODE_NAMES[i];
+      int tw = (int)strlen(nm) * 6;
+      int tx = cellCenterX[i] - scrollI - tw / 2;
+
+      if (tx >= 128 || tx + tw <= 0) continue;
+
+      if (i == modePickerCursor) {
+        int rx = cellCenterX[i] - scrollI - cellWidth[i] / 2;
+        display.fillRect(rx, stripY - 1, cellWidth[i], stripH, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+        display.setCursor(tx, stripY);
+        display.print(nm);
+        display.setTextColor(SSD1306_WHITE);
+      } else {
+        display.setCursor(tx, stripY);
+        display.print(nm);
+      }
+    }
+  }
 
   // === Help text (scrolls if overflow) ===
   static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller" };
