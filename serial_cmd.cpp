@@ -175,8 +175,13 @@ void handleSerialCommands() {
           Serial.print("Schedule sleeping: "); Serial.println(scheduleSleeping ? "YES" : "NO");
         }
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
-        Serial.print("Operation mode: "); Serial.println(OP_MODE_NAMES[settings.operationMode]);
-        if (settings.operationMode == 1) {
+        Serial.print("Operation mode: "); Serial.println((settings.operationMode < 3) ? OP_MODE_NAMES[settings.operationMode] : "???");
+        if (settings.operationMode == 2) {
+          Serial.println("--- Volume Control ---");
+          Serial.print("Muted: "); Serial.println(volMuted ? "YES" : "NO");
+          Serial.print("Playing: "); Serial.println(volPlaying ? "YES" : "NO");
+          Serial.print("Theme: "); Serial.println((settings.volumeTheme < VOLUME_THEME_COUNT) ? VOLUME_THEME_NAMES[settings.volumeTheme] : "???");
+        } else if (settings.operationMode == 1) {
           Serial.println("--- Simulation ---");
           Serial.print("Job: "); Serial.println(JOB_SIM_NAMES[settings.jobSimulation]);
           Serial.print("Performance: "); Serial.println(settings.jobPerformance);

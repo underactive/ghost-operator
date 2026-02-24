@@ -183,6 +183,7 @@ bool isMenuItemHidden(int8_t idx) {
   const MenuItem& item = MENU_ITEMS[idx];
 
   bool isSim = (settings.operationMode == 1);
+  bool isVol = (settings.operationMode == 2);
 
   // Orphan heading auto-hide: headings with all children hidden.
   // Must run BEFORE settingId checks — headings have settingId=0 which
@@ -222,6 +223,25 @@ bool isMenuItemHidden(int8_t idx) {
       case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
         return true;
     }
+  }
+
+  // Volume Control mode: hide all jiggler/sim settings
+  if (isVol) {
+    switch (item.settingId) {
+      case SET_KEY_MIN: case SET_KEY_MAX: case SET_KEY_SLOTS:
+      case SET_MOUSE_JIG: case SET_MOUSE_IDLE: case SET_MOUSE_STYLE:
+      case SET_MOUSE_AMP: case SET_SCROLL:
+      case SET_LAZY_PCT: case SET_BUSY_PCT:
+      case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
+      case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
+      case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
+        return true;
+    }
+  }
+
+  // Volume theme: only visible in Volume Control mode
+  if (!isVol) {
+    if (item.settingId == SET_VOLUME_THEME) return true;
   }
 
   return false;
@@ -304,7 +324,17 @@ void handleEncoder() {
 
     switch (currentMode) {
       case MODE_NORMAL:
-        if (settings.operationMode == 1) {
+        if (settings.operationMode == 2) {
+          // Volume Control: encoder sends volume up/down
+          uint16_t key = (direction > 0)
+            ? HID_USAGE_CONSUMER_VOLUME_INCREMENT
+            : HID_USAGE_CONSUMER_VOLUME_DECREMENT;
+          sendConsumerPress(key);
+          sendConsumerRelease();
+          volFeedbackDir = (int8_t)direction;
+          volFeedbackStart = millis();
+          pushSerialStatus();
+        } else if (settings.operationMode == 1) {
           // Simulation mode: adjust job performance (0–11)
           int val = (int)settings.jobPerformance + direction;
           if (val < 0) val = 0;
@@ -447,8 +477,11 @@ void handleEncoder() {
         if (modeConfirming) {
           modeRebootYes = !modeRebootYes;
         } else {
-          // Toggle cursor between 0 (Simple) and 1 (Simulation)
-          modePickerCursor = modePickerCursor ? 0 : 1;
+          // Clamp cursor across 3 options (Simple/Simulation/Volume Control)
+          int next = (int)modePickerCursor + direction;
+          if (next < 0) next = 0;
+          if (next > 2) next = 2;
+          modePickerCursor = (uint8_t)next;
         }
         break;
 
@@ -471,364 +504,481 @@ void handleButtons() {
   bool encBtn = digitalRead(PIN_ENCODER_BTN);
   bool funcBtn = digitalRead(PIN_FUNC_BTN);
 
-  // Encoder button - mode-dependent behavior
-  if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
-    lastEncPress = now;
-    lastModeActivity = now;
+  // D3 deferred single-click for Volume Control (next track)
+  if (settings.operationMode == 2 && currentMode == MODE_NORMAL
+      && volD3ClickCount == 1
+      && !volD3WasPressed
+      && (now - volD3LastPress >= VOL_D3_DOUBLECLICK_MS)) {
+    volD3ClickCount = 0;
+    sendConsumerPress(HID_USAGE_CONSUMER_SCAN_NEXT);
+    sendConsumerRelease();
     markDisplayDirty();
+    pushSerialStatus();
+  }
 
-    // Suppress input during sleep confirm/cancel overlay
-    if (sleepConfirmActive || sleepCancelActive) { lastEncBtn = encBtn; return; }
-
-    // Wake from scheduled light sleep -- consume input
-    if (scheduleSleeping) { exitLightSleep(); lastEncBtn = encBtn; return; }
-
-    // Wake screensaver -- consume input
-    if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
-
-    switch (currentMode) {
-      case MODE_NORMAL:
-        if (settings.operationMode == 1) {
-          // Simulation mode: skip to next work mode
-          skipWorkMode();
-        } else {
-          // Simple mode: cycle footer display mode
-          uint8_t next = (uint8_t)footerMode;
-          do {
-            next = (next + 1) % FOOTER_MODE_COUNT;
-          } while (next == (uint8_t)FOOTER_CLOCK && !timeSynced);
-          footerMode = (FooterMode)next;
-          profileDisplayStart = 0;  // clear profile overlay so change is visible immediately
+  // Volume Control D2: short press = mute, hold = sleep
+  if (settings.operationMode == 2 && currentMode == MODE_NORMAL) {
+    bool encBtnVC = digitalRead(PIN_ENCODER_BTN);
+    if (encBtnVC == LOW) {
+      if (!volD2WasPressed) {
+        volD2PressStart = now;
+        volD2WasPressed = true;
+      } else {
+        unsigned long holdTime = now - volD2PressStart;
+        if (!sleepConfirmActive && holdTime >= VOL_D2_HOLD_THRESHOLD_MS) {
+          sleepConfirmActive = true;
+          sleepConfirmStart = now;
+          if (screensaverActive) screensaverActive = false;
+          markDisplayDirty();
         }
-        break;
-
-      case MODE_MENU:
-        if (defaultsConfirming) {
-          if (defaultsConfirmYes) {
-            loadDefaults();
-            saveSettings();
-            currentProfile = PROFILE_NORMAL;
-            pickNextKey();
-            scheduleNextKey();
-            scheduleNextMouseState();
-            Serial.println("Settings restored to defaults");
+        if (sleepConfirmActive && (now - sleepConfirmStart >= SLEEP_COUNTDOWN_MS)) {
+          sleepConfirmActive = false;
+          sleepPending = true;
+          volD2WasPressed = false;
+        }
+      }
+    } else {
+      if (volD2WasPressed) {
+        unsigned long holdTime = now - volD2PressStart;
+        if (sleepConfirmActive) {
+          unsigned long confirmElapsed = now - sleepConfirmStart;
+          sleepConfirmActive = false;
+          markDisplayDirty();
+          if (confirmElapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
+            lightSleepPending = true;
+          } else {
+            sleepCancelActive = true;
+            sleepCancelStart = now;
+          }
+        } else if (holdTime > 50 && holdTime < VOL_D2_HOLD_THRESHOLD_MS) {
+          lastModeActivity = now;
+          markDisplayDirty();
+          if (sleepCancelActive) { /* skip */ }
+          else if (screensaverActive) { screensaverActive = false; }
+          else if (scheduleSleeping) { exitLightSleep(); }
+          else {
+            volMuted = !volMuted;
+            sendConsumerPress(HID_USAGE_CONSUMER_MUTE);
+            sendConsumerRelease();
             pushSerialStatus();
           }
-          defaultsConfirming = false;
-        } else if (rebootConfirming) {
-          if (rebootConfirmYes) {
-            Serial.println("Rebooting...");
-            NVIC_SystemReset();
-          }
-          rebootConfirming = false;
-        } else if (menuEditing) {
-          // Exit edit mode
-          menuEditing = false;
-          stopSoundPreview();
-          Serial.println("Menu: edit done");
-        } else if (menuCursor >= 0) {
-          const MenuItem& item = MENU_ITEMS[menuCursor];
-          if (item.type == MENU_VALUE && item.minVal != item.maxVal) {
-            // Enter edit mode (skip read-only items where min == max)
-            menuEditing = true;
-            if (item.settingId == SET_SOUND_TYPE) startSoundPreview(settings.soundType);
-            Serial.print("Menu: editing "); Serial.println(item.label);
-          } else if (item.type == MENU_ACTION) {
-            if (item.settingId == SET_OP_MODE) {
-              currentMode = MODE_MODE;
-              initModePicker();
-              Serial.println("Mode: MODE");
-            } else if (item.settingId == SET_SET_CLOCK) {
-              currentMode = MODE_SET_CLOCK;
-              initClockEditor();
-              Serial.println("Mode: SET_CLOCK");
-            } else if (item.settingId == SET_SCHEDULE_MODE) {
-              currentMode = MODE_SCHEDULE;
-              initScheduleEditor();
-              Serial.println("Mode: SCHEDULE");
-            } else if (item.settingId == SET_KEY_SLOTS) {
-              currentMode = MODE_SLOTS;
-              activeSlot = 0;
-              Serial.println("Mode: SLOTS");
-              pushSerialStatus();
-            } else if (item.settingId == SET_BLE_IDENTITY) {
-              currentMode = MODE_DECOY;
-              initDecoyPicker();
-              Serial.println("Mode: DECOY");
-            } else if (item.settingId == SET_RESTORE_DEFAULTS) {
-              defaultsConfirming = true;
-              defaultsConfirmYes = false;  // default to No
-              Serial.println("Menu: restore defaults?");
-            } else if (item.settingId == SET_REBOOT) {
-              rebootConfirming = true;
-              rebootConfirmYes = false;  // default to No
-              Serial.println("Menu: reboot?");
-            }
-          }
         }
-        break;
-
-      case MODE_SLOTS:
-        // Advance active slot cursor (0->1->...->7->0)
-        activeSlot = (activeSlot + 1) % NUM_SLOTS;
-        saveSettings();
-        Serial.print("Active slot: "); Serial.println(activeSlot);
-        break;
-
-      case MODE_NAME:
-        if (nameConfirming) {
-          // Confirm reboot prompt selection
-          if (nameRebootYes) {
-            Serial.println("Rebooting for name change...");
-            NVIC_SystemReset();
-          } else {
-            returnToMenuFromName();
-          }
-        } else {
-          // Advance cursor to next position (wraps)
-          activeNamePos = (activeNamePos + 1) % NAME_MAX_LEN;
-        }
-        break;
-
-      case MODE_SET_CLOCK:
-        // Toggle editing on/off
-        clockEditing = !clockEditing;
-        if (clockEditing) {
-          Serial.print("Clock: editing row "); Serial.println(clockCursor);
-        } else {
-          Serial.println("Clock: edit done");
-        }
-        break;
-
-      case MODE_SCHEDULE:
-        if (scheduleEditing) {
-          scheduleEditing = false;
-          // If Mode just changed to Off, reset cursor to Mode row
-          if (scheduleCursor > 0 && settings.scheduleMode == SCHED_OFF) {
-            scheduleCursor = 0;
-          }
-          Serial.println("Schedule: edit done");
-        } else {
-          scheduleEditing = true;
-          Serial.print("Schedule: editing row "); Serial.println(scheduleCursor);
-        }
-        break;
-
-      case MODE_DECOY:
-        if (decoyConfirming) {
-          if (decoyRebootYes) {
-            Serial.println("Rebooting for identity change...");
-            NVIC_SystemReset();
-          } else {
-            returnToMenuFromDecoy();
-          }
-        } else {
-          if (decoyCursor == DECOY_COUNT) {
-            // "Custom" selected — enter name editor
-            settings.decoyIndex = 0;
-            currentMode = MODE_NAME;
-            initNameEditor();
-            markDisplayDirty();
-            Serial.println("Mode: NAME (from DECOY)");
-          } else {
-            // Preset selected
-            uint8_t newIndex = decoyCursor + 1;  // 1-based
-            if (newIndex == decoyOriginal) {
-              // Same as current — no change needed, return to menu
-              returnToMenuFromDecoy();
-            } else {
-              // Apply preset name to deviceName for display consistency
-              settings.decoyIndex = newIndex;
-              strncpy(settings.deviceName, DECOY_NAMES[decoyCursor], NAME_MAX_LEN);
-              settings.deviceName[NAME_MAX_LEN] = '\0';
-              saveSettings();
-              // Show reboot confirmation
-              decoyConfirming = true;
-              decoyRebootYes = true;
-            }
-          }
-        }
-        break;
-
-      case MODE_MODE:
-        if (modeConfirming) {
-          if (modeRebootYes) {
-            saveSettings();
-            Serial.println("Rebooting for mode change...");
-            NVIC_SystemReset();
-          } else {
-            settings.operationMode = modeOriginalValue;
-            modeConfirming = false;
-          }
-        } else {
-          if (modePickerCursor == modeOriginalValue) {
-            // Same as current — no change, return to menu
-            returnToMenuFromMode();
-          } else {
-            // Apply selection and show reboot confirmation
-            settings.operationMode = modePickerCursor;
-            modeConfirming = true;
-            modeRebootYes = true;
-          }
-        }
-        break;
-
-      default: break;
-    }
-  }
-  lastEncBtn = encBtn;
-
-  // Function button - short = open/close menu, hold = sleep confirmation
-  if (funcBtn == LOW) {
-    if (!funcBtnWasPressed) {
-      funcBtnPressStart = now;
-      funcBtnWasPressed = true;
-    } else {
-      unsigned long holdTime = now - funcBtnPressStart;
-      // Show confirmation overlay after threshold
-      if (!sleepConfirmActive && holdTime >= SLEEP_CONFIRM_THRESHOLD_MS) {
-        sleepConfirmActive = true;
-        sleepConfirmStart = now;
-        if (screensaverActive) screensaverActive = false;
-        markDisplayDirty();
-        Serial.println("Sleep confirm: started");
-      }
-      // Countdown elapsed -- trigger sleep
-      if (sleepConfirmActive && (now - sleepConfirmStart >= SLEEP_COUNTDOWN_MS)) {
-        sleepConfirmActive = false;
-        sleepPending = true;
-        funcBtnWasPressed = false;
+        volD2WasPressed = false;
       }
     }
+    // Skip normal D2 handler - need to update lastEncBtn
+    lastEncBtn = digitalRead(PIN_ENCODER_BTN);
   } else {
-    if (funcBtnWasPressed) {
-      unsigned long holdTime = now - funcBtnPressStart;
-      if (sleepConfirmActive) {
-        unsigned long confirmElapsed = now - sleepConfirmStart;
-        sleepConfirmActive = false;
-        markDisplayDirty();
-        if (confirmElapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
-          // Held past midpoint — light sleep
-          lightSleepPending = true;
-          Serial.println("Sleep confirm: light sleep");
-        } else {
-          // Released before midpoint — cancel
-          sleepCancelActive = true;
-          sleepCancelStart = now;
-          Serial.println("Sleep confirm: cancelled");
-        }
-        funcBtnWasPressed = false;
-        return;  // prevent fall-through to short-press handler
-      } else if (holdTime > 50) {
-        // Short press -- mode switching
+    // Encoder button - mode-dependent behavior
+    if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
+      lastEncPress = now;
+      lastModeActivity = now;
+      markDisplayDirty();
+
+      // Suppress input during sleep confirm/cancel overlay
+      if (sleepConfirmActive || sleepCancelActive) { lastEncBtn = encBtn; return; }
+
+      // Wake from scheduled light sleep -- consume input
+      if (scheduleSleeping) { exitLightSleep(); lastEncBtn = encBtn; return; }
+
+      // Wake screensaver -- consume input
+      if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
+
+      switch (currentMode) {
+        case MODE_NORMAL:
+          if (settings.operationMode == 1) {
+            // Simulation mode: skip to next work mode
+            skipWorkMode();
+          } else {
+            // Simple mode: cycle footer display mode
+            uint8_t next = (uint8_t)footerMode;
+            do {
+              next = (next + 1) % FOOTER_MODE_COUNT;
+            } while (next == (uint8_t)FOOTER_CLOCK && !timeSynced);
+            footerMode = (FooterMode)next;
+            profileDisplayStart = 0;  // clear profile overlay so change is visible immediately
+          }
+          break;
+
+        case MODE_MENU:
+          if (defaultsConfirming) {
+            if (defaultsConfirmYes) {
+              loadDefaults();
+              saveSettings();
+              currentProfile = PROFILE_NORMAL;
+              pickNextKey();
+              scheduleNextKey();
+              scheduleNextMouseState();
+              Serial.println("Settings restored to defaults");
+              pushSerialStatus();
+            }
+            defaultsConfirming = false;
+          } else if (rebootConfirming) {
+            if (rebootConfirmYes) {
+              Serial.println("Rebooting...");
+              NVIC_SystemReset();
+            }
+            rebootConfirming = false;
+          } else if (menuEditing) {
+            // Exit edit mode
+            menuEditing = false;
+            stopSoundPreview();
+            Serial.println("Menu: edit done");
+          } else if (menuCursor >= 0) {
+            const MenuItem& item = MENU_ITEMS[menuCursor];
+            if (item.type == MENU_VALUE && item.minVal != item.maxVal) {
+              // Enter edit mode (skip read-only items where min == max)
+              menuEditing = true;
+              if (item.settingId == SET_SOUND_TYPE) startSoundPreview(settings.soundType);
+              Serial.print("Menu: editing "); Serial.println(item.label);
+            } else if (item.type == MENU_ACTION) {
+              if (item.settingId == SET_OP_MODE) {
+                currentMode = MODE_MODE;
+                initModePicker();
+                Serial.println("Mode: MODE");
+              } else if (item.settingId == SET_SET_CLOCK) {
+                currentMode = MODE_SET_CLOCK;
+                initClockEditor();
+                Serial.println("Mode: SET_CLOCK");
+              } else if (item.settingId == SET_SCHEDULE_MODE) {
+                currentMode = MODE_SCHEDULE;
+                initScheduleEditor();
+                Serial.println("Mode: SCHEDULE");
+              } else if (item.settingId == SET_KEY_SLOTS) {
+                currentMode = MODE_SLOTS;
+                activeSlot = 0;
+                Serial.println("Mode: SLOTS");
+                pushSerialStatus();
+              } else if (item.settingId == SET_BLE_IDENTITY) {
+                currentMode = MODE_DECOY;
+                initDecoyPicker();
+                Serial.println("Mode: DECOY");
+              } else if (item.settingId == SET_RESTORE_DEFAULTS) {
+                defaultsConfirming = true;
+                defaultsConfirmYes = false;  // default to No
+                Serial.println("Menu: restore defaults?");
+              } else if (item.settingId == SET_REBOOT) {
+                rebootConfirming = true;
+                rebootConfirmYes = false;  // default to No
+                Serial.println("Menu: reboot?");
+              }
+            }
+          }
+          break;
+
+        case MODE_SLOTS:
+          // Advance active slot cursor (0->1->...->7->0)
+          activeSlot = (activeSlot + 1) % NUM_SLOTS;
+          saveSettings();
+          Serial.print("Active slot: "); Serial.println(activeSlot);
+          break;
+
+        case MODE_NAME:
+          if (nameConfirming) {
+            // Confirm reboot prompt selection
+            if (nameRebootYes) {
+              Serial.println("Rebooting for name change...");
+              NVIC_SystemReset();
+            } else {
+              returnToMenuFromName();
+            }
+          } else {
+            // Advance cursor to next position (wraps)
+            activeNamePos = (activeNamePos + 1) % NAME_MAX_LEN;
+          }
+          break;
+
+        case MODE_SET_CLOCK:
+          // Toggle editing on/off
+          clockEditing = !clockEditing;
+          if (clockEditing) {
+            Serial.print("Clock: editing row "); Serial.println(clockCursor);
+          } else {
+            Serial.println("Clock: edit done");
+          }
+          break;
+
+        case MODE_SCHEDULE:
+          if (scheduleEditing) {
+            scheduleEditing = false;
+            // If Mode just changed to Off, reset cursor to Mode row
+            if (scheduleCursor > 0 && settings.scheduleMode == SCHED_OFF) {
+              scheduleCursor = 0;
+            }
+            Serial.println("Schedule: edit done");
+          } else {
+            scheduleEditing = true;
+            Serial.print("Schedule: editing row "); Serial.println(scheduleCursor);
+          }
+          break;
+
+        case MODE_DECOY:
+          if (decoyConfirming) {
+            if (decoyRebootYes) {
+              Serial.println("Rebooting for identity change...");
+              NVIC_SystemReset();
+            } else {
+              returnToMenuFromDecoy();
+            }
+          } else {
+            if (decoyCursor == DECOY_COUNT) {
+              // "Custom" selected — enter name editor
+              settings.decoyIndex = 0;
+              currentMode = MODE_NAME;
+              initNameEditor();
+              markDisplayDirty();
+              Serial.println("Mode: NAME (from DECOY)");
+            } else {
+              // Preset selected
+              uint8_t newIndex = decoyCursor + 1;  // 1-based
+              if (newIndex == decoyOriginal) {
+                // Same as current — no change needed, return to menu
+                returnToMenuFromDecoy();
+              } else {
+                // Apply preset name to deviceName for display consistency
+                settings.decoyIndex = newIndex;
+                strncpy(settings.deviceName, DECOY_NAMES[decoyCursor], NAME_MAX_LEN);
+                settings.deviceName[NAME_MAX_LEN] = '\0';
+                saveSettings();
+                // Show reboot confirmation
+                decoyConfirming = true;
+                decoyRebootYes = true;
+              }
+            }
+          }
+          break;
+
+        case MODE_MODE:
+          if (modeConfirming) {
+            if (modeRebootYes) {
+              saveSettings();
+              Serial.println("Rebooting for mode change...");
+              NVIC_SystemReset();
+            } else {
+              settings.operationMode = modeOriginalValue;
+              modeConfirming = false;
+            }
+          } else {
+            if (modePickerCursor == modeOriginalValue) {
+              // Same as current — no change, return to menu
+              returnToMenuFromMode();
+            } else {
+              // Apply selection and show reboot confirmation
+              settings.operationMode = modePickerCursor;
+              modeConfirming = true;
+              modeRebootYes = true;
+            }
+          }
+          break;
+
+        default: break;
+      }
+    }
+    lastEncBtn = encBtn;
+  }
+
+  // Volume Control D3: short = next, double = prev, hold 3s = menu
+  if (settings.operationMode == 2 && currentMode == MODE_NORMAL) {
+    if (funcBtn == LOW) {
+      if (!volD3WasPressed) {
+        volD3PressStart = now;
+        volD3WasPressed = true;
+      }
+      // No sleep on D3 in volume mode — sleep is on D2
+    } else {
+      if (volD3WasPressed) {
+        unsigned long holdTime = now - volD3PressStart;
+        volD3WasPressed = false;
         lastModeActivity = now;
         markDisplayDirty();
 
-        // Wake from scheduled light sleep -- consume input
-        if (scheduleSleeping) { exitLightSleep(); funcBtnWasPressed = false; return; }
-
-        // Wake screensaver -- consume input
-        if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
-
-        switch (currentMode) {
-          case MODE_NORMAL:
-            // Open menu
-            currentMode = MODE_MENU;
-            menuCursor = -1;
-            menuScrollOffset = 0;
-            menuEditing = false;
-            helpScrollPos = 0;
-            helpScrollDir = 1;
-            helpScrollTimer = millis();
-            Serial.println("Mode: MENU");
-            pushSerialStatus();
-            break;
-
-          case MODE_MENU:
-            if (defaultsConfirming) {
-              defaultsConfirming = false;  // cancel confirmation
-            } else if (rebootConfirming) {
-              rebootConfirming = false;    // cancel confirmation
-            } else {
-              // Close menu -> save and return to NORMAL
-              menuEditing = false;
-              stopSoundPreview();
-              currentMode = MODE_NORMAL;
-              saveSettings();
-              Serial.println("Mode: NORMAL (menu closed)");
+        if (holdTime >= VOL_D3_HOLD_THRESHOLD_MS) {
+          // Long hold: enter menu
+          currentMode = MODE_MENU;
+          menuCursor = -1;
+          menuScrollOffset = 0;
+          menuEditing = false;
+          helpScrollPos = 0;
+          helpScrollDir = 1;
+          helpScrollTimer = millis();
+          Serial.println("Mode: MENU (vol D3 hold)");
+          pushSerialStatus();
+        } else if (holdTime > 50) {
+          if (screensaverActive) {
+            screensaverActive = false;
+          } else if (scheduleSleeping) {
+            exitLightSleep();
+          } else if (sleepConfirmActive || sleepCancelActive) {
+            // ignore during overlays
+          } else {
+            // Double-click detection
+            if (volD3ClickCount == 1 && (now - volD3LastPress < VOL_D3_DOUBLECLICK_MS)) {
+              volD3ClickCount = 0;
+              sendConsumerPress(HID_USAGE_CONSUMER_SCAN_PREVIOUS);
+              sendConsumerRelease();
               pushSerialStatus();
-            }
-            break;
-
-          case MODE_SLOTS:
-            // Back to menu at "Key slots" item
-            saveSettings();
-            currentMode = MODE_MENU;
-            menuCursor = MENU_IDX_KEY_SLOTS;
-            menuEditing = false;
-            menuScrollOffset = (MENU_IDX_KEY_SLOTS > 4) ? MENU_IDX_KEY_SLOTS - 4 : 0;
-            Serial.println("Mode: MENU (from SLOTS)");
-            pushSerialStatus();
-            break;
-
-          case MODE_NAME:
-            if (!nameConfirming) {
-              settings.decoyIndex = 0;  // switching to custom (saved by saveNameEditor)
-              bool changed = saveNameEditor();
-              if (changed || decoyOriginal != 0) {
-                // Name or identity changed — prompt reboot
-                nameConfirming = true;
-                nameRebootYes = true;
-              } else {
-                returnToMenuFromName();
-              }
             } else {
-              // From reboot prompt -- func button = "No" (skip reboot)
-              returnToMenuFromName();
+              volD3ClickCount = 1;
+              volD3LastPress = now;
             }
-            break;
-
-          case MODE_SET_CLOCK:
-            // Confirm: sync time and return to menu
-            syncTime((uint32_t)clockHour * 3600 + (uint32_t)clockMinute * 60);
-            clockEditing = false;
-            returnToMenuFromClock();
-            Serial.println("Clock set via manual editor");
-            break;
-
-          case MODE_SCHEDULE:
-            // Save and return to menu
-            saveSettings();
-            scheduleEditing = false;
-            returnToMenuFromSchedule();
-            break;
-
-          case MODE_DECOY:
-            if (decoyConfirming) {
-              decoyConfirming = false;  // cancel confirmation
-              returnToMenuFromDecoy();
-            } else {
-              // Back to menu without changes
-              returnToMenuFromDecoy();
-            }
-            break;
-
-          case MODE_MODE:
-            if (modeConfirming) {
-              // Cancel reboot prompt — revert and return to menu
-              settings.operationMode = modeOriginalValue;
-              modeConfirming = false;
-              returnToMenuFromMode();
-            } else {
-              // Back to menu without changes
-              returnToMenuFromMode();
-            }
-            break;
-
-          default: break;
+          }
         }
       }
-      funcBtnWasPressed = false;
+    }
+    funcBtnWasPressed = false;  // prevent normal D3 handler from firing
+  } else {
+    // Function button - short = open/close menu, hold = sleep confirmation
+    if (funcBtn == LOW) {
+      if (!funcBtnWasPressed) {
+        funcBtnPressStart = now;
+        funcBtnWasPressed = true;
+      } else {
+        unsigned long holdTime = now - funcBtnPressStart;
+        // Show confirmation overlay after threshold
+        if (!sleepConfirmActive && holdTime >= SLEEP_CONFIRM_THRESHOLD_MS) {
+          sleepConfirmActive = true;
+          sleepConfirmStart = now;
+          if (screensaverActive) screensaverActive = false;
+          markDisplayDirty();
+          Serial.println("Sleep confirm: started");
+        }
+        // Countdown elapsed -- trigger sleep
+        if (sleepConfirmActive && (now - sleepConfirmStart >= SLEEP_COUNTDOWN_MS)) {
+          sleepConfirmActive = false;
+          sleepPending = true;
+          funcBtnWasPressed = false;
+        }
+      }
+    } else {
+      if (funcBtnWasPressed) {
+        unsigned long holdTime = now - funcBtnPressStart;
+        if (sleepConfirmActive) {
+          unsigned long confirmElapsed = now - sleepConfirmStart;
+          sleepConfirmActive = false;
+          markDisplayDirty();
+          if (confirmElapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
+            // Held past midpoint — light sleep
+            lightSleepPending = true;
+            Serial.println("Sleep confirm: light sleep");
+          } else {
+            // Released before midpoint — cancel
+            sleepCancelActive = true;
+            sleepCancelStart = now;
+            Serial.println("Sleep confirm: cancelled");
+          }
+          funcBtnWasPressed = false;
+          return;  // prevent fall-through to short-press handler
+        } else if (holdTime > 50) {
+          // Short press -- mode switching
+          lastModeActivity = now;
+          markDisplayDirty();
+
+          // Wake from scheduled light sleep -- consume input
+          if (scheduleSleeping) { exitLightSleep(); funcBtnWasPressed = false; return; }
+
+          // Wake screensaver -- consume input
+          if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
+
+          switch (currentMode) {
+            case MODE_NORMAL:
+              // Open menu
+              currentMode = MODE_MENU;
+              menuCursor = -1;
+              menuScrollOffset = 0;
+              menuEditing = false;
+              helpScrollPos = 0;
+              helpScrollDir = 1;
+              helpScrollTimer = millis();
+              Serial.println("Mode: MENU");
+              pushSerialStatus();
+              break;
+
+            case MODE_MENU:
+              if (defaultsConfirming) {
+                defaultsConfirming = false;  // cancel confirmation
+              } else if (rebootConfirming) {
+                rebootConfirming = false;    // cancel confirmation
+              } else {
+                // Close menu -> save and return to NORMAL
+                menuEditing = false;
+                stopSoundPreview();
+                currentMode = MODE_NORMAL;
+                saveSettings();
+                Serial.println("Mode: NORMAL (menu closed)");
+                pushSerialStatus();
+              }
+              break;
+
+            case MODE_SLOTS:
+              // Back to menu at "Key slots" item
+              saveSettings();
+              currentMode = MODE_MENU;
+              menuCursor = MENU_IDX_KEY_SLOTS;
+              menuEditing = false;
+              menuScrollOffset = (MENU_IDX_KEY_SLOTS > 4) ? MENU_IDX_KEY_SLOTS - 4 : 0;
+              Serial.println("Mode: MENU (from SLOTS)");
+              pushSerialStatus();
+              break;
+
+            case MODE_NAME:
+              if (!nameConfirming) {
+                settings.decoyIndex = 0;  // switching to custom (saved by saveNameEditor)
+                bool changed = saveNameEditor();
+                if (changed || decoyOriginal != 0) {
+                  // Name or identity changed — prompt reboot
+                  nameConfirming = true;
+                  nameRebootYes = true;
+                } else {
+                  returnToMenuFromName();
+                }
+              } else {
+                // From reboot prompt -- func button = "No" (skip reboot)
+                returnToMenuFromName();
+              }
+              break;
+
+            case MODE_SET_CLOCK:
+              // Confirm: sync time and return to menu
+              syncTime((uint32_t)clockHour * 3600 + (uint32_t)clockMinute * 60);
+              clockEditing = false;
+              returnToMenuFromClock();
+              Serial.println("Clock set via manual editor");
+              break;
+
+            case MODE_SCHEDULE:
+              // Save and return to menu
+              saveSettings();
+              scheduleEditing = false;
+              returnToMenuFromSchedule();
+              break;
+
+            case MODE_DECOY:
+              if (decoyConfirming) {
+                decoyConfirming = false;  // cancel confirmation
+                returnToMenuFromDecoy();
+              } else {
+                // Back to menu without changes
+                returnToMenuFromDecoy();
+              }
+              break;
+
+            case MODE_MODE:
+              if (modeConfirming) {
+                // Cancel reboot prompt — revert and return to menu
+                settings.operationMode = modeOriginalValue;
+                modeConfirming = false;
+                returnToMenuFromMode();
+              } else {
+                // Back to menu without changes
+                returnToMenuFromMode();
+              }
+              break;
+
+            default: break;
+          }
+        }
+        funcBtnWasPressed = false;
+      }
     }
   }
 
@@ -845,28 +995,36 @@ void handleButtons() {
     if (scheduleSleeping) { exitLightSleep(); lastMuteBtn = muteBtn; return; }
     if (screensaverActive) { screensaverActive = false; lastMuteBtn = muteBtn; return; }
 
-    // Cycle KB/MS enable combos (same logic as simple mode encoder button)
-    bool wasKeyEnabled = keyEnabled;
-    bool wasMouseEnabled = mouseEnabled;
-    uint8_t mstate = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
-    mstate = (mstate == 0) ? 3 : mstate - 1;
-    keyEnabled = (mstate & 2) != 0;
-    mouseEnabled = (mstate & 1) != 0;
-    if (keyEnabled && !wasKeyEnabled) {
-      lastKeyTime = now;
-      scheduleNextKey();
+    if (settings.operationMode == 2) {
+      // Volume Control: D7 = play/pause
+      volPlaying = !volPlaying;
+      sendConsumerPress(HID_USAGE_CONSUMER_PLAY_PAUSE);
+      sendConsumerRelease();
+      pushSerialStatus();
+    } else {
+      // Cycle KB/MS enable combos (same logic as simple mode encoder button)
+      bool wasKeyEnabled = keyEnabled;
+      bool wasMouseEnabled = mouseEnabled;
+      uint8_t mstate = (keyEnabled ? 2 : 0) | (mouseEnabled ? 1 : 0);
+      mstate = (mstate == 0) ? 3 : mstate - 1;
+      keyEnabled = (mstate & 2) != 0;
+      mouseEnabled = (mstate & 1) != 0;
+      if (keyEnabled && !wasKeyEnabled) {
+        lastKeyTime = now;
+        scheduleNextKey();
+      }
+      if (mouseEnabled && !wasMouseEnabled) {
+        lastMouseStateChange = now;
+        mouseState = MOUSE_IDLE;
+        mouseNetX = 0;
+        mouseNetY = 0;
+        mouseReturnTotal = 0;
+        scheduleNextMouseState();
+      }
+      Serial.print("Mute KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
+      Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
+      pushSerialStatus();
     }
-    if (mouseEnabled && !wasMouseEnabled) {
-      lastMouseStateChange = now;
-      mouseState = MOUSE_IDLE;
-      mouseNetX = 0;
-      mouseNetY = 0;
-      mouseReturnTotal = 0;
-      scheduleNextMouseState();
-    }
-    Serial.print("Mute KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
-    Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
-    pushSerialStatus();
   }
   lastMuteBtn = muteBtn;
 }

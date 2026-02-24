@@ -10,7 +10,7 @@
 #define VERSION "2.1.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F56  // bumped: +jobStartTime
+#define SETTINGS_MAGIC 0x50524F57  // bumped: +volumeTheme
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -82,6 +82,13 @@
 #define SLEEP_DISPLAY_MS            500   // Brief "SLEEPING..." before power-off
 #define MODE_TIMEOUT_MS       30000       // Return to NORMAL after 30s inactivity
 
+// Volume control mode
+#define VOLUME_THEME_COUNT        3       // Basic, Retro, Futuristic
+#define VOL_FEEDBACK_DISPLAY_MS   1000    // momentary direction indicator duration
+#define VOL_D3_DOUBLECLICK_MS     300     // double-click window for D3
+#define VOL_D2_HOLD_THRESHOLD_MS  500     // D2 hold before sleep countdown
+#define VOL_D3_HOLD_THRESHOLD_MS  3000    // D3 hold to enter menu
+
 // Screensaver timeout options
 #define SAVER_TIMEOUT_COUNT   6
 #define DEFAULT_SAVER_IDX     0           // Never
@@ -143,7 +150,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -158,8 +165,8 @@ enum WorkModeId {
 };
 enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 
-// USB HID report IDs (for composite keyboard + mouse descriptor)
-enum USBReportId { RID_KEYBOARD = 1, RID_MOUSE };
+// USB HID report IDs (for composite keyboard + mouse + consumer descriptor)
+enum USBReportId { RID_KEYBOARD = 1, RID_MOUSE, RID_CONSUMER };
 
 enum SettingId {
   SET_KEY_MIN, SET_KEY_MAX, SET_KEY_SLOTS,
@@ -186,6 +193,7 @@ enum SettingId {
   SET_HEADER_DISPLAY,
   SET_SOUND_ENABLED,
   SET_SOUND_TYPE,
+  SET_VOLUME_THEME,
   SET_SET_CLOCK,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
@@ -213,7 +221,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 45
+#define MENU_ITEM_COUNT 47
 #define KB_SOUND_COUNT  5
 
 struct Settings {
@@ -242,7 +250,7 @@ struct Settings {
   uint16_t scheduleEnd;    // 0-287 (5-min slots), default 204 (17:00)
   uint8_t invertDial;     // 0=Off (default), 1=On — reverse encoder rotation
   // Simulation mode settings
-  uint8_t operationMode;    // 0=Simple (default), 1=Simulation
+  uint8_t operationMode;    // 0=Simple (default), 1=Simulation, 2=Volume Control
   uint8_t jobSimulation;    // 0=Staff, 1=Developer, 2=Designer (default: 0)
   uint8_t jobPerformance;   // 0-11, default 5 (level*10 = percentage, 5=baseline)
   uint16_t jobStartTime;    // 0-287 (5-min slots), default 96 (8:00)
@@ -253,6 +261,8 @@ struct Settings {
   uint8_t headerDisplay;    // 0=Job sim name (default), 1=Device name
   uint8_t soundEnabled;     // 0=Off (default), 1=On
   uint8_t soundType;        // 0=MX Blue, 1=MX Brown, 2=Membrane, 3=Buckling, 4=Thock
+  // Volume control settings
+  uint8_t volumeTheme;      // 0=Basic (default), 1=Retro, 2=Futuristic
   uint8_t checksum;         // MUST remain last
 };
 

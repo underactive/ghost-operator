@@ -1590,7 +1590,7 @@ static void drawModePickerPage() {
     display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
 
     // Show new mode name in quotes, centered
-    const char* modeName = (settings.operationMode < 2) ? OP_MODE_NAMES[settings.operationMode] : "???";
+    const char* modeName = (settings.operationMode < 3) ? OP_MODE_NAMES[settings.operationMode] : "???";
     char nameBuf[20];
     snprintf(nameBuf, sizeof(nameBuf), "\"%s\"", modeName);
     int nameW = strlen(nameBuf) * 6;
@@ -1656,7 +1656,7 @@ static void drawModePickerPage() {
   display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
 
   // === Option 0: Simple ===
-  int y0 = 12;
+  int y0 = 11;
   if (modePickerCursor == 0) {
     display.fillRect(0, y0, 128, 8, SSD1306_WHITE);
     display.setTextColor(SSD1306_BLACK);
@@ -1665,11 +1665,11 @@ static void drawModePickerPage() {
   display.print("Simple");
   if (modePickerCursor == 0) display.setTextColor(SSD1306_WHITE);
 
-  display.setCursor(8, y0 + 9);
+  display.setCursor(8, y0 + 8);
   display.print("Direct timing");
 
   // === Option 1: Simulation ===
-  int y1 = 29;
+  int y1 = 27;
   if (modePickerCursor == 1) {
     display.fillRect(0, y1, 128, 8, SSD1306_WHITE);
     display.setTextColor(SSD1306_BLACK);
@@ -1678,15 +1678,26 @@ static void drawModePickerPage() {
   display.print("Simulation");
   if (modePickerCursor == 1) display.setTextColor(SSD1306_WHITE);
 
-  display.setCursor(8, y1 + 9);
+  display.setCursor(8, y1 + 8);
   display.print("Human work patterns");
 
+  // === Option 2: Volume Control ===
+  int y2 = 43;
+  if (modePickerCursor == 2) {
+    display.fillRect(0, y2, 128, 8, SSD1306_WHITE);
+    display.setTextColor(SSD1306_BLACK);
+  }
+  display.setCursor(2, y2);
+  display.print("Volume Control");
+  if (modePickerCursor == 2) display.setTextColor(SSD1306_WHITE);
+
+  display.setCursor(8, y2 + 8);
+  display.print("Media controller");
+
   // === Footer ===
-  display.drawFastHLine(0, 46, 128, SSD1306_WHITE);
-  display.setCursor(0, 48);
-  display.print("Turn=select Press=OK");
+  display.drawFastHLine(0, 55, 128, SSD1306_WHITE);
   display.setCursor(0, 57);
-  display.print("Func=back");
+  display.print("Turn=select Press=OK");
 }
 
 // ============================================================================
@@ -1772,6 +1783,213 @@ static void drawSetClockMode() {
   display.print(help);
   display.setCursor(0, 60);
   display.print("Func=confirm");
+}
+
+// ============================================================================
+// VOLUME CONTROL DISPLAY THEMES
+// ============================================================================
+
+static void drawVolumeHeader() {
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Volume");
+
+  // Right side: BT/USB icon + battery
+  char batStr[8];
+  snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
+  int batWidth = strlen(batStr) * 6;
+  int batX = 128 - batWidth;
+  int btX = batX - 8;
+  unsigned long now = millis();
+  if (usbConnected) {
+    display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
+  } else if (deviceConnected) {
+    display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  } else {
+    if ((now / 500) % 2 == 0) display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  }
+  display.setCursor(batX, 0);
+  display.print(batStr);
+  display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
+}
+
+static void drawVolumeFooter() {
+  display.drawFastHLine(0, 54, 128, SSD1306_WHITE);
+  // Play/Pause icon at x=2, y=56
+  if (volPlaying) {
+    display.drawBitmap(2, 56, iconPlay8, 8, 8, SSD1306_WHITE);
+  } else {
+    display.drawBitmap(2, 56, iconPause8, 8, 8, SSD1306_WHITE);
+  }
+  // Mute state text at x=14
+  display.setCursor(14, 56);
+  if (volMuted) {
+    display.print("MUTED");
+  }
+}
+
+static void drawVolumeBasic() {
+  display.clearDisplay();
+  drawVolumeHeader();
+
+  // Center speaker icon (16x16) at x=56, y=18
+  if (volMuted) {
+    display.drawBitmap(56, 18, iconSpeakerMuted16, 16, 16, SSD1306_WHITE);
+  } else {
+    display.drawBitmap(56, 18, iconSpeaker16, 16, 16, SSD1306_WHITE);
+  }
+
+  // Momentary feedback text centered at y=38
+  unsigned long now = millis();
+  if (volFeedbackDir != 0 && (now - volFeedbackStart < VOL_FEEDBACK_DISPLAY_MS)) {
+    const char* txt = (volFeedbackDir > 0) ? "VOL+" : "VOL-";
+    int w = strlen(txt) * 6;
+    display.setCursor((128 - w) / 2, 40);
+    display.print(txt);
+  }
+
+  drawVolumeFooter();
+}
+
+static void drawVolumeRetro() {
+  display.clearDisplay();
+  drawVolumeHeader();
+
+  // VU meter housing
+  int hx = 14, hy = 13, hw = 100, hh = 34;
+  display.drawRoundRect(hx, hy, hw, hh, 3, SSD1306_WHITE);
+
+  // Scale labels inside housing
+  display.setCursor(hx + 10, hy + 3);
+  display.print("-");
+  display.setCursor(hx + hw/2 - 3, hy + 3);
+  display.print("0");
+  display.setCursor(hx + hw - 16, hy + 3);
+  display.print("+");
+
+  // Scale tick marks
+  int pivotX = hx + hw / 2;
+  int pivotY = hy + hh - 6;
+  for (int a = -40; a <= 40; a += 20) {
+    float rad = (float)a * 3.14159f / 180.0f;
+    int tx = pivotX + (int)(20.0f * sinf(rad));
+    int ty = pivotY - (int)(20.0f * cosf(rad));
+    display.drawPixel(tx, ty, SSD1306_WHITE);
+  }
+
+  // Needle angle: center = 0, swing on feedback
+  float angle = 0;
+  unsigned long now = millis();
+  if (volFeedbackDir != 0 && (now - volFeedbackStart < 800)) {
+    float progress = (float)(now - volFeedbackStart) / 800.0f;
+    float ease = 1.0f - progress * progress;  // ease-out
+    angle = (volFeedbackDir > 0 ? 35.0f : -35.0f) * ease;
+  }
+
+  float rad = angle * 3.14159f / 180.0f;
+  int needleLen = 22;
+  int nx = pivotX + (int)((float)needleLen * sinf(rad));
+  int ny = pivotY - (int)((float)needleLen * cosf(rad));
+  display.drawLine(pivotX, pivotY, nx, ny, SSD1306_WHITE);
+
+  // Pivot dot
+  display.fillCircle(pivotX, pivotY, 2, SSD1306_WHITE);
+
+  drawVolumeFooter();
+
+  // Retro label
+  display.setCursor(86, 56);
+  display.print("RETRO");
+}
+
+static void drawVolumeFuturistic() {
+  display.clearDisplay();
+  drawVolumeHeader();
+
+  int cx = 64, cy = 30;
+
+  // Outer ring
+  display.drawCircle(cx, cy, 20, SSD1306_WHITE);
+  // Inner ring
+  display.drawCircle(cx, cy, 12, SSD1306_WHITE);
+
+  // Corner brackets around the ring
+  display.drawFastHLine(cx - 24, cy - 22, 6, SSD1306_WHITE);
+  display.drawFastVLine(cx - 24, cy - 22, 6, SSD1306_WHITE);
+  display.drawFastHLine(cx + 18, cy - 22, 6, SSD1306_WHITE);
+  display.drawFastVLine(cx + 23, cy - 22, 6, SSD1306_WHITE);
+  display.drawFastHLine(cx - 24, cy + 22, 6, SSD1306_WHITE);
+  display.drawFastVLine(cx - 24, cy + 17, 6, SSD1306_WHITE);
+  display.drawFastHLine(cx + 18, cy + 22, 6, SSD1306_WHITE);
+  display.drawFastVLine(cx + 23, cy + 17, 6, SSD1306_WHITE);
+
+  // Center content: direction arrows or diamond
+  unsigned long now = millis();
+  if (volFeedbackDir != 0 && (now - volFeedbackStart < VOL_FEEDBACK_DISPLAY_MS)) {
+    if (volFeedbackDir > 0) {
+      // Up chevron
+      display.drawLine(cx - 5, cy + 2, cx, cy - 5, SSD1306_WHITE);
+      display.drawLine(cx, cy - 5, cx + 5, cy + 2, SSD1306_WHITE);
+      display.drawLine(cx - 5, cy + 6, cx, cy - 1, SSD1306_WHITE);
+      display.drawLine(cx, cy - 1, cx + 5, cy + 6, SSD1306_WHITE);
+    } else {
+      // Down chevron
+      display.drawLine(cx - 5, cy - 2, cx, cy + 5, SSD1306_WHITE);
+      display.drawLine(cx, cy + 5, cx + 5, cy - 2, SSD1306_WHITE);
+      display.drawLine(cx - 5, cy - 6, cx, cy + 1, SSD1306_WHITE);
+      display.drawLine(cx, cy + 1, cx + 5, cy - 6, SSD1306_WHITE);
+    }
+  } else {
+    // Idle diamond
+    display.drawLine(cx, cy - 4, cx + 4, cy, SSD1306_WHITE);
+    display.drawLine(cx + 4, cy, cx, cy + 4, SSD1306_WHITE);
+    display.drawLine(cx, cy + 4, cx - 4, cy, SSD1306_WHITE);
+    display.drawLine(cx - 4, cy, cx, cy - 4, SSD1306_WHITE);
+  }
+
+  // Mute indicator: small X near ring if muted
+  if (volMuted) {
+    display.setCursor(cx + 24, cy - 3);
+    display.print("X");
+  }
+
+  drawVolumeFooter();
+
+  // Scanning bar animation in footer
+  static uint8_t scanPos = 0;
+  scanPos = (scanPos + 1) % 40;
+  int barX = 80 + (scanPos < 20 ? scanPos : 39 - scanPos);
+  for (int i = 0; i < 4; i++) {
+    display.drawPixel(barX + i, 60, SSD1306_WHITE);
+  }
+}
+
+static void drawVolumeNormal() {
+  switch (settings.volumeTheme) {
+    case 1:  drawVolumeRetro(); break;
+    case 2:  drawVolumeFuturistic(); break;
+    default: drawVolumeBasic(); break;
+  }
+}
+
+static void drawVolumeScreensaver() {
+  display.clearDisplay();
+
+  // Centered speaker icon
+  if (volMuted) {
+    display.drawBitmap(56, 20, iconSpeakerMuted16, 16, 16, SSD1306_WHITE);
+  } else {
+    display.drawBitmap(56, 20, iconSpeaker16, 16, 16, SSD1306_WHITE);
+  }
+
+  // Battery warning if low
+  if (batteryPercent < 15) {
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%d%%", batteryPercent);
+    int w = strlen(buf) * 6;
+    display.setCursor((128 - w) / 2, 48);
+    display.print(buf);
+  }
 }
 
 // ============================================================================
@@ -2080,10 +2298,12 @@ void updateDisplay() {
   } else if (sleepConfirmActive) {
     drawSleepConfirm();
   } else if (screensaverActive) {
-    if (settings.operationMode == 1) drawSimulationScreensaver();
+    if (settings.operationMode == 2) drawVolumeScreensaver();
+    else if (settings.operationMode == 1) drawSimulationScreensaver();
     else drawScreensaver();
   } else if (currentMode == MODE_NORMAL) {
-    if (settings.operationMode == 1) drawSimulationNormal();
+    if (settings.operationMode == 2) drawVolumeNormal();
+    else if (settings.operationMode == 1) drawSimulationNormal();
     else drawNormalMode();
   } else if (currentMode == MODE_MENU) {
     drawMenuMode();

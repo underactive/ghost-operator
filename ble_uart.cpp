@@ -173,9 +173,13 @@ static void cmdQueryStatus() {
     len += snprintf(buf + len, sizeof(buf) - len, "|daySecs=%lu", (unsigned long)currentDaySeconds());
   }
 
-  // Simulation mode status
-  if (settings.operationMode == 1) {
-    snprintf(buf + len, sizeof(buf) - len,
+  // Mode-specific status
+  if (settings.operationMode == 2) {
+    len += snprintf(buf + len, sizeof(buf) - len,
+      "|volMuted=%d|volPlaying=%d",
+      volMuted ? 1 : 0, volPlaying ? 1 : 0);
+  } else if (settings.operationMode == 1) {
+    len += snprintf(buf + len, sizeof(buf) - len,
       "|simBlock=%d|simMode=%d|simPhase=%d|simProfile=%d",
       orch.blockIdx, (int)orch.modeId, (int)orch.phase, (int)orch.autoProfile);
   }
@@ -218,12 +222,14 @@ static void cmdQuerySettings() {
     "|sound=%d|soundType=%d",
     settings.soundEnabled, settings.soundType);
 
-  // Simulation mode settings
-  snprintf(buf + len, sizeof(buf) - len,
-    "|opMode=%d|jobSim=%d|jobPerf=%d|jobStart=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d",
+  // Simulation mode settings + volume control
+  len += snprintf(buf + len, sizeof(buf) - len,
+    "|opMode=%d|jobSim=%d|jobPerf=%d|jobStart=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d"
+    "|volumeTheme=%d",
     settings.operationMode, settings.jobSimulation, settings.jobPerformance, settings.jobStartTime,
     settings.phantomClicks, settings.clickType, settings.windowSwitching,
-    settings.switchKeys, settings.headerDisplay);
+    settings.switchKeys, settings.headerDisplay,
+    settings.volumeTheme);
 
   currentWriter(String(buf));
 }
@@ -348,6 +354,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SOUND_ENABLED, (uint32_t)atol(valStr));
   } else if (strcmp(key, "soundType") == 0) {
     setSettingValue(SET_SOUND_TYPE, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "volumeTheme") == 0) {
+    setSettingValue(SET_VOLUME_THEME, (uint32_t)atol(valStr));
   } else if (strcmp(key, "time") == 0) {
     syncTime((uint32_t)atol(valStr));
   } else if (strcmp(key, "statusPush") == 0) {

@@ -17,4 +17,8 @@ void sendKeyUp();
 void sendMouseClick(uint8_t button, uint16_t holdMs);
 void sendWindowSwitch();
 
+// Consumer control (media keys) — send over both BLE and USB
+void sendConsumerPress(uint16_t usageCode);
+void sendConsumerRelease();
+
 #endif // GHOST_HID_H

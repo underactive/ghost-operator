@@ -192,3 +192,27 @@ void sendWindowSwitch() {
   // Release modifier
   dualKeyboardReport(0, keycodes);
 }
+
+// ============================================================================
+// CONSUMER CONTROL (media keys — volume, mute, play/pause, track skip)
+// ============================================================================
+
+void sendConsumerPress(uint16_t usageCode) {
+  markHidActivity();
+  if (deviceConnected) {
+    blehid.consumerKeyPress(usageCode);
+  }
+  if (TinyUSBDevice.mounted() && usb_hid.ready()) {
+    usb_hid.sendReport(RID_CONSUMER, &usageCode, sizeof(usageCode));
+  }
+}
+
+void sendConsumerRelease() {
+  if (deviceConnected) {
+    blehid.consumerKeyRelease();
+  }
+  if (TinyUSBDevice.mounted() && usb_hid.ready()) {
+    uint16_t zero = 0;
+    usb_hid.sendReport(RID_CONSUMER, &zero, sizeof(zero));
+  }
+}

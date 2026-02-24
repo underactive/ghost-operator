@@ -19,18 +19,19 @@ extern const char* MOUSE_STYLE_NAMES[];
 extern const char* SWITCH_KEYS_NAMES[];
 extern const char* ON_OFF_NAMES[];
 extern const char* KB_SOUND_NAMES[];
+extern const char* VOLUME_THEME_NAMES[];
 extern const char* SCHEDULE_MODE_NAMES[];
 extern const char* const DECOY_NAMES[];
 extern const char* const DECOY_MANUFACTURERS[];
 
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
 #define MENU_IDX_KEY_SLOTS    7
-#define MENU_IDX_SET_CLOCK    31
-#define MENU_IDX_SCHEDULE     32
-#define MENU_IDX_OP_MODE      34   // "Mode" (Simple/Simulation) — under Device heading
-#define MENU_IDX_BLE_IDENTITY 35
-#define MENU_IDX_UPTIME       42
-#define MENU_IDX_DIE_TEMP     43
-#define MENU_IDX_VERSION      44
+#define MENU_IDX_SET_CLOCK    33
+#define MENU_IDX_SCHEDULE     34
+#define MENU_IDX_OP_MODE      36   // "Mode" (Simple/Simulation/Volume) — under Device heading
+#define MENU_IDX_BLE_IDENTITY 37
+#define MENU_IDX_UPTIME       44
+#define MENU_IDX_DIE_TEMP     45
+#define MENU_IDX_VERSION      46
 
 #endif // GHOST_KEYS_H

@@ -225,10 +225,11 @@ void startAdvertising() {
 // USB HID
 // ============================================================================
 
-// USB HID composite descriptor: keyboard + mouse
+// USB HID composite descriptor: keyboard + mouse + consumer control
 uint8_t const desc_hid_report[] = {
   TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(RID_KEYBOARD)),
-  TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(RID_MOUSE))
+  TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(RID_MOUSE)),
+  TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(RID_CONSUMER))
 };
 
 void setupUSBHID() {
@@ -515,7 +516,9 @@ void loop() {
 
   // Jiggler logic runs in background regardless of UI mode
   if ((deviceConnected || usbConnected) && !scheduleSleeping) {
-    if (settings.operationMode == 1) {
+    if (settings.operationMode == 2) {
+      // Volume Control mode — no jiggler activity (user-driven HID only)
+    } else if (settings.operationMode == 1) {
       // Simulation mode — orchestrator drives all KB + mouse activity
       tickOrchestrator(now);
     } else {

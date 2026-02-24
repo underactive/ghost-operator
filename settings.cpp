@@ -65,6 +65,8 @@ void loadDefaults() {
   settings.headerDisplay = 0;     // Job sim name
   settings.soundEnabled = 0;      // Off
   settings.soundType = 0;         // MX Blue
+  // Volume control defaults
+  settings.volumeTheme = 0;       // Basic
   markDisplayDirty();
 }
 
@@ -156,7 +158,7 @@ void loadSettings() {
         if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 204;
         if (settings.invertDial > 1) settings.invertDial = 0;
         // Simulation mode bounds
-        if (settings.operationMode > 1) settings.operationMode = 0;
+        if (settings.operationMode > 2) settings.operationMode = 0;
         if (settings.jobSimulation >= JOB_SIM_COUNT) settings.jobSimulation = 0;
         if (settings.jobPerformance > 11) settings.jobPerformance = 5;
         if (settings.jobStartTime >= SCHEDULE_SLOTS) settings.jobStartTime = 96;
@@ -167,6 +169,8 @@ void loadSettings() {
         if (settings.headerDisplay > 1) settings.headerDisplay = 0;
         if (settings.soundEnabled > 1) settings.soundEnabled = 0;
         if (settings.soundType >= KB_SOUND_COUNT) settings.soundType = 0;
+        // Volume control bounds
+        if (settings.volumeTheme >= VOLUME_THEME_COUNT) settings.volumeTheme = 0;
 
         adcCalStart = millis();
         { const char* ref = COPYRIGHT_TEXT;
@@ -221,6 +225,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_HEADER_DISPLAY: return settings.headerDisplay;
     case SET_SOUND_ENABLED:  return settings.soundEnabled;
     case SET_SOUND_TYPE:     return settings.soundType;
+    case SET_VOLUME_THEME:   return settings.volumeTheme;
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
     case SET_DIE_TEMP:       return 0;  // read-only display
@@ -275,7 +280,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       break;
     case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
     case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
-    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 2); break;
     case SET_JOB_SIM:        settings.jobSimulation = (uint8_t)clampVal(value, 0, JOB_SIM_COUNT - 1); break;
     case SET_JOB_PERFORMANCE: settings.jobPerformance = (uint8_t)clampVal(value, 0, 11); break;
     case SET_JOB_START_TIME: settings.jobStartTime = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
@@ -286,6 +291,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_HEADER_DISPLAY: settings.headerDisplay = (uint8_t)clampVal(value, 0, 1); break;
     case SET_SOUND_ENABLED:  settings.soundEnabled = (uint8_t)clampVal(value, 0, 1); break;
     case SET_SOUND_TYPE:     settings.soundType = (uint8_t)clampVal(value, 0, KB_SOUND_COUNT - 1); break;
+    case SET_VOLUME_THEME:   settings.volumeTheme = (uint8_t)clampVal(value, 0, VOLUME_THEME_COUNT - 1); break;
   }
   markDisplayDirty();
 }
@@ -321,13 +327,14 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
       return;
     }
     case FMT_VERSION:       snprintf(buf, bufSize, "v%s", VERSION); return;
-    case FMT_OP_MODE:       snprintf(buf, bufSize, "%s", (val < 2) ? OP_MODE_NAMES[val] : "???"); return;
+    case FMT_OP_MODE:       snprintf(buf, bufSize, "%s", (val < 3) ? OP_MODE_NAMES[val] : "???"); return;
     case FMT_JOB_SIM:       snprintf(buf, bufSize, "%s", (val < JOB_SIM_COUNT) ? JOB_SIM_NAMES[val] : "???"); return;
     case FMT_SWITCH_KEYS:   snprintf(buf, bufSize, "%s", (val < SWITCH_KEYS_COUNT) ? SWITCH_KEYS_NAMES[val] : "???"); return;
     case FMT_HEADER_DISP:   snprintf(buf, bufSize, "%s", (val < 2) ? HEADER_DISP_NAMES[val] : "???"); return;
     case FMT_CLICK_TYPE:    snprintf(buf, bufSize, "%s", (val < 2) ? CLICK_TYPE_NAMES[val] : "???"); return;
     case FMT_KEY_SOUND:     snprintf(buf, bufSize, "%s", (val < KB_SOUND_COUNT) ? KB_SOUND_NAMES[val] : "???"); return;
     case FMT_PERF_LEVEL:    snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
+    case FMT_VOLUME_THEME:  snprintf(buf, bufSize, "%s", (val < VOLUME_THEME_COUNT) ? VOLUME_THEME_NAMES[val] : "???"); return;
     default:                snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
   }
 }
