@@ -13,6 +13,8 @@ void initDecoyPicker();
 void returnToMenuFromDecoy();
 void initModePicker();
 void returnToMenuFromMode();
+void initCarousel(const CarouselConfig* config);
+void returnToMenuFromCarousel();
 bool isMenuItemHidden(int8_t idx);
 
 #endif // GHOST_INPUT_H

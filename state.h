@@ -77,6 +77,11 @@ extern bool    modeConfirming;
 extern bool    modeRebootYes;
 extern uint8_t modeOriginalValue;
 
+// Generic carousel state (MODE_CAROUSEL)
+extern uint8_t carouselCursor;
+extern uint8_t carouselOriginal;
+extern const CarouselConfig* carouselConfig;
+
 // UI Mode
 extern UIMode currentMode;
 extern unsigned long lastModeActivity;

@@ -174,6 +174,42 @@ void returnToMenuFromMode() {
 }
 
 // ============================================================================
+// CAROUSEL HELPERS
+// ============================================================================
+
+static void carouselSoundCallback(uint8_t newIndex) {
+  startSoundPreview(newIndex);
+}
+
+void initCarousel(const CarouselConfig* config) {
+  carouselConfig = config;
+  carouselCursor = (uint8_t)getSettingValue(config->settingId);
+  if (carouselCursor >= config->count) carouselCursor = 0;
+  carouselOriginal = carouselCursor;
+  // Attach sound preview callback for key sound setting
+  if (config->settingId == SET_SOUND_TYPE) {
+    // Cast away const to set callback (config table is static, this is safe)
+    ((CarouselConfig*)config)->onCursorChange = carouselSoundCallback;
+    carouselSoundCallback(carouselCursor);
+  }
+}
+
+void returnToMenuFromCarousel() {
+  stopSoundPreview();
+  if (carouselConfig) {
+    // Restore callback to NULL (clean up)
+    if (carouselConfig->settingId == SET_SOUND_TYPE) {
+      ((CarouselConfig*)carouselConfig)->onCursorChange = NULL;
+    }
+  }
+  currentMode = MODE_MENU;
+  menuEditing = false;
+  carouselConfig = NULL;
+  markDisplayDirty();
+  Serial.println("Mode: MENU (from CAROUSEL)");
+}
+
+// ============================================================================
 // MENU ITEM VISIBILITY
 // ============================================================================
 
@@ -489,6 +525,16 @@ void handleEncoder() {
         }
         break;
 
+      case MODE_CAROUSEL:
+        if (carouselConfig) {
+          int next = (int)carouselCursor + direction;
+          if (next < 0) next = 0;
+          if (next >= (int)carouselConfig->count) next = carouselConfig->count - 1;
+          carouselCursor = (uint8_t)next;
+          if (carouselConfig->onCursorChange) carouselConfig->onCursorChange(carouselCursor);
+        }
+        break;
+
       default:
         break;
     }
@@ -634,10 +680,17 @@ void handleButtons() {
           } else if (menuCursor >= 0) {
             const MenuItem& item = MENU_ITEMS[menuCursor];
             if (item.type == MENU_VALUE && item.minVal != item.maxVal) {
-              // Enter edit mode (skip read-only items where min == max)
-              menuEditing = true;
-              if (item.settingId == SET_SOUND_TYPE) startSoundPreview(settings.soundType);
-              Serial.print("Menu: editing "); Serial.println(item.label);
+              // Check if this setting has a carousel config
+              const CarouselConfig* cc = getCarouselConfig(item.settingId);
+              if (cc) {
+                currentMode = MODE_CAROUSEL;
+                initCarousel(cc);
+                Serial.print("Mode: CAROUSEL ("); Serial.print(cc->title); Serial.println(")");
+              } else {
+                // Enter inline edit mode (skip read-only items where min == max)
+                menuEditing = true;
+                Serial.print("Menu: editing "); Serial.println(item.label);
+              }
             } else if (item.type == MENU_ACTION) {
               if (item.settingId == SET_OP_MODE) {
                 currentMode = MODE_MODE;
@@ -775,6 +828,15 @@ void handleButtons() {
               modeConfirming = true;
               modeRebootYes = true;
             }
+          }
+          break;
+
+        case MODE_CAROUSEL:
+          if (carouselConfig) {
+            if (carouselCursor != carouselOriginal) {
+              setSettingValue(carouselConfig->settingId, carouselCursor);
+            }
+            returnToMenuFromCarousel();
           }
           break;
 
@@ -995,6 +1057,14 @@ void handleButtons() {
                 // Back to menu without changes
                 returnToMenuFromMode();
               }
+              break;
+
+            case MODE_CAROUSEL:
+              // Cancel — revert to original value and return
+              if (carouselConfig) {
+                setSettingValue(carouselConfig->settingId, carouselOriginal);
+              }
+              returnToMenuFromCarousel();
               break;
 
             default: break;
