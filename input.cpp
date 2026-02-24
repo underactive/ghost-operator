@@ -799,6 +799,10 @@ void handleButtons() {
         helpScrollPos = 0;
         helpScrollDir = 1;
         helpScrollTimer = millis();
+        // Mark func button as pressed+long-held so the normal D3 handler
+        // ignores the upcoming release (prevents immediate menu close)
+        funcBtnWasPressed = true;
+        funcBtnPressStart = now - VOL_D3_HOLD_THRESHOLD_MS;
         markDisplayDirty();
         Serial.println("Mode: MENU (vol D3 hold)");
         pushSerialStatus();
@@ -876,6 +880,10 @@ void handleButtons() {
           }
           funcBtnWasPressed = false;
           return;  // prevent fall-through to short-press handler
+        } else if (holdTime >= VOL_D3_HOLD_THRESHOLD_MS) {
+          // Long hold already consumed (e.g. volume D3 menu entry) — ignore release
+          funcBtnWasPressed = false;
+          return;
         } else if (holdTime > 50) {
           // Short press -- mode switching
           lastModeActivity = now;
