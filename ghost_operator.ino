@@ -163,13 +163,17 @@ void setupDisplay() {
   display.setTextSize(1);
 
   display.clearDisplay();
-  display.drawBitmap(0, 0, splashBitmap, 128, 64, SSD1306_WHITE);
-  // Version in lower-right corner (e.g. "v1.4.0" = 6 chars x 6px = 36px)
+  // Select splash bitmap based on operation mode
+  const uint8_t *splash = (settings.operationMode == 2) ? splashVolumeBitmap : splashBitmap;
+  display.drawBitmap(0, 0, splash, 128, 64, SSD1306_WHITE);
+  // Version in lower-right corner (black text on white background)
+  display.setTextColor(SSD1306_BLACK);
   char ver[12];
   snprintf(ver, sizeof(ver), "v%s", VERSION);
   display.setCursor(128 - strlen(ver) * 6, 57);
   display.print(ver);
   display.display();
+  display.setTextColor(SSD1306_WHITE);  // Restore default text color
   delay(3000);
 }
 

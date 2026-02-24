@@ -9,6 +9,7 @@ extern const uint8_t PROGMEM iconOff[];
 extern const uint8_t PROGMEM btIcon[];
 extern const uint8_t PROGMEM usbIcon[];
 extern const uint8_t PROGMEM splashBitmap[];
+extern const uint8_t PROGMEM splashVolumeBitmap[];
 
 extern const uint8_t PROGMEM iconKeycapNormal[];   // 10x10 keycap with "A"
 extern const uint8_t PROGMEM iconKeycapPressed[];  // 9x9 keycap with "A" (depressed)
