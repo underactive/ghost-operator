@@ -544,6 +544,7 @@ void loop() {
     if (now - lastDisplayUpdate >= displayInterval) {
       // Time-based modes always redraw; static modes only when dirty
       bool timeBased = (currentMode == MODE_NORMAL || currentMode == MODE_MENU
+                        || currentMode == MODE_MODE
                         || screensaverActive || sleepConfirmActive
                         || sleepCancelActive || easterEggActive);
       if (timeBased || displayDirty) {
