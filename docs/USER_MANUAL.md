@@ -1,4 +1,4 @@
-# Ghost Operator v2.1.0 - User Manual
+# Ghost Operator v2.2.0 - User Manual
 
 ## Quick Start
 
@@ -13,13 +13,13 @@
 
 ## Controls Overview
 
-| Control | NORMAL (Simple) | NORMAL (Simulation) | MENU | SLOTS / NAME |
-|---------|-----------------|---------------------|------|--------------|
-| **Encoder Turn** | Switch profile | Adjust job performance (0–11) | Navigate / adjust value | Cycle key or character |
-| **Encoder Press** | Cycle KB/MS enable | Cycle footer info | Select / confirm | Advance cursor |
-| **Mute Button (SW2)** | Cycle KB/MS enable | Cycle footer info | — | — |
-| **Function Short** | Open menu | Open menu | Close menu (save) | Back to menu |
-| **Function Hold (6s)** | Sleep (light 0–3s, deep 3–6s) | Sleep | Sleep | Sleep |
+| Control | NORMAL (Simple) | NORMAL (Simulation) | NORMAL (Volume) | MENU | SLOTS / NAME |
+|---------|-----------------|---------------------|-----------------|------|--------------|
+| **Encoder Turn** | Switch profile | Adjust job performance (0–11) | Volume up/down | Navigate / adjust value | Cycle key or character |
+| **Encoder Press (D2)** | Cycle KB/MS enable | Cycle footer info | Toggle mute (hold=sleep) | Select / confirm | Advance cursor |
+| **Mute Button (D7)** | Cycle KB/MS enable | Cycle footer info | Play/Pause toggle | — | — |
+| **Function Short (D3)** | Open menu | Open menu | Next track (dbl=prev, hold=menu) | Close menu (save) | Back to menu |
+| **Function Hold (6s)** | Sleep (light 0–3s, deep 3–6s) | Sleep | — (D2 hold=sleep, D3 hold=menu) | Sleep | Sleep |
 
 ---
 
@@ -102,7 +102,8 @@
 
 | Heading | Setting | What It Does |
 |---------|---------|-------------|
-| **Simulation** | Mode | Simple (direct timing) or Simulation (human work patterns) — reboot required |
+| **Volume** | Theme | Volume control display theme: Basic / Retro / Futuristic — Volume Control mode only |
+| **Simulation** | Mode | Simple / Simulation / Volume Control — reboot required |
 | | Job type | Staff / Developer / Designer — different daily work patterns |
 | | Job start | Time-of-day when simulated workday begins (default 8:00 AM) |
 | | Performance | Activity intensity 0–11 (5 = baseline); also adjustable via encoder in NORMAL |
@@ -142,7 +143,7 @@
 | | Uptime | Time since last boot (read-only) |
 | | Die temp | Internal chip temperature (read-only) |
 
-**Note:** Some menu items are conditionally visible. In Simple mode, the Simulation heading is hidden. In Simulation mode, Key min/max and Profiles are hidden. "Switch keys" only appears when window switching is enabled. "Key sound" only appears when sound is enabled. "Move size" only appears in Brownian mouse style.
+**Note:** Some menu items are conditionally visible. In Simple mode, the Simulation and Volume headings are hidden. In Simulation mode, Key min/max and Profiles are hidden. In Volume Control mode, only the Volume heading/Theme is shown; Animation, Schedule, and Sound sections are hidden. "Switch keys" only appears when window switching is enabled. "Key sound" only appears when sound is enabled. "Move size" only appears in Brownian mouse style.
 
 **Help bar:** The bottom line shows context-sensitive help for the selected item. Long text scrolls automatically.
 
@@ -239,13 +240,13 @@ NORMAL ←→ MENU → SLOTS     → MENU
 
 | Mode | Purpose |
 |------|---------|
-| **NORMAL** | Live status — encoder switches profile (Simple) or adjusts job performance (Simulation) |
+| **NORMAL** | Live status — encoder switches profile (Simple), adjusts job performance (Simulation), or controls volume (Volume Control) |
 | **MENU** | Scrollable settings — turn encoder to navigate, press to select/edit |
 | **SLOTS** | Key slot editor — turn encoder to change key, press to advance slot |
 | **NAME** | Device name editor — turn encoder to change character, press to advance position |
 | **DECOY** | BLE identity picker — choose from 10 commercial device presets |
 | **SCHEDULE** | Schedule editor — set mode, start/end times for auto-sleep/wake |
-| **MODE** | Operation mode picker — Simple or Simulation (reboot required) |
+| **MODE** | Operation mode picker — Simple, Simulation, or Volume Control (reboot required) |
 | **SET CLOCK** | Manual clock editor — set hours and minutes without USB connection |
 
 - **Function button** toggles between NORMAL and MENU
@@ -364,12 +365,13 @@ Ghost Operator has **8 key slots**. Each keystroke cycle randomly picks from pop
 
 ### Operation Modes
 
-Ghost Operator has two operation modes, selectable via Menu → Simulation → Mode (reboot required):
+Ghost Operator has three operation modes, selectable via Menu → Device → Mode (reboot required):
 
 | Mode | Behavior |
 |------|----------|
 | **Simple** (default) | Direct timing — keystrokes at random intervals between min/max, independent mouse jiggle. You control all timing values directly. |
 | **Simulation** | Human work patterns — the device simulates a realistic workday with keystroke bursting, mouse activity phases, and idle periods based on the selected job type. |
+| **Volume Control** | Media controller — transforms the device into a BLE/USB volume knob and media remote. No jiggler activity. |
 
 **Simulation mode features:**
 - **Job types** (Staff / Developer / Designer): Different daily schedules with weighted work activities (email, programming, browsing, meetings, etc.)
@@ -378,6 +380,14 @@ Ghost Operator has two operation modes, selectable via Menu → Simulation → M
 - **Activity phases**: Cycling through TYPING → SWITCHING → MOUSING → IDLE with mutual exclusion (keyboard and mouse never active simultaneously)
 - **Auto-clicks**: Optional mouse button clicks at activity transitions (configurable: Middle or Left button)
 - **Window switching**: Optional Alt-Tab or Cmd-Tab keystrokes at configurable intervals
+
+**Volume Control mode features:**
+- **Encoder**: Volume up/down via HID consumer control
+- **Encoder button (D2)**: Toggle mute; hold for sleep countdown
+- **Function button (D3)**: Next track; double-click for previous track; hold 3s to enter menu
+- **Mute button (D7)**: Toggle play/pause
+- **Display themes**: Basic (segmented bar), Retro (VU meter), Futuristic (slider) — selectable via Volume → Theme in menu
+- **Jiggler disabled**: No keystroke or mouse activity in this mode
 
 ### Schedule (Auto-Sleep / Auto-Wake)
 
@@ -614,6 +624,6 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 
 ---
 
-*Ghost Operator v2.1.0 | TARS Industrial Technical Solutions*
+*Ghost Operator v2.2.0 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*

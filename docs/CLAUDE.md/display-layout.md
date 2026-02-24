@@ -103,20 +103,66 @@ Schedule preview overlay: encoder rotation in normal mode shows a centered overl
 ```
 3× scaled (30×30px) centered keycap and mouse pixel art icons. Keycap shows pressed state when key is held (with 200ms visual hold for visibility at 5 Hz refresh). Mouse shows click/scroll/nudge states. Icons are hidden when their respective output is muted. Battery warning only if <15%.
 
-## Mode Picker (MODE_MODE)
+## Volume Control Normal Mode — Basic Theme
+```
+Volume                  ᛒ 85%
+─────────────────────────────
+  ·  ·  ·  ·  · █ ■ ■ ■ ·  · ← 21 segments, center always lit, right fill = VOL+
+  ·  ·  ·  ·  ·   ·  ·  ·  ·
+
+           VOL+                ← direction label (fades after 1s)
+
+─────────────────────────────
+▶              MUTED     RETRO ← play/pause icon + mute state + theme label
+```
+Sony 90s-style segmented bar with 21 segments growing from center. Left fill for volume down, right fill for volume up. Center bar always lit. Segments animate and fade over `VOL_FEEDBACK_DISPLAY_MS` (1s). Footer shows play/pause icon and mute state.
+
+## Volume Control Normal Mode — Retro Theme
+```
+Volume                  ᛒ 85%
+─────────────────────────────
+  ┌──────────────────────┐
+  │  -        0        + │    ← VU meter housing with scale labels
+  │        · · ·         │    ← tick marks on arc
+  │          /           │    ← needle swings left/right on volume change
+  │         ●            │    ← pivot dot
+  └──────────────────────┘
+─────────────────────────────
+▶                        RETRO
+```
+Analog VU meter with rounded housing. Needle swings left (vol down) or right (vol up) with ease-out animation over 800ms. Scale shows -, 0, + labels with tick marks on an arc.
+
+## Volume Control Normal Mode — Futuristic Theme
+```
+Volume                  ᛒ 85%
+─────────────────────────────
+
+   -  |  |  |  |  █  |  |  + ← horizontal slider track with tick marks
+                   ▌▌          ← thumb slides left/right from center
+
+           MUTED               ← mute overlay when active
+─────────────────────────────
+▶
+```
+Horizontal slider control with 21 tick marks (center tick taller). Filled thumb (5×14px) slides from center on volume change, returns to center when idle. Direction labels at ends.
+
+## Volume Control Screensaver
+In Volume Control mode, the screensaver simply dims the active theme display to the configured saver brightness (no separate screensaver layout).
+
+## Mode Picker (MODE_MODE) — Horizontal Carousel
 ### Selection Screen
 ```
-DEVICE MODE             ᛒ 85%
+DEVICE MODE SELECT
 ─────────────────────────────
-▌Simple               ▐      ← selected (inverted row)
-  Direct timing               ← description
-Simulation
-  Human work patterns
-──────────────────────────────
-Turn=select Press=OK
-Func=back
+
+     Simple ▌Simulation▐ Vol  ← animated horizontal strip, selected = inverted
+
+      Human work patterns     ← centered description (scrolls if long)
+
+─────────────────────────────
+Turn dial to adjust, press... ← scrolling footer
 ```
-Two options with descriptions. Encoder navigates, button confirms. Function button returns to menu.
+Three options displayed as a horizontal strip. Encoder rotation smoothly animates the strip via ease-out lerp at 20 Hz — selected item is inverted, adjacent items visible at screen edges. Description and footer text scroll horizontally when they overflow 128px. Scroll resets on cursor change. Function button returns to menu.
 
 ### Reboot Confirmation
 ```

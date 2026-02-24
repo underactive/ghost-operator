@@ -4,7 +4,7 @@
 
 **Ghost Operator** is a BLE keyboard/mouse hardware device built on the Seeed XIAO nRF52840. It prevents screen lock and idle timeout by sending periodic keystrokes and mouse movements over Bluetooth.
 
-**Current Version:** 2.1.0
+**Current Version:** 2.2.0
 **Status:** Production-ready
 
 ---
@@ -83,7 +83,7 @@ Modular architecture — 20 `.h/.cpp` module pairs + lean `.ino` entry point:
 ### Key Subsystems
 
 #### 1. HID (BLE + USB)
-- Presents as composite keyboard + mouse device over both BLE and USB
+- Presents as composite keyboard + mouse + consumer control device over both BLE and USB
 - BLE: Adafruit Bluefruit HID; USB: TinyUSB composite HID (`setupUSBHID()` registers descriptor before USB stack starts)
 - USB descriptors: manufacturer "TARS Industrial", product "Ghost Operator" (set via `TinyUSBDevice.setManufacturerDescriptor/setProductDescriptor` before stack init)
 - `dualKeyboardReport()` sends to both transports; `sendMouseMove()` and `sendMouseScroll()` likewise
@@ -91,41 +91,41 @@ Modular architecture — 20 `.h/.cpp` module pairs + lean `.ino` entry point:
 - Auto-reconnects to last paired BLE host
 - "BT while USB" setting (default Off): when Off, BLE stops when USB is connected; when On, both transports active simultaneously
 - Display shows USB trident icon when wired, BLE icon when wireless
-- Jiggler runs when either BLE or USB is connected
+- Jiggler runs when either BLE or USB is connected (disabled in Volume Control mode)
 
 #### 2. UI Modes
 ```cpp
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_COUNT };
 ```
-- **NORMAL**: Live status; encoder switches profile (Simple) or adjusts job performance (Simulation), button cycles KB/MS combos
+- **NORMAL**: Live status; encoder switches profile (Simple), adjusts job performance (Simulation), or sends volume up/down (Volume Control); button cycles KB/MS combos (Simple/Simulation) or toggles mute (Volume Control)
 - **MENU**: Scrollable settings menu; encoder navigates/edits, button selects/confirms
 - **SLOTS**: 8-key slot editor; encoder cycles key, button advances slot
 - **NAME**: Device name editor; encoder cycles character, button advances position
 - **DECOY**: BLE identity picker; encoder navigates presets (with active marker `*`), button selects, reboot confirmation on change
 - **SCHEDULE**: Schedule editor; 3-row layout (Mode/Start/End) with contextual help; rows hidden based on mode selection
-- **MODE**: Operation mode picker (Simple/Simulation) with descriptions and reboot confirmation
+- **MODE**: Operation mode picker (Simple/Simulation/Volume Control) as horizontal carousel with smooth scrolling and reboot confirmation
 - **SET_CLOCK**: Manual time editor; encoder cycles hour/minute values, button advances field, function button confirms and calls `syncTime()`; pre-fills from current time if synced
 - Function button toggles NORMAL ↔ MENU; from SLOTS/NAME/DECOY/SCHEDULE/MODE/SET_CLOCK returns to MENU
 - 30-second timeout returns to NORMAL from MENU, SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (45 entries: 9 headings + 36 items):
+Data-driven architecture using `MenuItem` struct array (47 entries: 10 headings + 37 items):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME };
 ```
 - `getSettingValue(settingId)` / `setSettingValue(settingId, value)` — generic accessors (with key min/max cross-constraint)
 - `formatMenuValue(settingId, format)` — formats for display using `formatDuration()`, `N%`, `-N%`, `SAVER_NAMES[]`, `Npx`, `ANIM_NAMES[]`, `MOUSE_STYLE_NAMES[]`, or `SWITCH_KEYS_NAMES[]`
 - `moveCursor(direction)` — skips headings, clamps at bounds, manages viewport scroll
 - `FMT_PERCENT_NEG` items: encoder direction and arrow bounds are inverted so displayed value direction matches encoder rotation
-- Conditional visibility: some items are hidden based on other settings (e.g., "Switch keys" in the Keyboard section is only visible when `windowSwitching` is enabled; "Move size" hidden when mouse style is Bezier)
+- Conditional visibility: some items are hidden based on other settings (e.g., "Switch keys" in the Keyboard section is only visible when `windowSwitching` is enabled; "Move size" hidden when mouse style is Bezier; Volume heading/Theme only visible in Volume Control mode; Animation, Schedule, and Sound sections hidden in Volume Control mode)
 
 #### 3. Settings Storage
 ```cpp
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F56 (bumped: +jobStartTime)
+  uint32_t magic;              // 0x50524F57 (bumped: +volumeTheme)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -150,7 +150,7 @@ struct Settings {
   uint16_t scheduleEnd;        // 0-287 (5-min slots), default 204 (17:00)
   uint8_t invertDial;          // 0=Off (default), 1=On — reverse encoder rotation
   // Simulation mode settings
-  uint8_t operationMode;       // 0=Simple (default), 1=Simulation
+  uint8_t operationMode;       // 0=Simple (default), 1=Simulation, 2=Volume Control
   uint8_t jobSimulation;       // 0=Staff, 1=Developer, 2=Designer (default: 0)
   uint8_t jobPerformance;      // 0-11, default 5 (level*10 = percentage, 5=baseline)
   uint16_t jobStartTime;       // 0-287 (5-min slots), default 96 (8:00)
@@ -161,13 +161,15 @@ struct Settings {
   uint8_t headerDisplay;       // 0=Job sim name (default), 1=Device name
   uint8_t soundEnabled;        // 0=Off (default), 1=On
   uint8_t soundType;           // 0=MX Blue, 1=MX Brown, 2=Membrane, 3=Buckling, 4=Thock
+  // Volume control settings
+  uint8_t volumeTheme;         // 0=Basic (default), 1=Retro, 2=Futuristic
   uint8_t checksum;            // must remain last
 };
 
 enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, job performance = 5 (baseline), job start time = 8:00 (96), phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name, sound = Off, sound type = MX Blue.
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, job performance = 5 (baseline), job start time = 8:00 (96), phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name, sound = Off, sound type = MX Blue, volume theme = Basic.
 
 #### 4. Timing Profiles
 ```cpp
@@ -316,7 +318,7 @@ See [docs/CLAUDE.md/display-layout.md](docs/CLAUDE.md/display-layout.md) for ASC
 
 ## Version History
 
-See [docs/CLAUDE.md/version-history.md](docs/CLAUDE.md/version-history.md) for full changelog (v1.0.0 through v2.1.0).
+See [docs/CLAUDE.md/version-history.md](docs/CLAUDE.md/version-history.md) for full changelog (v1.0.0 through v2.2.0).
 
 ---
 

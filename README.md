@@ -1,13 +1,13 @@
 # Ghost Operator - BLE HID Device
 
-## Version 2.1.0
+## Version 2.2.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
 
 ## Features
 
-- **BLE + USB HID Keyboard + Mouse** - Works over Bluetooth and wired USB simultaneously
+- **BLE + USB HID Keyboard + Mouse + Consumer Control** - Works over Bluetooth and wired USB simultaneously
 - **Encoder Menu System** - Adjust all settings with single rotary encoder
 - **Flash Storage** - Settings survive sleep and power off (1MB onboard)
 - **Software Power Control** - Deep sleep mode (~3µA)
@@ -75,8 +75,9 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 | D3 | Function Button |
 | D4 | I2C SDA (OLED) |
 | D5 | I2C SCL (OLED) |
-| D6 | Activity LED (optional) |
-| D7-D10 | Unused (available) |
+| D6 | Piezo buzzer |
+| D7 | Mute button (Simple/Sim) / Play-Pause (Volume Control) |
+| D8-D10 | Unused (available) |
 
 ---
 
@@ -84,14 +85,18 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 
 ### UI Modes
 
-Four modes, accessed via function button:
+Eight modes, accessed via function button and menu actions:
 
 | Mode | Purpose |
 |------|---------|
-| **NORMAL** | Live status display; encoder switches profile, button cycles KB/MS combos |
+| **NORMAL** | Live status display; behavior depends on operation mode (Simple/Simulation/Volume Control) |
 | **MENU** | Scrollable settings menu; encoder navigates/edits, button selects/confirms |
 | **SLOTS** | 8-key slot editor; encoder cycles key, button advances slot |
 | **NAME** | Device name editor; encoder cycles character, button advances position |
+| **DECOY** | BLE identity picker; choose from 10 commercial device presets |
+| **SCHEDULE** | Schedule editor; set mode, start/end times |
+| **MODE** | Operation mode picker (horizontal carousel); Simple/Simulation/Volume Control |
+| **SET CLOCK** | Manual clock editor; set hours and minutes |
 
 ### Control Actions
 
@@ -360,7 +365,8 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
-| **2.1.0** | **Piezo buzzer keyboard sounds (5 profiles with live preview); job performance scaling (0–11); job start time (decoupled from schedule); manual clock setting mode; display optimization (dirty flag, shadow buffer, 20 Hz refresh)** |
+| **2.2.0** | **Volume Control operation mode (media controller with 3 display themes); mode picker horizontal carousel with smooth scrolling; mode-specific splash screens; HID consumer control report** |
+| 2.1.0 | Piezo buzzer keyboard sounds (5 profiles with live preview); job performance scaling (0–11); job start time (decoupled from schedule); manual clock setting mode; display optimization (dirty flag, shadow buffer, 20 Hz refresh) |
 | 2.0.0 | Simulation mode: realistic human work patterns (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules); hardware watchdog (WDT); two-stage sleep (light/deep); click type setting; mode picker UI; pixel art icons; dashboard simulation support |
 | 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
 | 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto) |

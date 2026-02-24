@@ -5,6 +5,29 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-02-23
+
+### Added
+
+- **Volume Control operation mode**: Third operation mode that transforms the device into a BLE/USB media controller with HID consumer control
+  - Encoder sends volume up/down; D2 toggles mute (hold for sleep); D3 skips tracks (double-click for previous, hold 3s for menu); D7 toggles play/pause
+  - Three display themes selectable via menu: Basic (segmented bar), Retro (VU meter with needle), Futuristic (horizontal slider with thumb)
+  - Consumer control HID report (`RID_CONSUMER`) always present in the USB descriptor across all modes
+  - Jiggler fully disabled in Volume Control mode; Animation, Schedule, and Sound menu sections hidden
+  - Screensaver dims the active theme display instead of showing a separate screen
+- **Mode-specific splash screens**: Boot screen selects bitmap based on operation mode; Volume Control has its own splash art; all splash screens use white background
+
+### Changed
+
+- **Mode picker redesign**: Replaced vertical list with horizontal carousel — all mode names laid out as an animated strip with the selected item inverted and adjacent items visible at screen edges; smooth ease-out lerp scrolling at 20 Hz; scrolling description and footer text
+- **Menu items**: 47 entries (10 headings + 37 items) — added Volume heading + Theme at the top (visible only in Volume Control mode); new `FMT_VOLUME_THEME` value format
+- **Settings struct**: +1 byte (`volumeTheme`); `SETTINGS_MAGIC` bumped to `0x50524F57`
+- **USB HID descriptor**: Added `RID_CONSUMER` report ID for consumer control (volume, media keys)
+
+### Fixed
+
+- **Mode carousel text wrap**: Disabled text wrap on mode carousel to prevent long mode names from overflowing to the next line
+
 ## [2.1.0] - 2026-02-23
 
 ### Added
