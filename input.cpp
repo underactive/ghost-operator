@@ -499,6 +499,7 @@ void handleEncoder() {
 void handleButtons() {
   static bool lastEncBtn = HIGH;
   static unsigned long lastEncPress = 0;
+  static bool volD3SuppressFunc = false;  // suppress normal D3 until released after vol hold-to-menu
   const unsigned long DEBOUNCE = 200;
 
   unsigned long now = millis();
@@ -799,13 +800,11 @@ void handleButtons() {
         helpScrollPos = 0;
         helpScrollDir = 1;
         helpScrollTimer = millis();
-        // Mark func button as pressed+long-held so the normal D3 handler
-        // ignores the upcoming release (prevents immediate menu close)
-        funcBtnWasPressed = true;
-        funcBtnPressStart = now - VOL_D3_HOLD_THRESHOLD_MS;
+        volD3SuppressFunc = true;  // suppress normal D3 handler until button released
         markDisplayDirty();
         Serial.println("Mode: MENU (vol D3 hold)");
         pushSerialStatus();
+        return;
       }
     } else {
       if (volD3WasPressed) {
@@ -837,8 +836,17 @@ void handleButtons() {
         }
       }
     }
-    funcBtnWasPressed = false;  // prevent normal D3 handler from firing
+    if (currentMode == MODE_NORMAL) funcBtnWasPressed = false;  // prevent normal D3 handler from firing
   } else {
+    // After vol D3 hold-to-menu, suppress normal D3 until button is fully released
+    if (volD3SuppressFunc) {
+      if (funcBtn == HIGH) {
+        volD3SuppressFunc = false;
+        funcBtnWasPressed = false;
+      }
+      goto skipFuncBtn;  // skip entire normal D3 handler
+    }
+
     // Function button - short = open/close menu, hold = sleep confirmation
     if (funcBtn == LOW) {
       if (!funcBtnWasPressed) {
@@ -880,10 +888,6 @@ void handleButtons() {
           }
           funcBtnWasPressed = false;
           return;  // prevent fall-through to short-press handler
-        } else if (holdTime >= VOL_D3_HOLD_THRESHOLD_MS) {
-          // Long hold already consumed (e.g. volume D3 menu entry) — ignore release
-          funcBtnWasPressed = false;
-          return;
         } else if (holdTime > 50) {
           // Short press -- mode switching
           lastModeActivity = now;
@@ -997,6 +1001,7 @@ void handleButtons() {
       }
     }
   }
+  skipFuncBtn:
 
   // Mute button (D7) - cycles KB/MS enable combos in both modes
   static bool lastMuteBtn = HIGH;
