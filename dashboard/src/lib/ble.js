@@ -1,6 +1,10 @@
 /**
  * Web Bluetooth connection layer for Ghost Operator.
  * Connects via Nordic UART Service (NUS) to the BLE UART on the nRF52840.
+ *
+ * Reconnection strategy:
+ * 1. Try getDevices() to reconnect to a previously-authorized device (no picker needed)
+ * 2. Fall back to requestDevice() picker for first-time pairing
  */
 
 // Nordic UART Service UUIDs (standard, hardcoded in Adafruit BLEUart)
@@ -26,26 +30,66 @@ export function isWebBluetoothAvailable() {
 
 /**
  * Connect to a Ghost Operator device.
- * Filters by name prefix (Chrome blocklists HID service UUID 0x1812 in requestDevice).
- * NUS is in optionalServices — discovered via GATT service discovery after connection.
+ * Tries reconnecting to a previously-authorized device first (bypasses picker).
+ * Falls back to the Chrome device picker for first-time pairing.
  */
 export async function connect() {
-  device = await navigator.bluetooth.requestDevice({
+  // Try reconnecting to a previously-authorized device (no picker dialog)
+  if (navigator.bluetooth.getDevices) {
+    const known = await navigator.bluetooth.getDevices()
+    for (const d of known) {
+      try {
+        return await connectToDevice(d, 3000)
+      } catch {
+        // Not reachable — try next or fall through to picker
+      }
+    }
+  }
+
+  // Fall back to device picker dialog (first-time pairing)
+  const d = await navigator.bluetooth.requestDevice({
     acceptAllDevices: true,
     optionalServices: [NUS_SERVICE_UUID],
   })
+  return await connectToDevice(d)
+}
 
-  device.addEventListener('gattserverdisconnected', handleDisconnect)
+/**
+ * Connect to a specific BluetoothDevice and set up NUS.
+ * @param {BluetoothDevice} d
+ * @param {number} [timeoutMs] - Optional connection timeout in ms
+ */
+async function connectToDevice(d, timeoutMs) {
+  d.addEventListener('gattserverdisconnected', handleDisconnect)
 
-  server = await device.gatt.connect()
+  try {
+    let connectPromise = d.gatt.connect()
+    if (timeoutMs) {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timeout')), timeoutMs)
+      )
+      connectPromise = Promise.race([connectPromise, timeout])
+    }
+    server = await connectPromise
+    device = d
+    return await setupNUS()
+  } catch (err) {
+    d.removeEventListener('gattserverdisconnected', handleDisconnect)
+    try { d.gatt.disconnect() } catch {}
+    cleanup()
+    throw err
+  }
+}
+
+/**
+ * Discover NUS service and set up RX/TX characteristics.
+ */
+async function setupNUS() {
   const service = await server.getPrimaryService(NUS_SERVICE_UUID)
-
   rxCharacteristic = await service.getCharacteristic(NUS_RXD_UUID)
   txCharacteristic = await service.getCharacteristic(NUS_TXD_UUID)
-
   await txCharacteristic.startNotifications()
   txCharacteristic.addEventListener('characteristicvaluechanged', handleTxNotification)
-
   return device.name || 'Ghost Operator'
 }
 
@@ -126,5 +170,6 @@ function cleanup() {
   rxCharacteristic = null
   txCharacteristic = null
   server = null
+  device = null
   rxBuffer = ''
 }

@@ -3,7 +3,8 @@
  * Uses Vue 3's reactivity system (reactive/ref).
  */
 import { reactive, ref } from 'vue'
-import * as transport from './serial.js'
+import * as serialTransport from './serial.js'
+import * as bleTransport from './ble.js'
 import * as dfuSerial from './dfu/serial.js'
 import { performDfu } from './dfu/dfu.js'
 import { parseResponse, parseSettings, parseStatus, buildQuery, buildSet, buildAction } from './protocol.js'
@@ -82,6 +83,10 @@ export const dirty = ref(false)
 export const saving = ref(false)
 export const statusMessage = ref('')
 export const dfuActive = ref(false)
+export const transportType = ref(null) // 'usb' | 'ble' | null
+
+// Active transport module (serial or ble)
+let activeTransport = null
 
 // Battery history (up to 720 entries = 1 hour at 5s polling)
 export const batteryHistory = reactive([])
@@ -170,18 +175,23 @@ function handleLine(line) {
 // --- Actions ---
 
 /**
- * Connect to a Ghost Operator device via USB serial.
+ * Connect using the given transport module.
+ * @param {object} transport - serial or ble transport module
+ * @param {'usb'|'ble'} type - transport type identifier
  */
-export async function connectDevice() {
+async function connectWithTransport(transport, type) {
   connectionState.connecting = true
   connectionState.error = ''
 
   try {
+    activeTransport = transport
     transport.onLine(handleLine)
     transport.onDisconnect(() => {
       saveBatteryHistory(connectionState.deviceName)
       connectionState.connected = false
       connectionState.deviceName = ''
+      transportType.value = null
+      activeTransport = null
       stopPolling()
       statusMessage.value = 'Disconnected'
     })
@@ -189,6 +199,7 @@ export async function connectDevice() {
     const name = await transport.connect()
     connectionState.connected = true
     connectionState.deviceName = name
+    transportType.value = type
     statusMessage.value = 'Connected'
 
     // Load battery history for this device (or clear if different device)
@@ -197,26 +208,32 @@ export async function connectDevice() {
     }
     loadBatteryHistory(name)
 
+    // BLE has higher latency — use longer handshake delays
+    const shortDelay = type === 'ble' ? 150 : 50
+    const longDelay = type === 'ble' ? 200 : 100
+
     // Enable real-time status push from device
     await transport.send(buildSet('statusPush', 1))
-    await sleep(50)
+    await sleep(shortDelay)
 
     // Sync wall clock time to device
     await syncTimeToDevice()
-    await sleep(50)
+    await sleep(shortDelay)
 
     // Fetch initial data
     await transport.send(buildQuery('keys'))
-    await sleep(50)
+    await sleep(shortDelay)
     await transport.send(buildQuery('decoys'))
     // Small delay to let responses arrive before settings query
-    await sleep(100)
+    await sleep(longDelay)
     await transport.send(buildQuery('settings'))
-    await sleep(100)
+    await sleep(longDelay)
     await transport.send(buildQuery('status'))
 
     startPolling()
   } catch (err) {
+    activeTransport = null
+    transportType.value = null
     connectionState.error = err.message
     statusMessage.value = 'Connection failed'
   } finally {
@@ -224,21 +241,38 @@ export async function connectDevice() {
   }
 }
 
+/** Connect via USB (Web Serial). */
+export function connectUSB() {
+  return connectWithTransport(serialTransport, 'usb')
+}
+
+/** Connect via Bluetooth (Web Bluetooth). */
+export function connectBLE() {
+  return connectWithTransport(bleTransport, 'ble')
+}
+
+/** @deprecated Use connectUSB() or connectBLE(). Kept for backwards compat. */
+export const connectDevice = connectUSB
+
 /**
  * Disconnect from the device.
  */
 export async function disconnectDevice() {
   stopPolling()
-  await transport.disconnect()
+  if (activeTransport) {
+    await activeTransport.disconnect()
+  }
   connectionState.connected = false
   connectionState.deviceName = ''
+  transportType.value = null
+  activeTransport = null
 }
 
 /**
  * Send a setting change to the device (in-memory only, not saved to flash).
  */
 export async function setSetting(key, value) {
-  await transport.send(buildSet(key, value))
+  await activeTransport.send(buildSet(key, value))
   // Update local state immediately for responsive UI
   if (key === 'slots') {
     settings.slots = String(value).split(',').map(Number)
@@ -278,7 +312,7 @@ export async function resetDefaults() {
   await sendAndWait(buildAction('defaults'))
   // Re-fetch settings to reflect defaults
   await sleep(100)
-  await transport.send(buildQuery('settings'))
+  await activeTransport.send(buildQuery('settings'))
   statusMessage.value = 'Defaults restored'
   setTimeout(() => { if (statusMessage.value === 'Defaults restored') statusMessage.value = '' }, 2000)
 }
@@ -288,7 +322,7 @@ export async function resetDefaults() {
  */
 export async function rebootDevice() {
   statusMessage.value = 'Rebooting...'
-  await transport.send(buildAction('reboot'))
+  await activeTransport.send(buildAction('reboot'))
   // Device will disconnect on reboot
 }
 
@@ -296,7 +330,7 @@ export async function rebootDevice() {
  * Refresh settings from device.
  */
 export async function refreshSettings() {
-  await transport.send(buildQuery('settings'))
+  await activeTransport.send(buildQuery('settings'))
 }
 
 /**
@@ -320,14 +354,14 @@ export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort
     onProgress(0, 'Sending DFU command...')
     // Terminal log (append-only, separate from progress bar)
     onLog('Sending DFU command over serial...', 'info')
-    await transport.send(buildAction('serialdfu'))
+    await activeTransport.send(buildAction('serialdfu'))
 
     // 2. Brief delay then disconnect config serial (device reboots)
     onProgress(0, 'Waiting for device to reboot...')
     // Terminal log (append-only, separate from progress bar)
     onLog('Disconnecting config port...', 'info')
     await sleep(200)
-    await transport.disconnect()
+    await activeTransport.disconnect()
     connectionState.connected = false
     connectionState.deviceName = ''
 
@@ -369,7 +403,7 @@ export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort
 async function syncTimeToDevice() {
   const now = new Date()
   const daySeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
-  await transport.send(buildSet('time', daySeconds))
+  await activeTransport.send(buildSet('time', daySeconds))
 }
 
 // --- Internal helpers ---
@@ -377,7 +411,7 @@ async function syncTimeToDevice() {
 function sendAndWait(cmd) {
   return new Promise((resolve) => {
     pendingResolve = resolve
-    transport.send(cmd)
+    activeTransport.send(cmd)
     // Timeout fallback
     setTimeout(() => {
       if (pendingResolve === resolve) {
@@ -394,8 +428,8 @@ function startPolling() {
   stopPolling()
   pollCount = 0
   pollInterval = setInterval(async () => {
-    if (transport.isConnected()) {
-      await transport.send(buildQuery('status'))
+    if (activeTransport && activeTransport.isConnected()) {
+      await activeTransport.send(buildQuery('status'))
       pollCount++
       // Re-sync time every 5 minutes (60 polls * 5s = 300s)
       if (pollCount % 60 === 0) {
