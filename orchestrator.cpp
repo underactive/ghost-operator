@@ -473,8 +473,8 @@ void syncOrchestratorTime(uint32_t daySeconds) {
     }
   }
 
-  // Past all blocks — wrap to first
+  // Past all blocks — stay on last block
   unsigned long now = millis();
-  startBlock(0, now);
+  startBlock(tmpl.numBlocks - 1, now);
   startMode(now);
 }

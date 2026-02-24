@@ -6,6 +6,7 @@
 #include "sleep.h"
 #include "serial_cmd.h"
 #include "display.h"
+#include "orchestrator.h"
 
 // ============================================================================
 // TIME SYNC
@@ -21,6 +22,11 @@ void syncTime(uint32_t daySeconds) {
   formatCurrentTime(timeBuf, sizeof(timeBuf));
   Serial.print("Time synced: ");
   Serial.println(timeBuf);
+
+  // Sync orchestrator to correct work block for this time of day
+  if (settings.operationMode == 1) {
+    syncOrchestratorTime(daySeconds);
+  }
 }
 
 uint32_t currentDaySeconds() {
