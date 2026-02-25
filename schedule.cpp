@@ -117,6 +117,7 @@ void checkSchedule() {
 void enterLightSleep(bool scheduled) {
   scheduleSleeping = true;
   manualLightSleep = !scheduled;
+  volD7ClickCount = 0;  // prevent stale click from firing on wake
 
   // Stop BLE advertising
   Bluefruit.Advertising.restartOnDisconnect(false);

@@ -444,6 +444,7 @@ void loop() {
     unsigned long saverMs = saverTimeoutMs();
     if (saverMs > 0 && (now - lastModeActivity > saverMs)) {
       screensaverActive = true;
+      volD7ClickCount = 0;  // prevent stale click from firing on wake
       markDisplayDirty();
     }
   }

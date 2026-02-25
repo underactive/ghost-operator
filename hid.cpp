@@ -107,7 +107,7 @@ void sendKeystroke() {
 // NON-BLOCKING KEY PRESS/RELEASE (for simulation burst state machine)
 // ============================================================================
 
-void sendKeyDown(uint8_t keyIndex) {
+void sendKeyDown(uint8_t keyIndex, bool silent) {
   if (keyIndex >= NUM_KEYS) return;
   const KeyDef& key = AVAILABLE_KEYS[keyIndex];
   if (key.keycode == 0) return;
@@ -122,7 +122,7 @@ void sendKeyDown(uint8_t keyIndex) {
     keycodes[0] = key.keycode;
     dualKeyboardReport(0, keycodes);
   }
-  playKeySound();
+  if (!silent) playKeySound();
 }
 
 void sendKeyUp() {

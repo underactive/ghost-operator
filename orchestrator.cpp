@@ -398,8 +398,8 @@ void tickOrchestrator(unsigned long now) {
       unsigned long dayElapsed = now - orch.dayStartMs;
       unsigned long target = lunchTargetMs();
       if (dayElapsed < target) {
-        // Extend current block until lunch target
-        orch.blockDurationMs += (target - dayElapsed);
+        // Extend current block until lunch target (absolute: expire when day reaches target)
+        orch.blockDurationMs = (now - orch.blockStartMs) + (target - dayElapsed);
         Serial.print("[SIM] Lunch gate: extending ");
         Serial.print(currentBlock().name);
         Serial.print(" by ");
@@ -491,15 +491,16 @@ void tickOrchestrator(unsigned long now) {
       break;
   }
 
-  // 6. Keystroke keepalive — ensure non-zero keyboard in every 10-min window
+  // 6. Keystroke keepalive — ensure non-zero keyboard in every 2-min window
   if (keyEnabled && hasPopulatedSlot() && orch.phase != PHASE_TYPING) {
     if (orch.keepaliveBurstRemaining > 0 && now >= orch.keepaliveNextKeyMs) {
-      // Continue sending keepalive burst
-      sendKeyDown(nextKeyIndex);
+      // Continue sending keepalive burst (silent — no buzzer during non-typing phases)
+      sendKeyDown(nextKeyIndex, true);
       pickNextKey();
       orch.lastSimKeystrokeMs = now;
       orch.keepaliveBurstRemaining--;
-      // Schedule key-up after brief hold, then next key
+      // Brief hold for robust HID host recognition, then release
+      delay(randRange(30, 60));
       sendKeyUp();
       orch.keepaliveNextKeyMs = now + randRange(200, 600);
     } else if (orch.keepaliveBurstRemaining == 0 &&
