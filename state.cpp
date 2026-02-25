@@ -74,6 +74,7 @@ uint8_t modeOriginalValue = 0;
 uint8_t carouselCursor = 0;
 uint8_t carouselOriginal = 0;
 const CarouselConfig* carouselConfig = NULL;
+CarouselCursorCallback carouselCallback = NULL;
 
 // UI Mode
 UIMode currentMode = MODE_NORMAL;

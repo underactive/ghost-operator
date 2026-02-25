@@ -423,9 +423,7 @@ void loop() {
       // Revert carousel — don't persist selection on timeout
       setSettingValue(carouselConfig->settingId, carouselOriginal);
       stopSoundPreview();
-      if (carouselConfig->settingId == SET_SOUND_TYPE) {
-        ((CarouselConfig*)carouselConfig)->onCursorChange = NULL;
-      }
+      carouselCallback = NULL;
       carouselConfig = NULL;
     }
     if (modeConfirming) {

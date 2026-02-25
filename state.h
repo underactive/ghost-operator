@@ -82,6 +82,7 @@ extern uint8_t modeOriginalValue;
 extern uint8_t carouselCursor;
 extern uint8_t carouselOriginal;
 extern const CarouselConfig* carouselConfig;
+extern CarouselCursorCallback carouselCallback;
 
 // UI Mode
 extern UIMode currentMode;

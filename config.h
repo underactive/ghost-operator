@@ -276,7 +276,8 @@ struct CarouselConfig {
   const char* const*     descs;      // Per-option help descriptions
   uint8_t                count;      // Number of options
   uint8_t                settingId;  // SettingId to read/write
-  CarouselCursorCallback onCursorChange; // NULL or callback (e.g., sound preview)
+  // onCursorChange callback stored as runtime state (carouselCallback in state.h)
+  // — cannot live here because static const struct is placed in flash on ARM
 };
 
 #endif // GHOST_CONFIG_H

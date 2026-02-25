@@ -189,20 +189,14 @@ void initCarousel(const CarouselConfig* config) {
   carouselOriginal = carouselCursor;
   // Attach sound preview callback for key sound setting
   if (config->settingId == SET_SOUND_TYPE) {
-    // Cast away const to set callback (config table is static, this is safe)
-    ((CarouselConfig*)config)->onCursorChange = carouselSoundCallback;
+    carouselCallback = carouselSoundCallback;
     carouselSoundCallback(carouselCursor);
   }
 }
 
 void returnToMenuFromCarousel() {
   stopSoundPreview();
-  if (carouselConfig) {
-    // Restore callback to NULL (clean up)
-    if (carouselConfig->settingId == SET_SOUND_TYPE) {
-      ((CarouselConfig*)carouselConfig)->onCursorChange = NULL;
-    }
-  }
+  carouselCallback = NULL;
   currentMode = MODE_MENU;
   menuEditing = false;
   carouselConfig = NULL;
@@ -532,7 +526,7 @@ void handleEncoder() {
           if (next < 0) next = 0;
           if (next >= (int)carouselConfig->count) next = carouselConfig->count - 1;
           carouselCursor = (uint8_t)next;
-          if (carouselConfig->onCursorChange) carouselConfig->onCursorChange(carouselCursor);
+          if (carouselCallback) carouselCallback(carouselCursor);
         }
         break;
 
