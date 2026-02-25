@@ -268,17 +268,17 @@ static const char* const JOB_SIM_DESCS[] = {
 // ============================================================================
 
 static const CarouselConfig CAROUSEL_CONFIGS[] = {
-  { "ANIMATION STYLE",   (const char* const*)ANIM_NAMES,          ANIM_DESCS,          ANIM_STYLE_COUNT,    SET_ANIMATION,     NULL },
-  { "MOVE STYLE",        (const char* const*)MOUSE_STYLE_NAMES,   MOUSE_STYLE_DESCS,   MOUSE_STYLE_COUNT,   SET_MOUSE_STYLE,   NULL },
-  { "SCREENSAVER T.O.",  (const char* const*)SAVER_NAMES,         SAVER_TIMEOUT_DESCS,  SAVER_TIMEOUT_COUNT, SET_SAVER_TIMEOUT, NULL },
-  { "KEY SOUND",         (const char* const*)KB_SOUND_NAMES,      KB_SOUND_DESCS,       KB_SOUND_COUNT,      SET_SOUND_TYPE,    NULL }, // onCursorChange set at runtime
-  { "CLICK TYPE",        (const char* const*)CLICK_TYPE_NAMES,    CLICK_TYPE_DESCS,     2,                   SET_CLICK_TYPE,    NULL },
-  { "SWITCH KEYS",       (const char* const*)SWITCH_KEYS_NAMES,   SWITCH_KEYS_DESCS,    SWITCH_KEYS_COUNT,   SET_SWITCH_KEYS,   NULL },
-  { "HEADER TEXT",       (const char* const*)HEADER_DISP_NAMES,   HEADER_DISP_DESCS,    2,                   SET_HEADER_DISPLAY, NULL },
-  { "VOLUME THEME",      (const char* const*)VOLUME_THEME_NAMES,  VOLUME_THEME_DESCS,   VOLUME_THEME_COUNT,  SET_VOLUME_THEME,  NULL },
-  { "KNOB BUTTON",       (const char* const*)ENC_BTN_ACTION_NAMES,  ENC_BTN_ACTION_DESCS,  ENC_BTN_ACTION_COUNT,  SET_ENC_BUTTON,  NULL },
-  { "SIDE BUTTON",       (const char* const*)SIDE_BTN_ACTION_NAMES, SIDE_BTN_ACTION_DESCS, SIDE_BTN_ACTION_COUNT, SET_SIDE_BUTTON, NULL },
-  { "JOB TYPE",          (const char* const*)JOB_SIM_NAMES,       JOB_SIM_DESCS,        JOB_SIM_COUNT,       SET_JOB_SIM,       NULL },
+  { "ANIMATION STYLE",   (const char* const*)ANIM_NAMES,          ANIM_DESCS,          ANIM_STYLE_COUNT,    SET_ANIMATION      },
+  { "MOVE STYLE",        (const char* const*)MOUSE_STYLE_NAMES,   MOUSE_STYLE_DESCS,   MOUSE_STYLE_COUNT,   SET_MOUSE_STYLE    },
+  { "SCREENSAVER T.O.",  (const char* const*)SAVER_NAMES,         SAVER_TIMEOUT_DESCS,  SAVER_TIMEOUT_COUNT, SET_SAVER_TIMEOUT  },
+  { "KEY SOUND",         (const char* const*)KB_SOUND_NAMES,      KB_SOUND_DESCS,       KB_SOUND_COUNT,      SET_SOUND_TYPE     },
+  { "CLICK TYPE",        (const char* const*)CLICK_TYPE_NAMES,    CLICK_TYPE_DESCS,     2,                   SET_CLICK_TYPE     },
+  { "SWITCH KEYS",       (const char* const*)SWITCH_KEYS_NAMES,   SWITCH_KEYS_DESCS,    SWITCH_KEYS_COUNT,   SET_SWITCH_KEYS    },
+  { "HEADER TEXT",       (const char* const*)HEADER_DISP_NAMES,   HEADER_DISP_DESCS,    2,                   SET_HEADER_DISPLAY },
+  { "VOLUME THEME",      (const char* const*)VOLUME_THEME_NAMES,  VOLUME_THEME_DESCS,   VOLUME_THEME_COUNT,  SET_VOLUME_THEME   },
+  { "KNOB BUTTON",       (const char* const*)ENC_BTN_ACTION_NAMES,  ENC_BTN_ACTION_DESCS,  ENC_BTN_ACTION_COUNT,  SET_ENC_BUTTON },
+  { "SIDE BUTTON",       (const char* const*)SIDE_BTN_ACTION_NAMES, SIDE_BTN_ACTION_DESCS, SIDE_BTN_ACTION_COUNT, SET_SIDE_BUTTON },
+  { "JOB TYPE",          (const char* const*)JOB_SIM_NAMES,       JOB_SIM_DESCS,        JOB_SIM_COUNT,       SET_JOB_SIM        },
 };
 #define CAROUSEL_CONFIG_COUNT (sizeof(CAROUSEL_CONFIGS) / sizeof(CAROUSEL_CONFIGS[0]))
 

@@ -44,6 +44,7 @@ struct TimeBlock {
   uint16_t durationMinutes;
   uint8_t numModes;
   WeightedMode modes[MAX_BLOCK_MODES];
+  bool isLunch;                   // true = lunch block (enforced timing)
 };
 
 struct DayTemplate {
