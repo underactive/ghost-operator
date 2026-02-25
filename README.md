@@ -1,6 +1,6 @@
 # Ghost Operator - BLE HID Device
 
-## Version 2.2.1
+## Version 2.2.2
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -365,6 +365,7 @@ Connect via USB at 115200 baud:
 
 | Version | Changes |
 |---------|---------|
+| **2.2.2** | **Configurable Volume Control buttons (D2/D7 actions); lunch enforcement and keystroke keepalive floor in Simulation mode; unified D3 function button across all modes; carousel callback fix; orchestrator time sync fix; keepalive sound/hold fixes** |
 | **2.2.1** | **Carousel settings page (9 named-option settings as full-screen carousels); system sounds (BLE connect/disconnect alerts); dashboard Bluetooth transport; ISR volatility fix; sleep timeout safety; heap fragmentation elimination; array bounds hardening** |
 | **2.2.0** | **Volume Control operation mode (media controller with 3 display themes); mode picker horizontal carousel with smooth scrolling; mode-specific splash screens; HID consumer control report** |
 | 2.1.0 | Piezo buzzer keyboard sounds (5 profiles with live preview); job performance scaling (0–11); job start time (decoupled from schedule); manual clock setting mode; display optimization (dirty flag, shadow buffer, 20 Hz refresh) |

@@ -5,6 +5,28 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2026-02-25
+
+### Added
+
+- **Lunch enforcement**: Simulation day schedule gates the lunch block until the 4-hour mark, preventing pre-lunch blocks from running past the target time; force-jumps to lunch if already overdue
+- **Keystroke keepalive floor**: Background burst of 2–5 keystrokes every 2 minutes during non-typing phases ensures non-zero keyboard activity in activity monitors
+- **Configurable Volume Control buttons**: Encoder button (D2) action: Play/Pause or Mute; side button (D7) action: Next, Mute, or Play/Pause — configurable via menu and BLE/serial protocol (`=encButton:N`, `=sideButton:N`)
+
+### Changed
+
+- **Volume Control D3 unification**: Function button (D3) uses the same handler across all operation modes — short press opens menu, hold enters sleep; eliminates the separate D2-hold-to-sleep path in Volume Control
+- **Settings struct**: +2 bytes (`encButtonAction`, `sideButtonAction`); `SETTINGS_MAGIC` bumped to `0x50524F5A`; menu items 48→50
+
+### Fixed
+
+- **Carousel callback flash write**: Moved `onCursorChange` callback from `const` flash struct to RAM global — writes to flash-placed `static const` data are undefined behavior on ARM Cortex-M4 (silently fail), so the callback was never reliably set
+- **Orchestrator time sync**: Correct work block and phase selection when time is synced mid-session via `syncOrchestratorTime()`
+- **Keepalive sound suppression**: Added `silent` flag to `sendKeyDown()` to prevent buzzer clicks during background keystroke bursts in non-typing phases
+- **Keepalive HID hold time**: Added 30–60ms hold between key-down/up for robust HID host recognition (zero-duration press/release pairs can be dropped by some hosts)
+- **Volume Control D7 state leak**: Reset `volD7ClickCount` on screensaver activation and light sleep entry to prevent spurious next-track command on wake
+- **Lunch gate clarity**: Replaced accumulative `+=` with absolute assignment in lunch block extension calculation
+
 ## [2.2.1] - 2026-02-24
 
 ### Added
