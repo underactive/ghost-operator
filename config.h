@@ -140,6 +140,12 @@
 
 // Simulation mode
 #define JOB_SIM_COUNT       3       // Staff, Developer, Designer
+#define LUNCH_OFFSET_MIN        240       // 4 hours after job start
+#define LUNCH_MIN_DURATION_MIN  60        // minimum 1 hour
+#define LUNCH_DURATION_JITTER   10        // ±10% on duration (60-66 min)
+#define ACTIVITY_FLOOR_GAP_MS   120000UL  // max 2 min without a keystroke
+#define ACTIVITY_FLOOR_BURST_MIN  2       // min keys per keepalive burst
+#define ACTIVITY_FLOOR_BURST_MAX  5       // max keys per keepalive burst
 #define WMODE_NAME_MAX      12      // max work mode short name length
 #define MAX_BLOCK_MODES     5       // max weighted micro-modes per time block
 #define MAX_DAY_BLOCKS      12      // max time blocks per day template

@@ -177,42 +177,42 @@ const WorkModeDef WORK_MODES[WMODE_COUNT] = {
 // ============================================================================
 
 const DayTemplate DAY_TEMPLATES[JOB_SIM_COUNT] = {
-  // === STAFF (office worker) ===
+  // === STAFF (office worker) === (480 min total)
   { "Staff", 9, {
-    { "AM Email",    0,   30, 3, {{ WMODE_EMAIL_COMPOSE, 40 }, { WMODE_EMAIL_READ, 40 }, { WMODE_CHAT_SLACK, 20 }} },
-    { "AM Work",     30,  90, 5, {{ WMODE_DOC_EDITING, 35 }, { WMODE_BROWSING, 25 }, { WMODE_EMAIL_COMPOSE, 20 }, { WMODE_FILE_MGMT, 10 }, { WMODE_CHAT_SLACK, 10 }} },
-    { "Coffee",      120, 15, 1, {{ WMODE_COFFEE_BREAK, 100 }} },
-    { "Late AM",     135, 75, 5, {{ WMODE_DOC_EDITING, 30 }, { WMODE_EMAIL_READ, 20 }, { WMODE_BROWSING, 20 }, { WMODE_CHAT_SLACK, 15 }, { WMODE_FILE_MGMT, 15 }} },
-    { "Lunch",       210, 45, 1, {{ WMODE_LUNCH_BREAK, 100 }} },
-    { "PM Meeting",  255, 45, 2, {{ WMODE_VIDEO_CONF, 60 }, { WMODE_IRL_MEETING, 40 }} },
-    { "PM Work",     300, 90, 5, {{ WMODE_DOC_EDITING, 35 }, { WMODE_EMAIL_COMPOSE, 25 }, { WMODE_BROWSING, 20 }, { WMODE_FILE_MGMT, 10 }, { WMODE_CHAT_SLACK, 10 }} },
-    { "Coffee 2",    390, 15, 1, {{ WMODE_COFFEE_BREAK, 100 }} },
-    { "Wind Down",   405, 75, 4, {{ WMODE_EMAIL_READ, 30 }, { WMODE_EMAIL_COMPOSE, 25 }, { WMODE_BROWSING, 25 }, { WMODE_CHAT_SLACK, 20 }} },
+    { "AM Email",    0,   30,  3, {{ WMODE_EMAIL_COMPOSE, 40 }, { WMODE_EMAIL_READ, 40 }, { WMODE_CHAT_SLACK, 20 }}, false },
+    { "AM Work",     30,  90,  5, {{ WMODE_DOC_EDITING, 35 }, { WMODE_BROWSING, 25 }, { WMODE_EMAIL_COMPOSE, 20 }, { WMODE_FILE_MGMT, 10 }, { WMODE_CHAT_SLACK, 10 }}, false },
+    { "Coffee",      120, 15,  1, {{ WMODE_COFFEE_BREAK, 100 }}, false },
+    { "Late AM",     135, 105, 5, {{ WMODE_DOC_EDITING, 30 }, { WMODE_EMAIL_READ, 20 }, { WMODE_BROWSING, 20 }, { WMODE_CHAT_SLACK, 15 }, { WMODE_FILE_MGMT, 15 }}, false },
+    { "Lunch",       240, 60,  1, {{ WMODE_LUNCH_BREAK, 100 }}, true },
+    { "PM Meeting",  300, 30,  2, {{ WMODE_VIDEO_CONF, 60 }, { WMODE_IRL_MEETING, 40 }}, false },
+    { "PM Work",     330, 75,  5, {{ WMODE_DOC_EDITING, 35 }, { WMODE_EMAIL_COMPOSE, 25 }, { WMODE_BROWSING, 20 }, { WMODE_FILE_MGMT, 10 }, { WMODE_CHAT_SLACK, 10 }}, false },
+    { "Coffee 2",    405, 15,  1, {{ WMODE_COFFEE_BREAK, 100 }}, false },
+    { "Wind Down",   420, 60,  4, {{ WMODE_EMAIL_READ, 30 }, { WMODE_EMAIL_COMPOSE, 25 }, { WMODE_BROWSING, 25 }, { WMODE_CHAT_SLACK, 20 }}, false },
   }},
 
-  // === DEVELOPER ===
+  // === DEVELOPER === (480 min total)
   { "Developer", 9, {
-    { "Standup",     0,   15, 2, {{ WMODE_CHAT_SLACK, 60 }, { WMODE_VIDEO_CONF, 40 }} },
-    { "Email",       15,  15, 3, {{ WMODE_EMAIL_READ, 60 }, { WMODE_EMAIL_COMPOSE, 30 }, { WMODE_CHAT_SLACK, 10 }} },
-    { "Deep Work 1", 30,  120, 4, {{ WMODE_PROGRAMMING, 70 }, { WMODE_BROWSING, 15 }, { WMODE_FILE_MGMT, 10 }, { WMODE_CHAT_SLACK, 5 }} },
-    { "Coffee",      150, 15, 2, {{ WMODE_COFFEE_BREAK, 80 }, { WMODE_BROWSING, 20 }} },
-    { "Deep Work 2", 165, 90, 3, {{ WMODE_PROGRAMMING, 75 }, { WMODE_BROWSING, 15 }, { WMODE_FILE_MGMT, 10 }} },
-    { "Lunch",       255, 45, 1, {{ WMODE_LUNCH_BREAK, 100 }} },
-    { "Code Review", 300, 60, 4, {{ WMODE_PROGRAMMING, 40 }, { WMODE_BROWSING, 30 }, { WMODE_CHAT_SLACK, 20 }, { WMODE_DOC_EDITING, 10 }} },
-    { "Deep Work 3", 360, 75, 4, {{ WMODE_PROGRAMMING, 70 }, { WMODE_BROWSING, 15 }, { WMODE_FILE_MGMT, 10 }, { WMODE_CHAT_SLACK, 5 }} },
-    { "Wind Down",   435, 45, 4, {{ WMODE_EMAIL_COMPOSE, 30 }, { WMODE_CHAT_SLACK, 30 }, { WMODE_BROWSING, 20 }, { WMODE_DOC_EDITING, 20 }} },
+    { "Standup",     0,   15,  2, {{ WMODE_CHAT_SLACK, 60 }, { WMODE_VIDEO_CONF, 40 }}, false },
+    { "Email",       15,  15,  3, {{ WMODE_EMAIL_READ, 60 }, { WMODE_EMAIL_COMPOSE, 30 }, { WMODE_CHAT_SLACK, 10 }}, false },
+    { "Deep Work 1", 30,  120, 4, {{ WMODE_PROGRAMMING, 70 }, { WMODE_BROWSING, 15 }, { WMODE_FILE_MGMT, 10 }, { WMODE_CHAT_SLACK, 5 }}, false },
+    { "Coffee",      150, 15,  2, {{ WMODE_COFFEE_BREAK, 80 }, { WMODE_BROWSING, 20 }}, false },
+    { "Deep Work 2", 165, 75,  3, {{ WMODE_PROGRAMMING, 75 }, { WMODE_BROWSING, 15 }, { WMODE_FILE_MGMT, 10 }}, false },
+    { "Lunch",       240, 60,  1, {{ WMODE_LUNCH_BREAK, 100 }}, true },
+    { "Code Review", 300, 60,  4, {{ WMODE_PROGRAMMING, 40 }, { WMODE_BROWSING, 30 }, { WMODE_CHAT_SLACK, 20 }, { WMODE_DOC_EDITING, 10 }}, false },
+    { "Deep Work 3", 360, 75,  4, {{ WMODE_PROGRAMMING, 70 }, { WMODE_BROWSING, 15 }, { WMODE_FILE_MGMT, 10 }, { WMODE_CHAT_SLACK, 5 }}, false },
+    { "Wind Down",   435, 45,  4, {{ WMODE_EMAIL_COMPOSE, 30 }, { WMODE_CHAT_SLACK, 30 }, { WMODE_BROWSING, 20 }, { WMODE_DOC_EDITING, 20 }}, false },
   }},
 
-  // === DESIGNER ===
+  // === DESIGNER === (480 min total)
   { "Designer", 9, {
-    { "AM Email",    0,   20, 3, {{ WMODE_EMAIL_READ, 50 }, { WMODE_EMAIL_COMPOSE, 30 }, { WMODE_CHAT_SLACK, 20 }} },
-    { "Design 1",    20,  100, 4, {{ WMODE_FILE_MGMT, 40 }, { WMODE_BROWSING, 35 }, { WMODE_DOC_EDITING, 15 }, { WMODE_CHAT_SLACK, 10 }} },
-    { "Coffee",      120, 15, 2, {{ WMODE_COFFEE_BREAK, 80 }, { WMODE_BROWSING, 20 }} },
-    { "Review",      135, 45, 4, {{ WMODE_VIDEO_CONF, 40 }, { WMODE_BROWSING, 30 }, { WMODE_CHAT_SLACK, 20 }, { WMODE_FILE_MGMT, 10 }} },
-    { "References",  180, 30, 3, {{ WMODE_BROWSING, 70 }, { WMODE_FILE_MGMT, 20 }, { WMODE_CHAT_SLACK, 10 }} },
-    { "Lunch",       210, 45, 1, {{ WMODE_LUNCH_BREAK, 100 }} },
-    { "Design 2",    255, 120, 4, {{ WMODE_FILE_MGMT, 45 }, { WMODE_BROWSING, 30 }, { WMODE_DOC_EDITING, 15 }, { WMODE_CHAT_SLACK, 10 }} },
-    { "Feedback",    375, 30, 4, {{ WMODE_CHAT_SLACK, 40 }, { WMODE_EMAIL_COMPOSE, 30 }, { WMODE_EMAIL_READ, 20 }, { WMODE_VIDEO_CONF, 10 }} },
-    { "Wind Down",   405, 75, 4, {{ WMODE_EMAIL_COMPOSE, 25 }, { WMODE_BROWSING, 30 }, { WMODE_FILE_MGMT, 25 }, { WMODE_CHAT_SLACK, 20 }} },
+    { "AM Email",    0,   20,  3, {{ WMODE_EMAIL_READ, 50 }, { WMODE_EMAIL_COMPOSE, 30 }, { WMODE_CHAT_SLACK, 20 }}, false },
+    { "Design 1",    20,  120, 4, {{ WMODE_FILE_MGMT, 40 }, { WMODE_BROWSING, 35 }, { WMODE_DOC_EDITING, 15 }, { WMODE_CHAT_SLACK, 10 }}, false },
+    { "Coffee",      140, 15,  2, {{ WMODE_COFFEE_BREAK, 80 }, { WMODE_BROWSING, 20 }}, false },
+    { "Review",      155, 45,  4, {{ WMODE_VIDEO_CONF, 40 }, { WMODE_BROWSING, 30 }, { WMODE_CHAT_SLACK, 20 }, { WMODE_FILE_MGMT, 10 }}, false },
+    { "References",  200, 40,  3, {{ WMODE_BROWSING, 70 }, { WMODE_FILE_MGMT, 20 }, { WMODE_CHAT_SLACK, 10 }}, false },
+    { "Lunch",       240, 60,  1, {{ WMODE_LUNCH_BREAK, 100 }}, true },
+    { "Design 2",    300, 90,  4, {{ WMODE_FILE_MGMT, 45 }, { WMODE_BROWSING, 30 }, { WMODE_DOC_EDITING, 15 }, { WMODE_CHAT_SLACK, 10 }}, false },
+    { "Feedback",    390, 30,  4, {{ WMODE_CHAT_SLACK, 40 }, { WMODE_EMAIL_COMPOSE, 30 }, { WMODE_EMAIL_READ, 20 }, { WMODE_VIDEO_CONF, 10 }}, false },
+    { "Wind Down",   420, 60,  4, {{ WMODE_EMAIL_COMPOSE, 25 }, { WMODE_BROWSING, 30 }, { WMODE_FILE_MGMT, 25 }, { WMODE_CHAT_SLACK, 20 }}, false },
   }},
 };

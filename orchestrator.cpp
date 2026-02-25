@@ -140,6 +140,24 @@ static unsigned long phaseDuration(ActivityPhase phase, const WorkModeDef& mode,
 }
 
 // ============================================================================
+// LUNCH ENFORCEMENT HELPERS
+// ============================================================================
+
+// Scan template for the lunch block index (0xFF if none)
+static uint8_t findLunchBlockIdx() {
+  const DayTemplate& tmpl = currentTemplate();
+  for (uint8_t i = 0; i < tmpl.numBlocks; i++) {
+    if (tmpl.blocks[i].isLunch) return i;
+  }
+  return 0xFF;
+}
+
+// Exact ms offset from day start when lunch must begin (no randomness)
+static unsigned long lunchTargetMs() {
+  return (unsigned long)LUNCH_OFFSET_MIN * 60000UL;
+}
+
+// ============================================================================
 // BLOCK & MODE TRANSITIONS
 // ============================================================================
 
@@ -151,13 +169,31 @@ static void startBlock(uint8_t blockIdx, unsigned long now) {
   orch.blockStartMs = now;
   orch.scrollPos[0] = 0; orch.scrollDir[0] = 1; orch.scrollTimer[0] = now;
 
-  // Duration with ±20% randomness
-  unsigned long baseDur = (unsigned long)currentBlock().durationMinutes * 60000UL;
-  orch.blockDurationMs = jitter(baseDur);
+  const TimeBlock& block = tmpl.blocks[blockIdx];
+
+  if (block.isLunch) {
+    // Lunch: minimum 60 min, +0-10% jitter (gives 60-66 min)
+    unsigned long minMs = (unsigned long)LUNCH_MIN_DURATION_MIN * 60000UL;
+    unsigned long maxMs = minMs + minMs * LUNCH_DURATION_JITTER / 100;
+    orch.blockDurationMs = randRange(minMs, maxMs);
+    orch.lunchCompleted = true;
+    Serial.println("[SIM] Lunch started (enforced)");
+  } else {
+    // Normal: ±20% randomness
+    unsigned long baseDur = (unsigned long)block.durationMinutes * 60000UL;
+    orch.blockDurationMs = jitter(baseDur);
+  }
+
+  // Day wrap: reset lunch tracking when cycling back to block 0
+  if (blockIdx == 0) {
+    orch.dayStartMs = now;
+    orch.lunchCompleted = false;
+    orch.lunchBlockIdx = findLunchBlockIdx();
+  }
 
   markDisplayDirty();
   Serial.print("[SIM] Block: ");
-  Serial.println(currentBlock().name);
+  Serial.println(block.name);
 }
 
 static void startMode(unsigned long now) {
@@ -282,6 +318,7 @@ static void tickBurst(unsigned long now) {
     pickNextKey();
     orch.keyDown = true;
     orch.keyDownMs = now;
+    orch.lastSimKeystrokeMs = now;
 
     // Modifier keys get longer hold
     const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
@@ -337,6 +374,11 @@ void initOrchestrator() {
   memset(&orch, 0, sizeof(orch));
   unsigned long now = millis();
 
+  orch.dayStartMs = now;
+  orch.lunchCompleted = false;
+  orch.lunchBlockIdx = findLunchBlockIdx();
+  orch.lastSimKeystrokeMs = now;  // prevent immediate keepalive on init
+
   startBlock(0, now);
   startMode(now);
 
@@ -349,14 +391,46 @@ void tickOrchestrator(unsigned long now) {
   // 1. Check block timer
   if (now - orch.blockStartMs >= orch.blockDurationMs) {
     uint8_t nextBlock = (orch.blockIdx + 1) % tmpl.numBlocks;
+
+    // Lunch enforcement: gate pre-lunch blocks if lunch hasn't started yet
+    if (!orch.lunchCompleted && orch.lunchBlockIdx != 0xFF &&
+        nextBlock == orch.lunchBlockIdx) {
+      unsigned long dayElapsed = now - orch.dayStartMs;
+      unsigned long target = lunchTargetMs();
+      if (dayElapsed < target) {
+        // Extend current block until lunch target
+        orch.blockDurationMs += (target - dayElapsed);
+        Serial.print("[SIM] Lunch gate: extending ");
+        Serial.print(currentBlock().name);
+        Serial.print(" by ");
+        Serial.print((target - dayElapsed) / 60000UL);
+        Serial.println("min");
+        // Don't transition yet — re-enter tick next loop
+        goto skipBlockTransition;
+      }
+    }
+
     startBlock(nextBlock, now);
     startMode(now);
+  }
+
+  // 1b. Lunch force-jump: if past lunch target and still on pre-lunch block
+  else if (!orch.lunchCompleted && orch.lunchBlockIdx != 0xFF &&
+           orch.blockIdx < orch.lunchBlockIdx) {
+    unsigned long dayElapsed = now - orch.dayStartMs;
+    if (dayElapsed >= lunchTargetMs()) {
+      Serial.println("[SIM] Lunch force: jumping to lunch block");
+      startBlock(orch.lunchBlockIdx, now);
+      startMode(now);
+    }
   }
 
   // 2. Check mode timer
   else if (now - orch.modeStartMs >= orch.modeDurationMs) {
     startMode(now);
   }
+
+  skipBlockTransition:
 
   // 3. Check profile stint timer
   if (now - orch.profileStintStartMs >= orch.profileStintMs) {
@@ -416,6 +490,26 @@ void tickOrchestrator(unsigned long now) {
     default:
       break;
   }
+
+  // 6. Keystroke keepalive — ensure non-zero keyboard in every 10-min window
+  if (keyEnabled && hasPopulatedSlot() && orch.phase != PHASE_TYPING) {
+    if (orch.keepaliveBurstRemaining > 0 && now >= orch.keepaliveNextKeyMs) {
+      // Continue sending keepalive burst
+      sendKeyDown(nextKeyIndex);
+      pickNextKey();
+      orch.lastSimKeystrokeMs = now;
+      orch.keepaliveBurstRemaining--;
+      // Schedule key-up after brief hold, then next key
+      sendKeyUp();
+      orch.keepaliveNextKeyMs = now + randRange(200, 600);
+    } else if (orch.keepaliveBurstRemaining == 0 &&
+               now - orch.lastSimKeystrokeMs >= ACTIVITY_FLOOR_GAP_MS) {
+      // Start a new keepalive burst
+      orch.keepaliveBurstRemaining = (uint8_t)randRange(
+        ACTIVITY_FLOOR_BURST_MIN, ACTIVITY_FLOOR_BURST_MAX);
+      orch.keepaliveNextKeyMs = now;
+    }
+  }
 }
 
 void skipWorkMode() {
@@ -465,6 +559,13 @@ void syncOrchestratorTime(uint32_t daySeconds) {
     uint16_t blockEnd = tmpl.blocks[i].startMinutes + tmpl.blocks[i].durationMinutes;
     if (offsetMin < blockEnd) {
       unsigned long now = millis();
+
+      // Reconstruct dayStartMs from current offset
+      orch.dayStartMs = now - (unsigned long)offsetMin * 60000UL;
+      orch.lunchBlockIdx = findLunchBlockIdx();
+      // Lunch is completed if synced block is at or past the lunch block
+      orch.lunchCompleted = (orch.lunchBlockIdx != 0xFF && i >= orch.lunchBlockIdx);
+
       startBlock(i, now);
       startMode(now);
       Serial.print("[SIM] Time synced to block ");
@@ -475,6 +576,9 @@ void syncOrchestratorTime(uint32_t daySeconds) {
 
   // Past all blocks — stay on last block
   unsigned long now = millis();
+  orch.dayStartMs = now - (unsigned long)offsetMin * 60000UL;
+  orch.lunchBlockIdx = findLunchBlockIdx();
+  orch.lunchCompleted = true;  // past all blocks = past lunch
   startBlock(tmpl.numBlocks - 1, now);
   startMode(now);
 }

@@ -221,6 +221,16 @@ struct OrchestratorState {
   unsigned long lastPhantomClickMs;   // timestamp of last click (display flash)
   unsigned long nextWindowSwitchMs;
 
+  // Lunch enforcement
+  unsigned long dayStartMs;       // when day cycle started (block 0)
+  bool lunchCompleted;            // has lunch happened this cycle?
+  uint8_t lunchBlockIdx;          // cached lunch block index (0xFF = none)
+
+  // Keystroke keepalive (activity floor)
+  unsigned long lastSimKeystrokeMs;   // last keystroke sent by orchestrator
+  uint8_t keepaliveBurstRemaining;    // keys left in current keepalive burst
+  unsigned long keepaliveNextKeyMs;   // when to send next keepalive key
+
   // Schedule preview overlay
   bool previewActive;
   unsigned long previewStartMs;
