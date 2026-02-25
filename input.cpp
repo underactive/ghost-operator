@@ -273,9 +273,12 @@ bool isMenuItemHidden(int8_t idx) {
     }
   }
 
-  // Volume theme: only visible in Volume Control mode
+  // Volume-only items: only visible in Volume Control mode
   if (!isVol) {
-    if (item.settingId == SET_VOLUME_THEME) return true;
+    switch (item.settingId) {
+      case SET_VOLUME_THEME: case SET_ENC_BUTTON: case SET_SIDE_BUTTON:
+        return true;
+    }
   }
 
   return false;
@@ -543,19 +546,19 @@ void handleEncoder() {
 void handleButtons() {
   static bool lastEncBtn = HIGH;
   static unsigned long lastEncPress = 0;
-  static bool volD3SuppressFunc = false;  // suppress normal D3 until released after vol hold-to-menu
   const unsigned long DEBOUNCE = 200;
 
   unsigned long now = millis();
   bool encBtn = digitalRead(PIN_ENCODER_BTN);
   bool funcBtn = digitalRead(PIN_FUNC_BTN);
 
-  // D3 deferred single-click for Volume Control (next track)
+  // D7 deferred single-click for Volume Control (next track)
+  // Only applies when sideButtonAction == 0 (Next mode)
   if (settings.operationMode == 2 && currentMode == MODE_NORMAL
-      && volD3ClickCount == 1
-      && !volD3WasPressed
-      && (now - volD3LastPress >= VOL_D3_DOUBLECLICK_MS)) {
-    volD3ClickCount = 0;
+      && settings.sideButtonAction == 0
+      && volD7ClickCount == 1
+      && (now - volD7LastPress >= VOL_DOUBLECLICK_MS)) {
+    volD7ClickCount = 0;
     sendConsumerPress(HID_USAGE_CONSUMER_SCAN_NEXT);
     delay(30);
     sendConsumerRelease();
@@ -563,59 +566,31 @@ void handleButtons() {
     pushSerialStatus();
   }
 
-  // Volume Control D2: short press = mute, hold = sleep
+  // Volume Control D2: configurable action (Play/Pause or Mute)
   if (settings.operationMode == 2 && currentMode == MODE_NORMAL) {
-    bool encBtnVC = digitalRead(PIN_ENCODER_BTN);
-    if (encBtnVC == LOW) {
-      if (!volD2WasPressed) {
-        volD2PressStart = now;
-        volD2WasPressed = true;
+    if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
+      lastEncPress = now;
+      lastModeActivity = now;
+      markDisplayDirty();
+
+      if (sleepConfirmActive || sleepCancelActive) { lastEncBtn = encBtn; return; }
+      if (scheduleSleeping) { exitLightSleep(); lastEncBtn = encBtn; return; }
+      if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
+
+      if (settings.encButtonAction == 0) {
+        // Play/Pause
+        volPlaying = !volPlaying;
+        sendConsumerPress(HID_USAGE_CONSUMER_PLAY_PAUSE);
       } else {
-        unsigned long holdTime = now - volD2PressStart;
-        if (!sleepConfirmActive && holdTime >= VOL_D2_HOLD_THRESHOLD_MS) {
-          sleepConfirmActive = true;
-          sleepConfirmStart = now;
-          if (screensaverActive) screensaverActive = false;
-          markDisplayDirty();
-        }
-        if (sleepConfirmActive && (now - sleepConfirmStart >= SLEEP_COUNTDOWN_MS)) {
-          sleepConfirmActive = false;
-          sleepPending = true;
-          volD2WasPressed = false;
-        }
+        // Mute
+        volMuted = !volMuted;
+        sendConsumerPress(HID_USAGE_CONSUMER_MUTE);
       }
-    } else {
-      if (volD2WasPressed) {
-        unsigned long holdTime = now - volD2PressStart;
-        if (sleepConfirmActive) {
-          unsigned long confirmElapsed = now - sleepConfirmStart;
-          sleepConfirmActive = false;
-          markDisplayDirty();
-          if (confirmElapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
-            lightSleepPending = true;
-          } else {
-            sleepCancelActive = true;
-            sleepCancelStart = now;
-          }
-        } else if (holdTime > 50 && holdTime < VOL_D2_HOLD_THRESHOLD_MS) {
-          lastModeActivity = now;
-          markDisplayDirty();
-          if (sleepCancelActive) { /* skip */ }
-          else if (screensaverActive) { screensaverActive = false; }
-          else if (scheduleSleeping) { exitLightSleep(); }
-          else {
-            volMuted = !volMuted;
-            sendConsumerPress(HID_USAGE_CONSUMER_MUTE);
-            delay(30);
-            sendConsumerRelease();
-            pushSerialStatus();
-          }
-        }
-        volD2WasPressed = false;
-      }
+      delay(30);
+      sendConsumerRelease();
+      pushSerialStatus();
     }
-    // Skip normal D2 handler - need to update lastEncBtn
-    lastEncBtn = digitalRead(PIN_ENCODER_BTN);
+    lastEncBtn = encBtn;
   } else {
     // Encoder button - mode-dependent behavior
     if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
@@ -841,237 +816,172 @@ void handleButtons() {
     lastEncBtn = encBtn;
   }
 
-  // Volume Control D3: short = next, double = prev, hold 3s = menu
-  if (settings.operationMode == 2 && currentMode == MODE_NORMAL) {
-    if (funcBtn == LOW) {
-      if (!volD3WasPressed) {
-        volD3PressStart = now;
-        volD3WasPressed = true;
-      }
-      // Enter menu immediately when hold threshold reached (don't wait for release)
-      if (volD3WasPressed && (now - volD3PressStart >= VOL_D3_HOLD_THRESHOLD_MS)) {
-        volD3WasPressed = false;
-        volD3ClickCount = 0;
-        lastModeActivity = now;
-        currentMode = MODE_MENU;
-        menuCursor = -1;
-        menuScrollOffset = 0;
-        menuEditing = false;
-        helpScrollPos = 0;
-        helpScrollDir = 1;
-        helpScrollTimer = millis();
-        volD3SuppressFunc = true;  // suppress normal D3 handler until button released
-        markDisplayDirty();
-        Serial.println("Mode: MENU (vol D3 hold)");
-        pushSerialStatus();
-        return;
-      }
+  // Function button - short = open/close menu, hold = sleep confirmation (all modes)
+  if (funcBtn == LOW) {
+    if (!funcBtnWasPressed) {
+      funcBtnPressStart = now;
+      funcBtnWasPressed = true;
     } else {
-      if (volD3WasPressed) {
-        unsigned long holdTime = now - volD3PressStart;
-        volD3WasPressed = false;
-        lastModeActivity = now;
+      unsigned long holdTime = now - funcBtnPressStart;
+      // Show confirmation overlay after threshold
+      if (!sleepConfirmActive && holdTime >= SLEEP_CONFIRM_THRESHOLD_MS) {
+        sleepConfirmActive = true;
+        sleepConfirmStart = now;
+        if (screensaverActive) screensaverActive = false;
         markDisplayDirty();
-
-        if (holdTime > 50) {
-          if (screensaverActive) {
-            screensaverActive = false;
-          } else if (scheduleSleeping) {
-            exitLightSleep();
-          } else if (sleepConfirmActive || sleepCancelActive) {
-            // ignore during overlays
-          } else {
-            // Double-click detection
-            if (volD3ClickCount == 1 && (now - volD3LastPress < VOL_D3_DOUBLECLICK_MS)) {
-              volD3ClickCount = 0;
-              sendConsumerPress(HID_USAGE_CONSUMER_SCAN_PREVIOUS);
-              delay(30);
-              sendConsumerRelease();
-              pushSerialStatus();
-            } else {
-              volD3ClickCount = 1;
-              volD3LastPress = now;
-            }
-          }
-        }
+        Serial.println("Sleep confirm: started");
       }
-    }
-    if (currentMode == MODE_NORMAL) funcBtnWasPressed = false;  // prevent normal D3 handler from firing
-  } else {
-    // After vol D3 hold-to-menu, suppress normal D3 until button is fully released
-    if (volD3SuppressFunc) {
-      if (funcBtn == HIGH) {
-        volD3SuppressFunc = false;
+      // Countdown elapsed -- trigger sleep
+      if (sleepConfirmActive && (now - sleepConfirmStart >= SLEEP_COUNTDOWN_MS)) {
+        sleepConfirmActive = false;
+        sleepPending = true;
         funcBtnWasPressed = false;
       }
-      goto skipFuncBtn;  // skip entire normal D3 handler
     }
-
-    // Function button - short = open/close menu, hold = sleep confirmation
-    if (funcBtn == LOW) {
-      if (!funcBtnWasPressed) {
-        funcBtnPressStart = now;
-        funcBtnWasPressed = true;
-      } else {
-        unsigned long holdTime = now - funcBtnPressStart;
-        // Show confirmation overlay after threshold
-        if (!sleepConfirmActive && holdTime >= SLEEP_CONFIRM_THRESHOLD_MS) {
-          sleepConfirmActive = true;
-          sleepConfirmStart = now;
-          if (screensaverActive) screensaverActive = false;
-          markDisplayDirty();
-          Serial.println("Sleep confirm: started");
+  } else {
+    if (funcBtnWasPressed) {
+      unsigned long holdTime = now - funcBtnPressStart;
+      if (sleepConfirmActive) {
+        unsigned long confirmElapsed = now - sleepConfirmStart;
+        sleepConfirmActive = false;
+        markDisplayDirty();
+        if (confirmElapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
+          // Held past midpoint — light sleep
+          lightSleepPending = true;
+          Serial.println("Sleep confirm: light sleep");
+        } else {
+          // Released before midpoint — cancel
+          sleepCancelActive = true;
+          sleepCancelStart = now;
+          Serial.println("Sleep confirm: cancelled");
         }
-        // Countdown elapsed -- trigger sleep
-        if (sleepConfirmActive && (now - sleepConfirmStart >= SLEEP_COUNTDOWN_MS)) {
-          sleepConfirmActive = false;
-          sleepPending = true;
-          funcBtnWasPressed = false;
-        }
-      }
-    } else {
-      if (funcBtnWasPressed) {
-        unsigned long holdTime = now - funcBtnPressStart;
-        if (sleepConfirmActive) {
-          unsigned long confirmElapsed = now - sleepConfirmStart;
-          sleepConfirmActive = false;
-          markDisplayDirty();
-          if (confirmElapsed >= SLEEP_LIGHT_THRESHOLD_MS) {
-            // Held past midpoint — light sleep
-            lightSleepPending = true;
-            Serial.println("Sleep confirm: light sleep");
-          } else {
-            // Released before midpoint — cancel
-            sleepCancelActive = true;
-            sleepCancelStart = now;
-            Serial.println("Sleep confirm: cancelled");
-          }
-          funcBtnWasPressed = false;
-          return;  // prevent fall-through to short-press handler
-        } else if (holdTime > 50) {
-          // Short press -- mode switching
-          lastModeActivity = now;
-          markDisplayDirty();
+        funcBtnWasPressed = false;
+        return;  // prevent fall-through to short-press handler
+      } else if (holdTime > 50) {
+        // Short press -- mode switching
+        lastModeActivity = now;
+        markDisplayDirty();
 
-          // Wake from scheduled light sleep -- consume input
-          if (scheduleSleeping) { exitLightSleep(); funcBtnWasPressed = false; return; }
+        // Wake from scheduled light sleep -- consume input
+        if (scheduleSleeping) { exitLightSleep(); funcBtnWasPressed = false; return; }
 
-          // Wake screensaver -- consume input
-          if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
+        // Wake screensaver -- consume input
+        if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
 
-          switch (currentMode) {
-            case MODE_NORMAL:
-              // Open menu
-              currentMode = MODE_MENU;
-              menuCursor = -1;
-              menuScrollOffset = 0;
+        // Reset D7 pending click state when entering menu
+        if (settings.operationMode == 2) volD7ClickCount = 0;
+
+        switch (currentMode) {
+          case MODE_NORMAL:
+            // Open menu
+            currentMode = MODE_MENU;
+            menuCursor = -1;
+            menuScrollOffset = 0;
+            menuEditing = false;
+            helpScrollPos = 0;
+            helpScrollDir = 1;
+            helpScrollTimer = millis();
+            Serial.println("Mode: MENU");
+            pushSerialStatus();
+            break;
+
+          case MODE_MENU:
+            if (defaultsConfirming) {
+              defaultsConfirming = false;  // cancel confirmation
+            } else if (rebootConfirming) {
+              rebootConfirming = false;    // cancel confirmation
+            } else {
+              // Close menu -> save and return to NORMAL
               menuEditing = false;
-              helpScrollPos = 0;
-              helpScrollDir = 1;
-              helpScrollTimer = millis();
-              Serial.println("Mode: MENU");
-              pushSerialStatus();
-              break;
-
-            case MODE_MENU:
-              if (defaultsConfirming) {
-                defaultsConfirming = false;  // cancel confirmation
-              } else if (rebootConfirming) {
-                rebootConfirming = false;    // cancel confirmation
-              } else {
-                // Close menu -> save and return to NORMAL
-                menuEditing = false;
-                stopSoundPreview();
-                currentMode = MODE_NORMAL;
-                saveSettings();
-                Serial.println("Mode: NORMAL (menu closed)");
-                pushSerialStatus();
-              }
-              break;
-
-            case MODE_SLOTS:
-              // Back to menu at "Key slots" item
+              stopSoundPreview();
+              currentMode = MODE_NORMAL;
               saveSettings();
-              currentMode = MODE_MENU;
-              menuCursor = MENU_IDX_KEY_SLOTS;
-              menuEditing = false;
-              menuScrollOffset = (MENU_IDX_KEY_SLOTS > 4) ? MENU_IDX_KEY_SLOTS - 4 : 0;
-              Serial.println("Mode: MENU (from SLOTS)");
+              Serial.println("Mode: NORMAL (menu closed)");
               pushSerialStatus();
-              break;
+            }
+            break;
 
-            case MODE_NAME:
-              if (!nameConfirming) {
-                settings.decoyIndex = 0;  // switching to custom (saved by saveNameEditor)
-                bool changed = saveNameEditor();
-                if (changed || decoyOriginal != 0) {
-                  // Name or identity changed — prompt reboot
-                  nameConfirming = true;
-                  nameRebootYes = true;
-                } else {
-                  returnToMenuFromName();
-                }
+          case MODE_SLOTS:
+            // Back to menu at "Key slots" item
+            saveSettings();
+            currentMode = MODE_MENU;
+            menuCursor = MENU_IDX_KEY_SLOTS;
+            menuEditing = false;
+            menuScrollOffset = (MENU_IDX_KEY_SLOTS > 4) ? MENU_IDX_KEY_SLOTS - 4 : 0;
+            Serial.println("Mode: MENU (from SLOTS)");
+            pushSerialStatus();
+            break;
+
+          case MODE_NAME:
+            if (!nameConfirming) {
+              settings.decoyIndex = 0;  // switching to custom (saved by saveNameEditor)
+              bool changed = saveNameEditor();
+              if (changed || decoyOriginal != 0) {
+                // Name or identity changed — prompt reboot
+                nameConfirming = true;
+                nameRebootYes = true;
               } else {
-                // From reboot prompt -- func button = "No" (skip reboot)
                 returnToMenuFromName();
               }
-              break;
+            } else {
+              // From reboot prompt -- func button = "No" (skip reboot)
+              returnToMenuFromName();
+            }
+            break;
 
-            case MODE_SET_CLOCK:
-              // Confirm: sync time and return to menu
-              syncTime((uint32_t)clockHour * 3600 + (uint32_t)clockMinute * 60);
-              clockEditing = false;
-              returnToMenuFromClock();
-              Serial.println("Clock set via manual editor");
-              break;
+          case MODE_SET_CLOCK:
+            // Confirm: sync time and return to menu
+            syncTime((uint32_t)clockHour * 3600 + (uint32_t)clockMinute * 60);
+            clockEditing = false;
+            returnToMenuFromClock();
+            Serial.println("Clock set via manual editor");
+            break;
 
-            case MODE_SCHEDULE:
-              // Save and return to menu
-              saveSettings();
-              scheduleEditing = false;
-              returnToMenuFromSchedule();
-              break;
+          case MODE_SCHEDULE:
+            // Save and return to menu
+            saveSettings();
+            scheduleEditing = false;
+            returnToMenuFromSchedule();
+            break;
 
-            case MODE_DECOY:
-              if (decoyConfirming) {
-                decoyConfirming = false;  // cancel confirmation
-                returnToMenuFromDecoy();
-              } else {
-                // Back to menu without changes
-                returnToMenuFromDecoy();
-              }
-              break;
+          case MODE_DECOY:
+            if (decoyConfirming) {
+              decoyConfirming = false;  // cancel confirmation
+              returnToMenuFromDecoy();
+            } else {
+              // Back to menu without changes
+              returnToMenuFromDecoy();
+            }
+            break;
 
-            case MODE_MODE:
-              if (modeConfirming) {
-                // Cancel reboot prompt — revert and return to menu
-                settings.operationMode = modeOriginalValue;
-                modeConfirming = false;
-                returnToMenuFromMode();
-              } else {
-                // Back to menu without changes
-                returnToMenuFromMode();
-              }
-              break;
+          case MODE_MODE:
+            if (modeConfirming) {
+              // Cancel reboot prompt — revert and return to menu
+              settings.operationMode = modeOriginalValue;
+              modeConfirming = false;
+              returnToMenuFromMode();
+            } else {
+              // Back to menu without changes
+              returnToMenuFromMode();
+            }
+            break;
 
-            case MODE_CAROUSEL:
-              // Cancel — revert to original value and return
-              if (carouselConfig) {
-                setSettingValue(carouselConfig->settingId, carouselOriginal);
-              }
-              returnToMenuFromCarousel();
-              break;
+          case MODE_CAROUSEL:
+            // Cancel — revert to original value and return
+            if (carouselConfig) {
+              setSettingValue(carouselConfig->settingId, carouselOriginal);
+            }
+            returnToMenuFromCarousel();
+            break;
 
-            default: break;
-          }
+          default: break;
         }
-        funcBtnWasPressed = false;
       }
+      funcBtnWasPressed = false;
     }
   }
-  skipFuncBtn:
 
-  // Mute button (D7) - cycles KB/MS enable combos in both modes
+  // D7 side button — configurable in Volume Control, KB/MS toggle in other modes
   static bool lastMuteBtn = HIGH;
   bool muteBtn = digitalRead(PIN_MUTE_BTN);
   if (muteBtn == LOW && lastMuteBtn == HIGH && (now - lastMuteBtnPress > DEBOUNCE)) {
@@ -1086,12 +996,36 @@ void handleButtons() {
     if (currentMode != MODE_NORMAL) { lastMuteBtn = muteBtn; return; }
 
     if (settings.operationMode == 2) {
-      // Volume Control: D7 = play/pause
-      volPlaying = !volPlaying;
-      sendConsumerPress(HID_USAGE_CONSUMER_PLAY_PAUSE);
-      delay(30);
-      sendConsumerRelease();
-      pushSerialStatus();
+      // Volume Control: D7 action depends on sideButtonAction setting
+      if (settings.sideButtonAction == 0) {
+        // Next mode: deferred single-click / double-click for prev
+        if (volD7ClickCount == 1 && (now - volD7LastPress < VOL_DOUBLECLICK_MS)) {
+          // Double-click = previous track
+          volD7ClickCount = 0;
+          sendConsumerPress(HID_USAGE_CONSUMER_SCAN_PREVIOUS);
+          delay(30);
+          sendConsumerRelease();
+          pushSerialStatus();
+        } else {
+          // First click — defer, wait for possible double-click
+          volD7ClickCount = 1;
+          volD7LastPress = now;
+        }
+      } else if (settings.sideButtonAction == 1) {
+        // Mute (immediate)
+        volMuted = !volMuted;
+        sendConsumerPress(HID_USAGE_CONSUMER_MUTE);
+        delay(30);
+        sendConsumerRelease();
+        pushSerialStatus();
+      } else {
+        // Play/Pause (immediate)
+        volPlaying = !volPlaying;
+        sendConsumerPress(HID_USAGE_CONSUMER_PLAY_PAUSE);
+        delay(30);
+        sendConsumerRelease();
+        pushSerialStatus();
+      }
     } else {
       // Cycle KB/MS enable combos (same logic as simple mode encoder button)
       bool wasKeyEnabled = keyEnabled;

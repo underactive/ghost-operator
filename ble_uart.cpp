@@ -225,11 +225,11 @@ static void cmdQuerySettings() {
   // Simulation mode settings + volume control
   len += snprintf(buf + len, sizeof(buf) - len,
     "|opMode=%d|jobSim=%d|jobPerf=%d|jobStart=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d"
-    "|volumeTheme=%d",
+    "|volumeTheme=%d|encButton=%d|sideButton=%d",
     settings.operationMode, settings.jobSimulation, settings.jobPerformance, settings.jobStartTime,
     settings.phantomClicks, settings.clickType, settings.windowSwitching,
     settings.switchKeys, settings.headerDisplay,
-    settings.volumeTheme);
+    settings.volumeTheme, settings.encButtonAction, settings.sideButtonAction);
 
   currentWriter(buf);
 }
@@ -358,6 +358,10 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SYSTEM_SOUND, (uint32_t)atol(valStr));
   } else if (strcmp(key, "volumeTheme") == 0) {
     setSettingValue(SET_VOLUME_THEME, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "encButton") == 0) {
+    setSettingValue(SET_ENC_BUTTON, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "sideButton") == 0) {
+    setSettingValue(SET_SIDE_BUTTON, (uint32_t)atol(valStr));
   } else if (strcmp(key, "time") == 0) {
     uint32_t secs = (uint32_t)atol(valStr);
     if (secs >= 86400) secs = 0;

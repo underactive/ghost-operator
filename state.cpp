@@ -181,15 +181,9 @@ unsigned long volFeedbackStart  = 0;
 bool          volMuted          = false;
 bool          volPlaying        = true;   // assume playing on boot
 
-// D2 hold state for Volume Control sleep
-unsigned long volD2PressStart   = 0;
-bool          volD2WasPressed   = false;
-
-// D3 double-click state for Volume Control track skip
-unsigned long volD3LastPress    = 0;
-uint8_t       volD3ClickCount   = 0;
-bool          volD3WasPressed   = false;
-unsigned long volD3PressStart   = 0;
+// D7 double-click state for Volume Control next/prev track
+unsigned long volD7LastPress    = 0;
+uint8_t       volD7ClickCount   = 0;
 
 // Orchestrator state (simulation mode)
 OrchestratorState orch = {};

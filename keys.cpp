@@ -44,22 +44,24 @@ static_assert(sizeof(AVAILABLE_KEYS) / sizeof(AVAILABLE_KEYS[0]) == NUM_KEYS,
               "NUM_KEYS define must match AVAILABLE_KEYS[] size");
 
 const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
-  // idx 0-1: Volume (vol-only; orphan heading auto-hides in other modes)
+  // idx 0-3: Volume (vol-only; orphan heading auto-hides in other modes)
   { MENU_HEADING, "Volume",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Theme",         "Volume control display theme", FMT_VOLUME_THEME, 0, 2, 1, SET_VOLUME_THEME },
-  // idx 2-5: Simulation (sim-only; orphan heading auto-hides in simple mode)
+  { MENU_VALUE,   "Knob btn",      "Encoder button action in Volume mode", FMT_ENC_BTN_ACTION, 0, 1, 1, SET_ENC_BUTTON },
+  { MENU_VALUE,   "Side btn",      "Side button (D7) action in Volume mode", FMT_SIDE_BTN_ACTION, 0, 2, 1, SET_SIDE_BUTTON },
+  // idx 4-7: Simulation (sim-only)
   { MENU_HEADING, "Simulation",    NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Job type",      "Daily schedule template for work simulation", FMT_JOB_SIM, 0, 2, 1, SET_JOB_SIM },
   { MENU_VALUE,   "Job start",     "Time of day your workday begins", FMT_TIME_5MIN, 0, 287, 1, SET_JOB_START_TIME },
   { MENU_VALUE,   "Performance",   "Job performance level (0-11)", FMT_PERF_LEVEL, 0, 11, 1, SET_JOB_PERFORMANCE },
-  // idx 6-11: Keyboard
+  // idx 8-13: Keyboard
   { MENU_HEADING, "Keyboard",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Key min",       "Minimum delay between keystrokes", FMT_DURATION_MS, 500, 30000, 500, SET_KEY_MIN },
   { MENU_VALUE,   "Key max",       "Maximum delay between keystrokes", FMT_DURATION_MS, 500, 30000, 500, SET_KEY_MAX },
   { MENU_ACTION,  "Key slots",     "Configure 8 key slots", FMT_DURATION_MS, 0, 0, 0, SET_KEY_SLOTS },
   { MENU_VALUE,   "Window switch", "Alt/Cmd-Tab at long intervals (WARNING: may move focus)", FMT_ON_OFF, 0, 1, 1, SET_WINDOW_SWITCH },
   { MENU_VALUE,   "Switch keys",   "Key combo for window switching", FMT_SWITCH_KEYS, 0, 1, 1, SET_SWITCH_KEYS },
-  // idx 12-19: Mouse
+  // idx 14-21: Mouse
   { MENU_HEADING, "Mouse",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Move duration", "Duration of mouse jiggle movement", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_JIG },
   { MENU_VALUE,   "Idle duration", "Pause between mouse jiggles", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_IDLE },
@@ -68,27 +70,27 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Scroll",        "Random scroll wheel during mouse movement", FMT_ON_OFF, 0, 1, 1, SET_SCROLL },
   { MENU_VALUE,   "Auto-clicks",   "Inject clicks during mouse phases", FMT_ON_OFF, 0, 1, 1, SET_PHANTOM_CLICKS },
   { MENU_VALUE,   "Click type",    "Mouse button for auto-clicks", FMT_CLICK_TYPE, 0, 1, 1, SET_CLICK_TYPE },
-  // idx 20-22: Profiles
+  // idx 22-24: Profiles
   { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },
   { MENU_VALUE,   "Busy adjust",   "Speed up timing by this percent", FMT_PERCENT, 0, 50, 5, SET_BUSY_PCT },
-  // idx 23-28: Display
+  // idx 25-30: Display
   { MENU_HEADING, "Display",       NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Brightness",    "OLED display brightness", FMT_PERCENT, 10, 100, 10, SET_DISPLAY_BRIGHT },
   { MENU_VALUE,   "Saver bright",  "Screensaver dimmed brightness", FMT_PERCENT, 10, 100, 10, SET_SAVER_BRIGHT },
   { MENU_VALUE,   "Saver T.O.",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
   { MENU_VALUE,   "Animation",     "Status animation style", FMT_ANIM_NAME, 0, 5, 1, SET_ANIMATION },
   { MENU_VALUE,   "Header txt",   "Normal screen header shows job or device name", FMT_HEADER_DISP, 0, 1, 1, SET_HEADER_DISPLAY },
-  // idx 29-32: Sound
+  // idx 31-34: Sound
   { MENU_HEADING, "Sound",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Sys. sounds", "BLE connect/disconnect alert tones", FMT_ON_OFF, 0, 1, 1, SET_SYSTEM_SOUND },
   { MENU_VALUE,   "Sound",        "Mechanical keyboard sound on keystroke", FMT_ON_OFF, 0, 1, 1, SET_SOUND_ENABLED },
   { MENU_VALUE,   "Key sound",    "Keyboard switch sound profile", FMT_KEY_SOUND, 0, 4, 1, SET_SOUND_TYPE },
-  // idx 33-35: Schedule
+  // idx 35-37: Schedule
   { MENU_HEADING, "Schedule",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Set clock",     "Set device time manually", FMT_DURATION_MS, 0, 0, 0, SET_SET_CLOCK },
   { MENU_ACTION,  "Schedule",      "Configure schedule mode & times", FMT_DURATION_MS, 0, 0, 0, SET_SCHEDULE_MODE },
-  // idx 36-43: Device
+  // idx 38-45: Device
   { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Mode",          "Select operation mode (reboot required)", FMT_DURATION_MS, 0, 0, 0, SET_OP_MODE },
   { MENU_ACTION,  "BLE identity",  "BLE device name preset (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_BLE_IDENTITY },
@@ -97,7 +99,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Invert dial",   "Reverse encoder rotation direction", FMT_ON_OFF, 0, 1, 1, SET_INVERT_DIAL },
   { MENU_ACTION,  "Restore defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
   { MENU_ACTION,  "Reboot",        "Restart device (applies pending changes)", FMT_DURATION_MS, 0, 0, 0, SET_REBOOT },
-  // idx 44-47: About
+  // idx 46-49: About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Uptime",        "Time since last boot", FMT_UPTIME, 0, 0, 0, SET_UPTIME },
   { MENU_VALUE,   "Die temp",      "nRF52840 internal die temperature", FMT_DIE_TEMP, 0, 0, 0, SET_DIE_TEMP },
@@ -158,6 +160,8 @@ const char* SWITCH_KEYS_NAMES[] = { "AltTab", "CmdTab" };
 const char* ON_OFF_NAMES[] = { "Off", "On" };
 const char* KB_SOUND_NAMES[] = { "MX Blue", "MX Brown", "Membrane", "Buckling", "Thock" };
 const char* VOLUME_THEME_NAMES[] = { "Basic", "Retro", "Futuristic" };
+const char* ENC_BTN_ACTION_NAMES[]  = { "Play/Pause", "Mute" };
+const char* SIDE_BTN_ACTION_NAMES[] = { "Next", "Mute", "Play/Pause" };
 const char* SCHEDULE_MODE_NAMES[] = { "Off", "Sleep", "Full auto" };
 
 const char* const DECOY_NAMES[] = {
@@ -242,6 +246,17 @@ static const char* const VOLUME_THEME_DESCS[] = {
   "Sleek sci-fi interface"
 };
 
+static const char* const ENC_BTN_ACTION_DESCS[] = {
+  "Toggle play/pause on press",
+  "Toggle audio mute on press"
+};
+
+static const char* const SIDE_BTN_ACTION_DESCS[] = {
+  "Next track (double-click = previous)",
+  "Toggle audio mute on press",
+  "Toggle play/pause on press"
+};
+
 static const char* const JOB_SIM_DESCS[] = {
   "General office worker",
   "Software dev workflow",
@@ -253,15 +268,17 @@ static const char* const JOB_SIM_DESCS[] = {
 // ============================================================================
 
 static const CarouselConfig CAROUSEL_CONFIGS[] = {
-  { "ANIMATION STYLE",   (const char* const*)ANIM_NAMES,          ANIM_DESCS,          ANIM_STYLE_COUNT,    SET_ANIMATION     },
-  { "MOVE STYLE",        (const char* const*)MOUSE_STYLE_NAMES,   MOUSE_STYLE_DESCS,   MOUSE_STYLE_COUNT,   SET_MOUSE_STYLE   },
-  { "SCREENSAVER T.O.",  (const char* const*)SAVER_NAMES,         SAVER_TIMEOUT_DESCS,  SAVER_TIMEOUT_COUNT, SET_SAVER_TIMEOUT },
-  { "KEY SOUND",         (const char* const*)KB_SOUND_NAMES,      KB_SOUND_DESCS,       KB_SOUND_COUNT,      SET_SOUND_TYPE    },
-  { "CLICK TYPE",        (const char* const*)CLICK_TYPE_NAMES,    CLICK_TYPE_DESCS,     2,                   SET_CLICK_TYPE    },
-  { "SWITCH KEYS",       (const char* const*)SWITCH_KEYS_NAMES,   SWITCH_KEYS_DESCS,    SWITCH_KEYS_COUNT,   SET_SWITCH_KEYS   },
-  { "HEADER TEXT",       (const char* const*)HEADER_DISP_NAMES,   HEADER_DISP_DESCS,    2,                   SET_HEADER_DISPLAY },
-  { "VOLUME THEME",      (const char* const*)VOLUME_THEME_NAMES,  VOLUME_THEME_DESCS,   VOLUME_THEME_COUNT,  SET_VOLUME_THEME  },
-  { "JOB TYPE",          (const char* const*)JOB_SIM_NAMES,       JOB_SIM_DESCS,        JOB_SIM_COUNT,       SET_JOB_SIM       },
+  { "ANIMATION STYLE",   (const char* const*)ANIM_NAMES,          ANIM_DESCS,          ANIM_STYLE_COUNT,    SET_ANIMATION,     NULL },
+  { "MOVE STYLE",        (const char* const*)MOUSE_STYLE_NAMES,   MOUSE_STYLE_DESCS,   MOUSE_STYLE_COUNT,   SET_MOUSE_STYLE,   NULL },
+  { "SCREENSAVER T.O.",  (const char* const*)SAVER_NAMES,         SAVER_TIMEOUT_DESCS,  SAVER_TIMEOUT_COUNT, SET_SAVER_TIMEOUT, NULL },
+  { "KEY SOUND",         (const char* const*)KB_SOUND_NAMES,      KB_SOUND_DESCS,       KB_SOUND_COUNT,      SET_SOUND_TYPE,    NULL }, // onCursorChange set at runtime
+  { "CLICK TYPE",        (const char* const*)CLICK_TYPE_NAMES,    CLICK_TYPE_DESCS,     2,                   SET_CLICK_TYPE,    NULL },
+  { "SWITCH KEYS",       (const char* const*)SWITCH_KEYS_NAMES,   SWITCH_KEYS_DESCS,    SWITCH_KEYS_COUNT,   SET_SWITCH_KEYS,   NULL },
+  { "HEADER TEXT",       (const char* const*)HEADER_DISP_NAMES,   HEADER_DISP_DESCS,    2,                   SET_HEADER_DISPLAY, NULL },
+  { "VOLUME THEME",      (const char* const*)VOLUME_THEME_NAMES,  VOLUME_THEME_DESCS,   VOLUME_THEME_COUNT,  SET_VOLUME_THEME,  NULL },
+  { "KNOB BUTTON",       (const char* const*)ENC_BTN_ACTION_NAMES,  ENC_BTN_ACTION_DESCS,  ENC_BTN_ACTION_COUNT,  SET_ENC_BUTTON,  NULL },
+  { "SIDE BUTTON",       (const char* const*)SIDE_BTN_ACTION_NAMES, SIDE_BTN_ACTION_DESCS, SIDE_BTN_ACTION_COUNT, SET_SIDE_BUTTON, NULL },
+  { "JOB TYPE",          (const char* const*)JOB_SIM_NAMES,       JOB_SIM_DESCS,        JOB_SIM_COUNT,       SET_JOB_SIM,       NULL },
 };
 #define CAROUSEL_CONFIG_COUNT (sizeof(CAROUSEL_CONFIGS) / sizeof(CAROUSEL_CONFIGS[0]))
 

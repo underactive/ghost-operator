@@ -10,7 +10,7 @@
 #define VERSION "2.2.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F59  // bumped: systemSoundEnabled default Off
+#define SETTINGS_MAGIC 0x50524F5A  // bumped: +encButtonAction, +sideButtonAction
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -84,10 +84,10 @@
 
 // Volume control mode
 #define VOLUME_THEME_COUNT        3       // Basic, Retro, Futuristic
+#define ENC_BTN_ACTION_COUNT      2       // Play/Pause, Mute
+#define SIDE_BTN_ACTION_COUNT     3       // Next, Mute, Play/Pause
 #define VOL_FEEDBACK_DISPLAY_MS   1000    // momentary direction indicator duration
-#define VOL_D3_DOUBLECLICK_MS     300     // double-click window for D3
-#define VOL_D2_HOLD_THRESHOLD_MS  500     // D2 hold before sleep countdown
-#define VOL_D3_HOLD_THRESHOLD_MS  3000    // D3 hold to enter menu
+#define VOL_DOUBLECLICK_MS        300     // double-click window for D7 next/prev
 
 // Screensaver timeout options
 #define SAVER_TIMEOUT_COUNT   6
@@ -150,7 +150,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -195,6 +195,8 @@ enum SettingId {
   SET_SOUND_TYPE,
   SET_SYSTEM_SOUND,
   SET_VOLUME_THEME,
+  SET_ENC_BUTTON,
+  SET_SIDE_BUTTON,
   SET_SET_CLOCK,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
@@ -222,7 +224,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 48
+#define MENU_ITEM_COUNT 50
 #define KB_SOUND_COUNT  5
 
 struct Settings {
@@ -265,6 +267,8 @@ struct Settings {
   uint8_t systemSoundEnabled; // 0=Off (default), 1=On — BLE connect/disconnect alert tones
   // Volume control settings
   uint8_t volumeTheme;      // 0=Basic (default), 1=Retro, 2=Futuristic
+  uint8_t encButtonAction;  // 0=Play/Pause (default), 1=Mute
+  uint8_t sideButtonAction; // 0=Next (default), 1=Mute, 2=Play/Pause
   uint8_t checksum;         // MUST remain last
 };
 

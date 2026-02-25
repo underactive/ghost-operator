@@ -181,6 +181,8 @@ void handleSerialCommands() {
           Serial.print("Muted: "); Serial.println(volMuted ? "YES" : "NO");
           Serial.print("Playing: "); Serial.println(volPlaying ? "YES" : "NO");
           Serial.print("Theme: "); Serial.println((settings.volumeTheme < VOLUME_THEME_COUNT) ? VOLUME_THEME_NAMES[settings.volumeTheme] : "???");
+          Serial.print("Knob btn: "); Serial.println((settings.encButtonAction < ENC_BTN_ACTION_COUNT) ? ENC_BTN_ACTION_NAMES[settings.encButtonAction] : "???");
+          Serial.print("Side btn: "); Serial.println((settings.sideButtonAction < SIDE_BTN_ACTION_COUNT) ? SIDE_BTN_ACTION_NAMES[settings.sideButtonAction] : "???");
         } else if (settings.operationMode == 1) {
           Serial.println("--- Simulation ---");
           Serial.print("Job: "); Serial.println(JOB_SIM_NAMES[settings.jobSimulation]);

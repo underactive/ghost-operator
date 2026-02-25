@@ -68,6 +68,8 @@ void loadDefaults() {
   settings.systemSoundEnabled = 0; // Off (BLE connect/disconnect alerts)
   // Volume control defaults
   settings.volumeTheme = 0;       // Basic
+  settings.encButtonAction = 0;   // Play/Pause
+  settings.sideButtonAction = 0;  // Next
   markDisplayDirty();
 }
 
@@ -173,6 +175,8 @@ void loadSettings() {
         if (settings.systemSoundEnabled > 1) settings.systemSoundEnabled = 1;
         // Volume control bounds
         if (settings.volumeTheme >= VOLUME_THEME_COUNT) settings.volumeTheme = 0;
+        if (settings.encButtonAction >= ENC_BTN_ACTION_COUNT) settings.encButtonAction = 0;
+        if (settings.sideButtonAction >= SIDE_BTN_ACTION_COUNT) settings.sideButtonAction = 0;
 
         adcCalStart = millis();
         { const char* ref = COPYRIGHT_TEXT;
@@ -229,6 +233,8 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_SOUND_TYPE:     return settings.soundType;
     case SET_SYSTEM_SOUND:   return settings.systemSoundEnabled;
     case SET_VOLUME_THEME:   return settings.volumeTheme;
+    case SET_ENC_BUTTON:     return settings.encButtonAction;
+    case SET_SIDE_BUTTON:    return settings.sideButtonAction;
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
     case SET_DIE_TEMP:       return 0;  // read-only display
@@ -296,6 +302,8 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_SOUND_TYPE:     settings.soundType = (uint8_t)clampVal(value, 0, KB_SOUND_COUNT - 1); break;
     case SET_SYSTEM_SOUND:   settings.systemSoundEnabled = (uint8_t)clampVal(value, 0, 1); break;
     case SET_VOLUME_THEME:   settings.volumeTheme = (uint8_t)clampVal(value, 0, VOLUME_THEME_COUNT - 1); break;
+    case SET_ENC_BUTTON:     settings.encButtonAction = (uint8_t)clampVal(value, 0, ENC_BTN_ACTION_COUNT - 1); break;
+    case SET_SIDE_BUTTON:    settings.sideButtonAction = (uint8_t)clampVal(value, 0, SIDE_BTN_ACTION_COUNT - 1); break;
   }
   markDisplayDirty();
 }
@@ -339,6 +347,8 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
     case FMT_KEY_SOUND:     snprintf(buf, bufSize, "%s", (val < KB_SOUND_COUNT) ? KB_SOUND_NAMES[val] : "???"); return;
     case FMT_PERF_LEVEL:    snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
     case FMT_VOLUME_THEME:  snprintf(buf, bufSize, "%s", (val < VOLUME_THEME_COUNT) ? VOLUME_THEME_NAMES[val] : "???"); return;
+    case FMT_ENC_BTN_ACTION:  snprintf(buf, bufSize, "%s", (val < ENC_BTN_ACTION_COUNT) ? ENC_BTN_ACTION_NAMES[val] : "???"); return;
+    case FMT_SIDE_BTN_ACTION: snprintf(buf, bufSize, "%s", (val < SIDE_BTN_ACTION_COUNT) ? SIDE_BTN_ACTION_NAMES[val] : "???"); return;
     default:                snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
   }
 }

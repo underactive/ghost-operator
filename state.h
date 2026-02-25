@@ -189,15 +189,9 @@ extern unsigned long volFeedbackStart;    // millis() when feedback started
 extern bool          volMuted;            // mute toggle state (reset on boot)
 extern bool          volPlaying;          // play/pause toggle state (reset on boot)
 
-// D2 hold state for Volume Control sleep
-extern unsigned long volD2PressStart;
-extern bool          volD2WasPressed;
-
-// D3 double-click state for Volume Control track skip
-extern unsigned long volD3LastPress;
-extern uint8_t       volD3ClickCount;     // 0 or 1 (waiting for 2nd click)
-extern bool          volD3WasPressed;
-extern unsigned long volD3PressStart;     // for hold detection
+// D7 double-click state for Volume Control next/prev track
+extern unsigned long volD7LastPress;
+extern uint8_t       volD7ClickCount;     // 0 or 1 (waiting for 2nd click)
 
 // Orchestrator state (simulation mode)
 struct OrchestratorState {

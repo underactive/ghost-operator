@@ -20,6 +20,8 @@ extern const char* SWITCH_KEYS_NAMES[];
 extern const char* ON_OFF_NAMES[];
 extern const char* KB_SOUND_NAMES[];
 extern const char* VOLUME_THEME_NAMES[];
+extern const char* ENC_BTN_ACTION_NAMES[];
+extern const char* SIDE_BTN_ACTION_NAMES[];
 extern const char* SCHEDULE_MODE_NAMES[];
 extern const char* const DECOY_NAMES[];
 extern const char* const DECOY_MANUFACTURERS[];
@@ -28,13 +30,13 @@ void validateMenuIndices();
 const CarouselConfig* getCarouselConfig(uint8_t settingId);
 
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
-#define MENU_IDX_KEY_SLOTS    9
-#define MENU_IDX_SET_CLOCK    34
-#define MENU_IDX_SCHEDULE     35
-#define MENU_IDX_OP_MODE      37   // "Mode" (Simple/Simulation/Volume) — under Device heading
-#define MENU_IDX_BLE_IDENTITY 38
-#define MENU_IDX_UPTIME       45
-#define MENU_IDX_DIE_TEMP     46
-#define MENU_IDX_VERSION      47
+#define MENU_IDX_KEY_SLOTS    11
+#define MENU_IDX_SET_CLOCK    36
+#define MENU_IDX_SCHEDULE     37
+#define MENU_IDX_OP_MODE      39   // "Mode" (Simple/Simulation/Volume) — under Device heading
+#define MENU_IDX_BLE_IDENTITY 40
+#define MENU_IDX_UPTIME       47
+#define MENU_IDX_DIE_TEMP     48
+#define MENU_IDX_VERSION      49
 
 #endif // GHOST_KEYS_H
