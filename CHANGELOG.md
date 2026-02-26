@@ -5,6 +5,20 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-02-25
+
+### Added
+
+- **Snake game mode**: Fourth operation mode (operationMode = 4) — classic snake game played via rotary encoder on the OLED display
+- **Game-specific boot splashes**: Breakout and Snake modes show dedicated pixel art splash screens on boot instead of the default ghost splash
+- **Configurable shift/lunch duration**: Shift duration (4–12h, step 30m, default 8h) and lunch duration (15–120m, step 5m, default 30m) configurable via dashboard; used by Simulation mode day schedule calculations
+- **Dashboard settings export/import**: Back up all device settings to a JSON file and restore them after firmware updates; uses named protocol keys for forward/backward compatibility; unknown keys skipped on import, missing keys keep current values
+
+### Fixed
+
+- **K+M and M+K phase bugs**: Resolved 5 QA bugs in combined keyboard+mouse phase implementation
+- **Breakout mode hardening**: Non-blocking sounds, physics guards, and display fixes for the Breakout game mode
+
 ## [2.2.2] - 2026-02-25
 
 ### Added

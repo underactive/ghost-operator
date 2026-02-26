@@ -2,6 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
+| 2.3.0 | Snake game mode, game-specific boot splashes, configurable shift/lunch duration (dashboard-only), dashboard settings export/import (JSON backup/restore), K+M/M+K phase bug fixes, Breakout mode hardening |
 | 2.2.2 | Configurable Volume Control buttons (D2/D7 actions via menu + protocol), lunch enforcement at 4h mark with force-jump, keystroke keepalive floor (2-min gap), unified D3 function button, carousel callback flash→RAM fix, orchestrator time sync fix, keepalive sound suppression + HID hold time, D7 click state reset on screensaver/sleep |
 | 2.2.1 | Carousel settings page (9 named-option settings as full-screen carousels), system sounds (BLE connect/disconnect alerts), dashboard Bluetooth transport, carousel snap-on-open, volatile ISR state fix, sleep timeout safety, heap fragmentation elimination (ResponseWriter zero-alloc, String removal in protocol handlers), array bounds hardening |
 | 2.2.0 | Volume Control operation mode (BLE/USB media controller with 3 display themes: Basic segmented bar, Retro VU meter, Futuristic slider), mode picker horizontal carousel with smooth scrolling, mode-specific white-background splash screens, HID consumer control report (RID_CONSUMER), menu 45→47 items (+Volume heading/Theme) |
