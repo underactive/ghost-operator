@@ -1998,7 +1998,7 @@ static void drawSnakeNormal() {
 
 static void drawRacerNormal() {
   // Switch to portrait orientation: 64px wide, 128px tall
-  display.setRotation(1);
+  display.setRotation(3);
   display.setTextSize(1);
 
   // --- Header: Score + High Score ---
@@ -2187,7 +2187,7 @@ static void drawModePickerPage() {
   }
 
   // === Help text (scrolls if overflow) ===
-  static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller", "Brick-breaking arcade", "Classic snake game", "Pole Position racing" };
+  static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller", "Brick-breaking arcade", "Classic snake game", "Ghost Racer racing" };
   const char* desc = (modePickerCursor < 6) ? MODE_DESCS[modePickerCursor] : "???";
   int descLen = strlen(desc);
   const int maxChars = 21;  // 128px / 6px per char
