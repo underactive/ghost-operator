@@ -126,7 +126,7 @@ function modeName(modeId) {
                 type="range"
                 min="0" max="100"
                 :value="mode.kb"
-                @change="updateKb(idx, Number($event.target.value))"
+                @input="updateKb(idx, Number($event.target.value))"
               />
               <p class="help-text">Keyboard vs mouse activity split. Higher = more typing.</p>
             </div>
@@ -144,7 +144,7 @@ function modeName(modeId) {
                     type="range"
                     min="0" max="100"
                     :value="[mode.wL, mode.wN, mode.wB][pIdx]"
-                    @change="updateWeight(idx, pIdx, Number($event.target.value))"
+                    @input="updateWeight(idx, pIdx, Number($event.target.value))"
                   />
                 </div>
               </div>
@@ -161,12 +161,12 @@ function modeName(modeId) {
                 <div class="field">
                   <label>Min <span class="field-value">{{ mode.dMin }}s</span></label>
                   <input type="range" min="10" max="3600" step="10" :value="mode.dMin"
-                    @change="updateDurMin(idx, Number($event.target.value))" />
+                    @input="updateDurMin(idx, Number($event.target.value))" />
                 </div>
                 <div class="field">
                   <label>Max <span class="field-value">{{ mode.dMax }}s</span></label>
                   <input type="range" min="10" max="3600" step="10" :value="mode.dMax"
-                    @change="updateDurMax(idx, Number($event.target.value))" />
+                    @input="updateDurMax(idx, Number($event.target.value))" />
                 </div>
               </div>
               <p class="help-text">How long this work mode stays active before the orchestrator picks another mode from the current block.</p>
@@ -179,12 +179,12 @@ function modeName(modeId) {
                 <div class="field">
                   <label>Min <span class="field-value">{{ mode.pMin }}s</span></label>
                   <input type="range" min="5" max="600" step="5" :value="mode.pMin"
-                    @change="updateStintMin(idx, Number($event.target.value))" />
+                    @input="updateStintMin(idx, Number($event.target.value))" />
                 </div>
                 <div class="field">
                   <label>Max <span class="field-value">{{ mode.pMax }}s</span></label>
                   <input type="range" min="5" max="600" step="5" :value="mode.pMax"
-                    @change="updateStintMax(idx, Number($event.target.value))" />
+                    @input="updateStintMax(idx, Number($event.target.value))" />
                 </div>
               </div>
               <p class="help-text">How long a profile (Lazy/Normal/Busy) runs before switching to another, based on profile weights.</p>
@@ -218,7 +218,7 @@ function modeName(modeId) {
                     :max="tf.max"
                     :step="tf.step"
                     :value="mode.timing[activeProfile][tf.key]"
-                    @change="updateTimingField(idx, activeProfile, tf.key, $event.target.value)"
+                    @input="updateTimingField(idx, activeProfile, tf.key, $event.target.value)"
                   />
                 </div>
               </div>
