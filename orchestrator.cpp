@@ -696,12 +696,12 @@ void tickOrchestrator(unsigned long now) {
     }
   }
 
-  // 2. Check mode timer
-  else if (now - orch.modeStartMs >= orch.modeDurationMs) {
+  skipBlockTransition:
+
+  // 2. Check mode timer (independent of block/lunch chain — must always run)
+  if (now - orch.modeStartMs >= orch.modeDurationMs) {
     startMode(now);
   }
-
-  skipBlockTransition:
 
   // 3. Check profile stint timer
   if (now - orch.profileStintStartMs >= orch.profileStintMs) {
