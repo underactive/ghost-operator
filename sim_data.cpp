@@ -269,7 +269,7 @@ void initWorkModes() {
   File f(InternalFS);
   if (f.open(SIM_DATA_FILE, FILE_O_READ)) {
     SimDataFile sd;
-    if (f.read(&sd, sizeof(sd)) == sizeof(sd)) {
+    if (f.read((uint8_t*)&sd, sizeof(sd)) == sizeof(sd)) {
       if (sd.magic == SIM_DATA_MAGIC && sd.checksum == calcSimChecksum(sd)) {
         // Apply overrides (preserving const name/shortName pointers from WORK_MODES)
         for (uint8_t i = 0; i < WMODE_COUNT; i++) {
@@ -299,7 +299,7 @@ void saveSimData() {
   File f(InternalFS);
   if (f.open(SIM_DATA_FILE, FILE_O_WRITE)) {
     f.truncate(0);
-    f.write(&sd, sizeof(sd));
+    f.write((const uint8_t*)&sd, sizeof(sd));
     f.close();
     Serial.println("[SIM] Saved work mode overrides to flash");
   } else {
