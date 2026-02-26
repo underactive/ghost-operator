@@ -174,7 +174,11 @@ static void cmdQueryStatus() {
   }
 
   // Mode-specific status
-  if (settings.operationMode == 2) {
+  if (settings.operationMode == 3) {
+    len += snprintf(buf + len, sizeof(buf) - len,
+      "|brkState=%d|brkLevel=%d|brkScore=%d|brkLives=%d",
+      (int)brk.state, brk.level, brk.score, brk.lives);
+  } else if (settings.operationMode == 2) {
     len += snprintf(buf + len, sizeof(buf) - len,
       "|volMuted=%d|volPlaying=%d",
       volMuted ? 1 : 0, volPlaying ? 1 : 0);
@@ -225,11 +229,13 @@ static void cmdQuerySettings() {
   // Simulation mode settings + volume control
   len += snprintf(buf + len, sizeof(buf) - len,
     "|opMode=%d|jobSim=%d|jobPerf=%d|jobStart=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d"
-    "|volumeTheme=%d|encButton=%d|sideButton=%d",
+    "|volumeTheme=%d|encButton=%d|sideButton=%d"
+    "|ballSpeed=%d|paddleSize=%d|startLives=%d|highScore=%d",
     settings.operationMode, settings.jobSimulation, settings.jobPerformance, settings.jobStartTime,
     settings.phantomClicks, settings.clickType, settings.windowSwitching,
     settings.switchKeys, settings.headerDisplay,
-    settings.volumeTheme, settings.encButtonAction, settings.sideButtonAction);
+    settings.volumeTheme, settings.encButtonAction, settings.sideButtonAction,
+    settings.ballSpeed, settings.paddleSize, settings.startLives, settings.highScore);
 
   currentWriter(buf);
 }
@@ -362,6 +368,12 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_ENC_BUTTON, (uint32_t)atol(valStr));
   } else if (strcmp(key, "sideButton") == 0) {
     setSettingValue(SET_SIDE_BUTTON, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "ballSpeed") == 0) {
+    setSettingValue(SET_BALL_SPEED, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "paddleSize") == 0) {
+    setSettingValue(SET_PADDLE_SIZE, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "startLives") == 0) {
+    setSettingValue(SET_START_LIVES, (uint32_t)atol(valStr));
   } else if (strcmp(key, "time") == 0) {
     uint32_t secs = (uint32_t)atol(valStr);
     if (secs >= 86400) secs = 0;

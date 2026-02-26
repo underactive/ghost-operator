@@ -46,6 +46,16 @@ void printStatus() {
   Serial.print("Mouse state: ");
   Serial.println(mouseState == MOUSE_IDLE ? "IDLE" : mouseState == MOUSE_JIGGLING ? "JIG" : "RTN");
   Serial.print("Battery: "); Serial.print(batteryPercent); Serial.println("%");
+  if (settings.operationMode == 3) {
+    Serial.println("--- Breakout ---");
+    Serial.print("State: ");
+    static const char* BRK_STATE_NAMES[] = { "IDLE", "PLAYING", "PAUSED", "CLEAR", "GAMEOVER" };
+    Serial.println(brk.state < 5 ? BRK_STATE_NAMES[brk.state] : "???");
+    Serial.print("Level: "); Serial.println(brk.level);
+    Serial.print("Score: "); Serial.println(brk.score);
+    Serial.print("Lives: "); Serial.println(brk.lives);
+    Serial.print("High score: "); Serial.println(settings.highScore);
+  }
 }
 
 void handleSerialCommands() {
@@ -175,7 +185,7 @@ void handleSerialCommands() {
           Serial.print("Schedule sleeping: "); Serial.println(scheduleSleeping ? "YES" : "NO");
         }
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
-        Serial.print("Operation mode: "); Serial.println((settings.operationMode < 3) ? OP_MODE_NAMES[settings.operationMode] : "???");
+        Serial.print("Operation mode: "); Serial.println((settings.operationMode < 4) ? OP_MODE_NAMES[settings.operationMode] : "???");
         if (settings.operationMode == 2) {
           Serial.println("--- Volume Control ---");
           Serial.print("Muted: "); Serial.println(volMuted ? "YES" : "NO");

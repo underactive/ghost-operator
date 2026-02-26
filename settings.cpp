@@ -70,6 +70,11 @@ void loadDefaults() {
   settings.volumeTheme = 0;       // Basic
   settings.encButtonAction = 0;   // Play/Pause
   settings.sideButtonAction = 0;  // Next
+  // Breakout defaults
+  settings.ballSpeed = 1;         // Normal
+  settings.paddleSize = 1;        // Normal
+  settings.startLives = 3;
+  settings.highScore = 0;
   markDisplayDirty();
 }
 
@@ -161,7 +166,7 @@ void loadSettings() {
         if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 204;
         if (settings.invertDial > 1) settings.invertDial = 0;
         // Simulation mode bounds
-        if (settings.operationMode > 2) settings.operationMode = 0;
+        if (settings.operationMode > 3) settings.operationMode = 0;
         if (settings.jobSimulation >= JOB_SIM_COUNT) settings.jobSimulation = 0;
         if (settings.jobPerformance > 11) settings.jobPerformance = 5;
         if (settings.jobStartTime >= SCHEDULE_SLOTS) settings.jobStartTime = 96;
@@ -177,6 +182,11 @@ void loadSettings() {
         if (settings.volumeTheme >= VOLUME_THEME_COUNT) settings.volumeTheme = 0;
         if (settings.encButtonAction >= ENC_BTN_ACTION_COUNT) settings.encButtonAction = 0;
         if (settings.sideButtonAction >= SIDE_BTN_ACTION_COUNT) settings.sideButtonAction = 0;
+        // Breakout bounds
+        if (settings.ballSpeed >= BALL_SPEED_COUNT) settings.ballSpeed = 1;
+        if (settings.paddleSize >= PADDLE_SIZE_COUNT) settings.paddleSize = 1;
+        if (settings.startLives < 1 || settings.startLives > 5) settings.startLives = 3;
+        // highScore: no upper bound, just leave it
 
         adcCalStart = millis();
         { const char* ref = COPYRIGHT_TEXT;
@@ -235,6 +245,10 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_VOLUME_THEME:   return settings.volumeTheme;
     case SET_ENC_BUTTON:     return settings.encButtonAction;
     case SET_SIDE_BUTTON:    return settings.sideButtonAction;
+    case SET_BALL_SPEED:     return settings.ballSpeed;
+    case SET_PADDLE_SIZE:    return settings.paddleSize;
+    case SET_START_LIVES:    return settings.startLives;
+    case SET_HIGH_SCORE:     return settings.highScore;
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
     case SET_DIE_TEMP:       return 0;  // read-only display
@@ -289,7 +303,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       break;
     case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
     case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
-    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 2); break;
+    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 3); break;
     case SET_JOB_SIM:        settings.jobSimulation = (uint8_t)clampVal(value, 0, JOB_SIM_COUNT - 1); break;
     case SET_JOB_PERFORMANCE: settings.jobPerformance = (uint8_t)clampVal(value, 0, 11); break;
     case SET_JOB_START_TIME: settings.jobStartTime = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
@@ -304,6 +318,10 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_VOLUME_THEME:   settings.volumeTheme = (uint8_t)clampVal(value, 0, VOLUME_THEME_COUNT - 1); break;
     case SET_ENC_BUTTON:     settings.encButtonAction = (uint8_t)clampVal(value, 0, ENC_BTN_ACTION_COUNT - 1); break;
     case SET_SIDE_BUTTON:    settings.sideButtonAction = (uint8_t)clampVal(value, 0, SIDE_BTN_ACTION_COUNT - 1); break;
+    case SET_BALL_SPEED:     settings.ballSpeed = (uint8_t)clampVal(value, 0, BALL_SPEED_COUNT - 1); break;
+    case SET_PADDLE_SIZE:    settings.paddleSize = (uint8_t)clampVal(value, 0, PADDLE_SIZE_COUNT - 1); break;
+    case SET_START_LIVES:    settings.startLives = (uint8_t)clampVal(value, 1, 5); break;
+    case SET_HIGH_SCORE:     settings.highScore = (uint16_t)clampVal(value, 0, 65535); break;
   }
   markDisplayDirty();
 }
@@ -339,7 +357,7 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
       return;
     }
     case FMT_VERSION:       snprintf(buf, bufSize, "v%s", VERSION); return;
-    case FMT_OP_MODE:       snprintf(buf, bufSize, "%s", (val < 3) ? OP_MODE_NAMES[val] : "???"); return;
+    case FMT_OP_MODE:       snprintf(buf, bufSize, "%s", (val < 4) ? OP_MODE_NAMES[val] : "???"); return;
     case FMT_JOB_SIM:       snprintf(buf, bufSize, "%s", (val < JOB_SIM_COUNT) ? JOB_SIM_NAMES[val] : "???"); return;
     case FMT_SWITCH_KEYS:   snprintf(buf, bufSize, "%s", (val < SWITCH_KEYS_COUNT) ? SWITCH_KEYS_NAMES[val] : "???"); return;
     case FMT_HEADER_DISP:   snprintf(buf, bufSize, "%s", (val < 2) ? HEADER_DISP_NAMES[val] : "???"); return;
@@ -349,6 +367,10 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
     case FMT_VOLUME_THEME:  snprintf(buf, bufSize, "%s", (val < VOLUME_THEME_COUNT) ? VOLUME_THEME_NAMES[val] : "???"); return;
     case FMT_ENC_BTN_ACTION:  snprintf(buf, bufSize, "%s", (val < ENC_BTN_ACTION_COUNT) ? ENC_BTN_ACTION_NAMES[val] : "???"); return;
     case FMT_SIDE_BTN_ACTION: snprintf(buf, bufSize, "%s", (val < SIDE_BTN_ACTION_COUNT) ? SIDE_BTN_ACTION_NAMES[val] : "???"); return;
+    case FMT_BALL_SPEED:    snprintf(buf, bufSize, "%s", (val < BALL_SPEED_COUNT) ? BALL_SPEED_NAMES[val] : "???"); return;
+    case FMT_PADDLE_SIZE:   snprintf(buf, bufSize, "%s", (val < PADDLE_SIZE_COUNT) ? PADDLE_SIZE_NAMES[val] : "???"); return;
+    case FMT_HIGH_SCORE:    snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
+    case FMT_LIVES:         snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
     default:                snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
   }
 }

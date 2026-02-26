@@ -10,7 +10,7 @@
 #define VERSION "2.2.2"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F5A  // bumped: +encButtonAction, +sideButtonAction
+#define SETTINGS_MAGIC 0x50524F5B  // bumped: +breakout settings (ballSpeed, paddleSize, startLives, highScore)
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -81,6 +81,17 @@
 #define SLEEP_CANCEL_DISPLAY_MS     400   // "Cancelled" display duration
 #define SLEEP_DISPLAY_MS            500   // Brief "SLEEPING..." before power-off
 #define MODE_TIMEOUT_MS       30000       // Return to NORMAL after 30s inactivity
+
+// Breakout game mode
+#define BREAKOUT_BRICK_ROWS       4
+#define BREAKOUT_BRICK_COLS       16
+#define BREAKOUT_BRICK_W          7       // pixels per brick
+#define BREAKOUT_BRICK_H          3       // pixels per brick
+#define BREAKOUT_PADDLE_Y         53      // paddle top y position
+#define BREAKOUT_BALL_SIZE        2       // 2x2 px ball
+#define BALL_SPEED_COUNT          3       // Slow, Normal, Fast
+#define PADDLE_SIZE_COUNT         4       // Small, Normal, Large, XL
+#define BREAKOUT_TICK_MS          50      // 20 Hz game tick
 
 // Volume control mode
 #define VOLUME_THEME_COUNT        3       // Basic, Retro, Futuristic
@@ -180,7 +191,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION, FMT_BALL_SPEED, FMT_PADDLE_SIZE, FMT_HIGH_SCORE, FMT_LIVES };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -194,6 +205,9 @@ enum WorkModeId {
   WMODE_LUNCH_BREAK, WMODE_IRL_MEETING, WMODE_FILE_MGMT, WMODE_COUNT
 };
 enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
+
+// Breakout game states
+enum BreakoutState { BRK_IDLE, BRK_PLAYING, BRK_PAUSED, BRK_LEVEL_CLEAR, BRK_GAME_OVER };
 
 // USB HID report IDs (for composite keyboard + mouse + consumer descriptor)
 enum USBReportId { RID_KEYBOARD = 1, RID_MOUSE, RID_CONSUMER };
@@ -227,6 +241,10 @@ enum SettingId {
   SET_VOLUME_THEME,
   SET_ENC_BUTTON,
   SET_SIDE_BUTTON,
+  SET_BALL_SPEED,
+  SET_PADDLE_SIZE,
+  SET_START_LIVES,
+  SET_HIGH_SCORE,
   SET_SET_CLOCK,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
@@ -254,7 +272,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 50
+#define MENU_ITEM_COUNT 55
 #define KB_SOUND_COUNT  5
 
 struct Settings {
@@ -299,7 +317,29 @@ struct Settings {
   uint8_t volumeTheme;      // 0=Basic (default), 1=Retro, 2=Futuristic
   uint8_t encButtonAction;  // 0=Play/Pause (default), 1=Mute
   uint8_t sideButtonAction; // 0=Next (default), 1=Mute, 2=Play/Pause
+  // Breakout game settings
+  uint8_t ballSpeed;        // 0=Slow, 1=Normal (default), 2=Fast
+  uint8_t paddleSize;       // 0=Small, 1=Normal (default), 2=Large, 3=XL
+  uint8_t startLives;       // 1-5, default 3
+  uint16_t highScore;       // persistent high score
   uint8_t checksum;         // MUST remain last
+};
+
+// Breakout game state (runtime, not persisted)
+struct BreakoutGameState {
+  int16_t ballX, ballY;       // 8.8 fixed-point (pixel * 256)
+  int16_t ballDx, ballDy;     // 8.8 fixed-point velocity
+  int16_t paddleX;            // pixel position of paddle left edge
+  uint8_t paddleW;            // paddle width in pixels
+  uint16_t brickRows[BREAKOUT_BRICK_ROWS];  // bitfield: 16 bricks per row
+  uint8_t brickHits[BREAKOUT_BRICK_ROWS];   // bitfield: reinforced brick hit tracker
+  uint8_t lives;
+  uint8_t level;
+  uint16_t score;
+  uint8_t bricksRemaining;
+  BreakoutState state;
+  unsigned long lastTickMs;
+  unsigned long stateTimer;   // for level-clear/game-over display timing
 };
 
 // Carousel page config (generic full-screen picker for named-option settings)

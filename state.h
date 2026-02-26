@@ -273,4 +273,7 @@ struct OrchestratorState {
 
 extern OrchestratorState orch;
 
+// Breakout game state
+extern BreakoutGameState brk;
+
 #endif // GHOST_STATE_H

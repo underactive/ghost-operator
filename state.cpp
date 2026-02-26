@@ -187,3 +187,6 @@ uint8_t       volD7ClickCount   = 0;
 
 // Orchestrator state (simulation mode)
 OrchestratorState orch = {};
+
+// Breakout game state
+BreakoutGameState brk = {};

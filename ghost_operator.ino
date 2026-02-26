@@ -45,6 +45,7 @@
 #include "orchestrator.h"
 #include "sim_data.h"
 #include "sound.h"
+#include "breakout.h"
 
 #include <nrf_soc.h>
 #include <nrf_power.h>
@@ -165,7 +166,7 @@ void setupDisplay() {
   display.setTextSize(1);
 
   display.clearDisplay();
-  // Select splash bitmap based on operation mode
+  // Select splash bitmap based on operation mode (Breakout uses default splash)
   const uint8_t *splash = (settings.operationMode == 2) ? splashVolumeBitmap : splashBitmap;
   display.drawBitmap(0, 0, splash, 128, 64, SSD1306_WHITE);
   // Version in lower-right corner (black text on white background)
@@ -338,6 +339,10 @@ void setup() {
   // Initialize simulation orchestrator (uses settings + RNG, so must follow loadSettings + randomSeed)
   if (settings.operationMode == 1) {
     initOrchestrator();
+  }
+  // Initialize Breakout game
+  if (settings.operationMode == 3) {
+    initBreakout();
   }
 
   startTime = millis();
@@ -531,7 +536,11 @@ void loop() {
 
   // Jiggler logic runs in background regardless of UI mode
   if ((deviceConnected || usbConnected) && !scheduleSleeping) {
-    if (settings.operationMode == 2) {
+    if (settings.operationMode == 3) {
+      // Breakout mode — game tick only, no jiggler activity
+      tickBreakout();
+      updateGameSound();  // non-blocking sound state machine
+    } else if (settings.operationMode == 2) {
       // Volume Control mode — no jiggler activity (user-driven HID only)
     } else if (settings.operationMode == 1) {
       // Simulation mode — orchestrator drives all KB + mouse activity

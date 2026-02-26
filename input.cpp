@@ -10,6 +10,7 @@
 #include "sim_data.h"
 #include "display.h"
 #include "sound.h"
+#include "breakout.h"
 
 // ============================================================================
 // NAME EDITOR HELPERS
@@ -215,6 +216,7 @@ bool isMenuItemHidden(int8_t idx) {
 
   bool isSim = (settings.operationMode == 1);
   bool isVol = (settings.operationMode == 2);
+  bool isBrk = (settings.operationMode == 3);
 
   // Orphan heading auto-hide: headings with all children hidden.
   // Must run BEFORE settingId checks — headings have settingId=0 which
@@ -273,6 +275,24 @@ bool isMenuItemHidden(int8_t idx) {
     }
   }
 
+  // Breakout mode: hide all jiggler/sim/volume/animation/schedule/key sound items
+  if (isBrk) {
+    switch (item.settingId) {
+      case SET_KEY_MIN: case SET_KEY_MAX: case SET_KEY_SLOTS:
+      case SET_MOUSE_JIG: case SET_MOUSE_IDLE: case SET_MOUSE_STYLE:
+      case SET_MOUSE_AMP: case SET_SCROLL:
+      case SET_LAZY_PCT: case SET_BUSY_PCT:
+      case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
+      case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
+      case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
+      case SET_ANIMATION:
+      case SET_SCHEDULE_MODE: case SET_SET_CLOCK:
+      case SET_SOUND_ENABLED: case SET_SOUND_TYPE:
+      case SET_VOLUME_THEME: case SET_ENC_BUTTON: case SET_SIDE_BUTTON:
+        return true;
+    }
+  }
+
   // Volume-only items: only visible in Volume Control mode
   if (!isVol) {
     switch (item.settingId) {
@@ -280,6 +300,17 @@ bool isMenuItemHidden(int8_t idx) {
         return true;
     }
   }
+
+  // Breakout-only items: only visible in Breakout mode
+  if (!isBrk) {
+    switch (item.settingId) {
+      case SET_BALL_SPEED: case SET_PADDLE_SIZE: case SET_START_LIVES:
+        return true;
+    }
+  }
+
+  // High score: only visible in Breakout mode
+  if (item.settingId == SET_HIGH_SCORE && !isBrk) return true;
 
   return false;
 }
@@ -361,7 +392,10 @@ void handleEncoder() {
 
     switch (currentMode) {
       case MODE_NORMAL:
-        if (settings.operationMode == 2) {
+        if (settings.operationMode == 3) {
+          // Breakout: encoder moves paddle
+          breakoutEncoderInput(direction);
+        } else if (settings.operationMode == 2) {
           // Volume Control: encoder sends volume up/down
           uint16_t key = (direction > 0)
             ? HID_USAGE_CONSUMER_VOLUME_INCREMENT
@@ -515,10 +549,10 @@ void handleEncoder() {
         if (modeConfirming) {
           modeRebootYes = !modeRebootYes;
         } else {
-          // Clamp cursor across 3 options (Simple/Simulation/Volume Control)
+          // Clamp cursor across 4 options (Simple/Simulation/Volume/Breakout)
           int next = (int)modePickerCursor + direction;
           if (next < 0) next = 0;
-          if (next > 2) next = 2;
+          if (next > 3) next = 3;
           modePickerCursor = (uint8_t)next;
         }
         break;
@@ -566,8 +600,19 @@ void handleButtons() {
     pushSerialStatus();
   }
 
-  // Volume Control D2: configurable action (Play/Pause or Mute)
-  if (settings.operationMode == 2 && currentMode == MODE_NORMAL) {
+  // Breakout / Volume Control D2: mode-specific action
+  if (settings.operationMode == 3 && currentMode == MODE_NORMAL) {
+    // Breakout: D2 does nothing (game uses D7 for action)
+    if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
+      lastEncPress = now;
+      lastModeActivity = now;
+      if (sleepConfirmActive || sleepCancelActive) { lastEncBtn = encBtn; return; }
+      if (scheduleSleeping) { exitLightSleep(); lastEncBtn = encBtn; return; }
+      if (screensaverActive) { screensaverActive = false; lastEncBtn = encBtn; return; }
+      // No game action on D2 in Breakout mode
+    }
+    lastEncBtn = encBtn;
+  } else if (settings.operationMode == 2 && currentMode == MODE_NORMAL) {
     if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
       lastEncPress = now;
       lastModeActivity = now;
@@ -869,7 +914,7 @@ void handleButtons() {
         if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
 
         // Reset D7 pending click state when entering menu
-        if (settings.operationMode == 2) volD7ClickCount = 0;
+        if (settings.operationMode == 2 || settings.operationMode == 3) volD7ClickCount = 0;
 
         switch (currentMode) {
           case MODE_NORMAL:
@@ -995,7 +1040,10 @@ void handleButtons() {
     if (screensaverActive) { screensaverActive = false; lastMuteBtn = muteBtn; return; }
     if (currentMode != MODE_NORMAL) { lastMuteBtn = muteBtn; return; }
 
-    if (settings.operationMode == 2) {
+    if (settings.operationMode == 3) {
+      // Breakout: D7 = game action (launch/pause/resume/next/new game)
+      breakoutButtonPress();
+    } else if (settings.operationMode == 2) {
       // Volume Control: D7 action depends on sideButtonAction setting
       if (settings.sideButtonAction == 0) {
         // Next mode: deferred single-click / double-click for prev
