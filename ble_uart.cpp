@@ -195,7 +195,7 @@ static void cmdQueryStatus() {
 // ?settings — all persistent settings
 // ----------------------------------------------------------------------------
 static void cmdQuerySettings() {
-  char buf[400];
+  char buf[580];
   int len = snprintf(buf, sizeof(buf),
     "!settings|keyMin=%lu|keyMax=%lu|mouseJig=%lu|mouseIdle=%lu"
     "|mouseAmp=%d|mouseStyle=%d|lazyPct=%d|busyPct=%d"
@@ -230,12 +230,14 @@ static void cmdQuerySettings() {
   len += snprintf(buf + len, sizeof(buf) - len,
     "|opMode=%d|jobSim=%d|jobPerf=%d|jobStart=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d"
     "|volumeTheme=%d|encButton=%d|sideButton=%d"
-    "|ballSpeed=%d|paddleSize=%d|startLives=%d|highScore=%d",
+    "|ballSpeed=%d|paddleSize=%d|startLives=%d|highScore=%d"
+    "|shiftDur=%d|lunchDur=%d",
     settings.operationMode, settings.jobSimulation, settings.jobPerformance, settings.jobStartTime,
     settings.phantomClicks, settings.clickType, settings.windowSwitching,
     settings.switchKeys, settings.headerDisplay,
     settings.volumeTheme, settings.encButtonAction, settings.sideButtonAction,
-    settings.ballSpeed, settings.paddleSize, settings.startLives, settings.highScore);
+    settings.ballSpeed, settings.paddleSize, settings.startLives, settings.highScore,
+    settings.shiftDuration, settings.lunchDuration);
 
   currentWriter(buf);
 }
@@ -374,6 +376,10 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_PADDLE_SIZE, (uint32_t)atol(valStr));
   } else if (strcmp(key, "startLives") == 0) {
     setSettingValue(SET_START_LIVES, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "shiftDur") == 0) {
+    setSettingValue(SET_SHIFT_DURATION, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "lunchDur") == 0) {
+    setSettingValue(SET_LUNCH_DURATION, (uint32_t)atol(valStr));
   } else if (strcmp(key, "time") == 0) {
     uint32_t secs = (uint32_t)atol(valStr);
     if (secs >= 86400) secs = 0;

@@ -2,7 +2,7 @@
 import { settings, setSetting } from '../lib/store.js'
 import {
   JOB_SIM_NAMES, CLICK_TYPE_NAMES, SWITCH_KEYS_NAMES, HEADER_DISP_NAMES,
-  formatTime5,
+  formatTime5, formatShiftDuration,
 } from '../lib/protocol.js'
 </script>
 
@@ -36,6 +36,42 @@ import {
         @input="setSetting('jobStart', Number($event.target.value))"
       />
       <p class="help-text">Time your workday begins — simulation aligns work blocks to this time.</p>
+    </div>
+
+    <div class="field">
+      <label>
+        Shift Duration
+        <span class="field-value">{{ formatShiftDuration(settings.shiftDur) }}</span>
+      </label>
+      <input
+        type="range"
+        min="240"
+        max="720"
+        step="30"
+        :value="settings.shiftDur"
+        @input="setSetting('shiftDur', Number($event.target.value))"
+      />
+      <p class="help-text">Work duration (excluding lunch). Total day = shift + lunch.</p>
+    </div>
+
+    <div class="field" v-if="settings.shiftDur >= 300">
+      <label>
+        Lunch Duration
+        <span class="field-value">{{ settings.lunchDur }}m</span>
+      </label>
+      <input
+        type="range"
+        min="15"
+        max="120"
+        step="5"
+        :value="settings.lunchDur"
+        @input="setSetting('lunchDur', Number($event.target.value))"
+      />
+      <p class="help-text">Break duration at the 4-hour mark.</p>
+    </div>
+
+    <div class="field" v-if="settings.shiftDur < 300">
+      <p class="help-text">No lunch break for shifts under 5 hours.</p>
     </div>
 
     <div class="field">

@@ -75,6 +75,9 @@ export const settings = reactive({
   // Sound
   sound: 0,
   soundType: 0,
+  // Shift/lunch
+  shiftDur: 480,
+  lunchDur: 30,
 })
 
 export const availableKeys = ref([])

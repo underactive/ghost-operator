@@ -75,6 +75,9 @@ void loadDefaults() {
   settings.paddleSize = 1;        // Normal
   settings.startLives = 3;
   settings.highScore = 0;
+  // Shift/lunch defaults
+  settings.shiftDuration = 480;   // 8 hours
+  settings.lunchDuration = 30;    // 30 minutes
   markDisplayDirty();
 }
 
@@ -187,6 +190,9 @@ void loadSettings() {
         if (settings.paddleSize >= PADDLE_SIZE_COUNT) settings.paddleSize = 1;
         if (settings.startLives < 1 || settings.startLives > 5) settings.startLives = 3;
         // highScore: no upper bound, just leave it
+        // Shift/lunch bounds
+        if (settings.shiftDuration < SHIFT_MIN_MINUTES || settings.shiftDuration > SHIFT_MAX_MINUTES) settings.shiftDuration = 480;
+        if (settings.lunchDuration < LUNCH_DUR_MIN || settings.lunchDuration > LUNCH_DUR_MAX) settings.lunchDuration = 30;
 
         adcCalStart = millis();
         { const char* ref = COPYRIGHT_TEXT;
@@ -249,6 +255,8 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_PADDLE_SIZE:    return settings.paddleSize;
     case SET_START_LIVES:    return settings.startLives;
     case SET_HIGH_SCORE:     return settings.highScore;
+    case SET_SHIFT_DURATION: return settings.shiftDuration;
+    case SET_LUNCH_DURATION: return settings.lunchDuration;
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
     case SET_DIE_TEMP:       return 0;  // read-only display
@@ -322,6 +330,8 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_PADDLE_SIZE:    settings.paddleSize = (uint8_t)clampVal(value, 0, PADDLE_SIZE_COUNT - 1); break;
     case SET_START_LIVES:    settings.startLives = (uint8_t)clampVal(value, 1, 5); break;
     case SET_HIGH_SCORE:     settings.highScore = (uint16_t)clampVal(value, 0, 65535); break;
+    case SET_SHIFT_DURATION: settings.shiftDuration = (uint16_t)clampVal(value, SHIFT_MIN_MINUTES, SHIFT_MAX_MINUTES); break;
+    case SET_LUNCH_DURATION: settings.lunchDuration = (uint8_t)clampVal(value, LUNCH_DUR_MIN, LUNCH_DUR_MAX); break;
   }
   markDisplayDirty();
 }

@@ -6,6 +6,7 @@
 #include "serial_cmd.h"
 #include "timing.h"
 #include "display.h"
+#include "settings.h"
 
 // ============================================================================
 // HELPERS
@@ -67,6 +68,36 @@ static uint8_t scaleCountByPerformance(uint8_t value) {
 // Returns true for phases that include keyboard activity (keepalive should not fire)
 static bool phaseHasKeystrokes(ActivityPhase phase) {
   return phase == PHASE_TYPING || phase == PHASE_KB_MOUSE || phase == PHASE_MOUSE_KB;
+}
+
+// Returns true if lunch is enabled for the current shift duration
+static bool lunchEnabled() {
+  return settings.shiftDuration >= LUNCH_NO_LUNCH_THRESHOLD;
+}
+
+// Sum non-lunch block durations from the current template (always 420 for stock templates)
+static uint16_t totalNonLunchMinutes() {
+  const DayTemplate& tmpl = currentTemplate();
+  uint16_t total = 0;
+  for (uint8_t i = 0; i < tmpl.numBlocks; i++) {
+    if (!tmpl.blocks[i].isLunch) total += tmpl.blocks[i].durationMinutes;
+  }
+  return (total > 0) ? total : 1;  // guard against division by zero
+}
+
+// Scaled block duration in minutes for the given block index.
+// Non-lunch blocks scale proportionally to fill shiftDuration.
+// Lunch blocks use settings.lunchDuration (or 0 if lunch disabled).
+static uint16_t scaledBlockDurationMin(uint8_t blockIdx) {
+  const DayTemplate& tmpl = currentTemplate();
+  if (blockIdx >= tmpl.numBlocks) return 0;
+  const TimeBlock& block = tmpl.blocks[blockIdx];
+
+  if (block.isLunch) {
+    return lunchEnabled() ? settings.lunchDuration : 0;
+  }
+  // Scale non-lunch: block.dur * shiftDuration / totalNonLunch (uint32_t intermediate)
+  return (uint16_t)((uint32_t)block.durationMinutes * settings.shiftDuration / totalNonLunchMinutes());
 }
 
 // Pick a random cardinal/diagonal direction for micro-movements
@@ -163,8 +194,9 @@ static unsigned long phaseDuration(ActivityPhase phase, const WorkModeDef& mode,
 // LUNCH ENFORCEMENT HELPERS
 // ============================================================================
 
-// Scan template for the lunch block index (0xFF if none)
+// Scan template for the lunch block index (0xFF if none or lunch disabled)
 static uint8_t findLunchBlockIdx() {
+  if (!lunchEnabled()) return 0xFF;
   const DayTemplate& tmpl = currentTemplate();
   for (uint8_t i = 0; i < tmpl.numBlocks; i++) {
     if (tmpl.blocks[i].isLunch) return i;
@@ -192,16 +224,17 @@ static void startBlock(uint8_t blockIdx, unsigned long now) {
   const TimeBlock& block = tmpl.blocks[blockIdx];
 
   if (block.isLunch) {
-    // Lunch: minimum 60 min, +0-10% jitter (gives 60-66 min)
-    unsigned long minMs = (unsigned long)LUNCH_MIN_DURATION_MIN * 60000UL;
+    // Lunch: use configured lunch duration + 0-10% jitter
+    unsigned long minMs = (unsigned long)settings.lunchDuration * 60000UL;
     unsigned long maxMs = minMs + minMs * LUNCH_DURATION_JITTER / 100;
     orch.blockDurationMs = randRange(minMs, maxMs);
     orch.lunchCompleted = true;
     Serial.println("[SIM] Lunch started (enforced)");
   } else {
-    // Normal: ±20% randomness
-    unsigned long baseDur = (unsigned long)block.durationMinutes * 60000UL;
+    // Non-lunch: use scaled duration + ±20% randomness
+    unsigned long baseDur = (unsigned long)scaledBlockDurationMin(blockIdx) * 60000UL;
     orch.blockDurationMs = jitter(baseDur);
+    if (orch.blockDurationMs < 60000UL) orch.blockDurationMs = 60000UL;  // 1-min floor prevents tight re-entry
   }
 
   // Day wrap: reset lunch tracking when cycling back to block 0
@@ -625,6 +658,11 @@ void tickOrchestrator(unsigned long now) {
   if (now - orch.blockStartMs >= orch.blockDurationMs) {
     uint8_t nextBlock = (orch.blockIdx + 1) % tmpl.numBlocks;
 
+    // Skip lunch block when lunch is disabled (short shift)
+    if (!lunchEnabled() && nextBlock < tmpl.numBlocks && tmpl.blocks[nextBlock].isLunch) {
+      nextBlock = (nextBlock + 1) % tmpl.numBlocks;
+    }
+
     // Lunch enforcement: gate pre-lunch blocks if lunch hasn't started yet
     if (!orch.lunchCompleted && orch.lunchBlockIdx != 0xFF &&
         nextBlock == orch.lunchBlockIdx) {
@@ -794,9 +832,14 @@ void syncOrchestratorTime(uint32_t daySeconds) {
 
   uint32_t offsetMin = (daySeconds - schedStartSecs) / 60;
 
-  // Find the correct block for this time offset
+  // Find the correct block for this time offset using cumulative scaled durations
+  uint16_t cumulative = 0;
   for (uint8_t i = 0; i < tmpl.numBlocks; i++) {
-    uint16_t blockEnd = tmpl.blocks[i].startMinutes + tmpl.blocks[i].durationMinutes;
+    // Skip lunch block if lunch disabled
+    if (!lunchEnabled() && tmpl.blocks[i].isLunch) continue;
+
+    uint16_t dur = scaledBlockDurationMin(i);
+    uint16_t blockEnd = cumulative + dur;
     if (offsetMin < blockEnd) {
       unsigned long now = millis();
 
@@ -812,6 +855,7 @@ void syncOrchestratorTime(uint32_t daySeconds) {
       Serial.println(i);
       return;
     }
+    cumulative = blockEnd;
   }
 
   // Past all blocks — stay on last block

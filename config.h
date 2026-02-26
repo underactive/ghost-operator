@@ -10,7 +10,7 @@
 #define VERSION "2.2.2"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F5B  // bumped: +breakout settings (ballSpeed, paddleSize, startLives, highScore)
+#define SETTINGS_MAGIC 0x50524F5C  // bumped: +shiftDuration, +lunchDuration (on top of breakout)
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -176,8 +176,14 @@
 #define MSKB_SETUP_DELAY_MS     100       // brief delay after key down before drawing
 
 #define LUNCH_OFFSET_MIN        240       // 4 hours after job start
-#define LUNCH_MIN_DURATION_MIN  60        // minimum 1 hour
-#define LUNCH_DURATION_JITTER   10        // ±10% on duration (60-66 min)
+#define LUNCH_MIN_DURATION_MIN  60        // minimum 1 hour (legacy default)
+#define LUNCH_DURATION_JITTER   10        // ±10% on duration
+#define SHIFT_MIN_MINUTES       240       // 4h minimum shift
+#define SHIFT_MAX_MINUTES       720       // 12h maximum shift
+#define SHIFT_STEP_MINUTES      30        // 30-min increments
+#define LUNCH_DUR_MIN           15        // 15-min minimum lunch
+#define LUNCH_DUR_MAX           120       // 2h maximum lunch
+#define LUNCH_NO_LUNCH_THRESHOLD 300      // 5h — shifts below this skip lunch
 #define ACTIVITY_FLOOR_GAP_MS   120000UL  // max 2 min without a keystroke
 #define ACTIVITY_FLOOR_BURST_MIN  2       // min keys per keepalive burst
 #define ACTIVITY_FLOOR_BURST_MAX  5       // max keys per keepalive burst
@@ -245,6 +251,8 @@ enum SettingId {
   SET_PADDLE_SIZE,
   SET_START_LIVES,
   SET_HIGH_SCORE,
+  SET_SHIFT_DURATION,
+  SET_LUNCH_DURATION,
   SET_SET_CLOCK,
   SET_RESTORE_DEFAULTS,
   SET_REBOOT,
@@ -322,6 +330,9 @@ struct Settings {
   uint8_t paddleSize;       // 0=Small, 1=Normal (default), 2=Large, 3=XL
   uint8_t startLives;       // 1-5, default 3
   uint16_t highScore;       // persistent high score
+  // Shift/lunch settings (dashboard-only)
+  uint16_t shiftDuration;   // 240-720 min, step 30, default 480 (8h)
+  uint8_t lunchDuration;    // 15-120 min, step 5, default 30 (30m)
   uint8_t checksum;         // MUST remain last
 };
 

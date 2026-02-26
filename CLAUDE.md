@@ -125,7 +125,7 @@ enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F5A (bumped: +encButtonAction, +sideButtonAction)
+  uint32_t magic;              // 0x50524F5B (bumped: +shiftDuration, +lunchDuration)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -165,13 +165,16 @@ struct Settings {
   uint8_t volumeTheme;         // 0=Basic (default), 1=Retro, 2=Futuristic
   uint8_t encButtonAction;     // 0=Play/Pause (default), 1=Mute
   uint8_t sideButtonAction;    // 0=Next (default), 1=Mute, 2=Play/Pause
+  // Shift/lunch settings (dashboard-only)
+  uint16_t shiftDuration;      // 240-720 min, step 30, default 480 (8h)
+  uint8_t lunchDuration;       // 15-120 min, step 5, default 30 (30m)
   uint8_t checksum;            // must remain last
 };
 
 enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 ```
 Saved to `/settings.dat` via LittleFS. Survives sleep and power-off.
-Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, job performance = 5 (baseline), job start time = 8:00 (96), phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name, sound = Off, sound type = MX Blue, volume theme = Basic, knob button = Play/Pause, side button = Next.
+Default: slot 0 = F16 (index 3), slots 1-7 = NONE (index 28), lazy/busy = 15%, screensaver = Never, saver brightness = 20%, display brightness = 80%, mouse amplitude = 1px, mouse style = Bezier, animation = Ghost, device name = "GhostOperator", BT while USB = Off, scroll = Off, dashboard = On (smart default: auto-disables after 3 boots if user never touches it; any explicit toggle pins it permanently), invert dial = Off, operation mode = Simple, job simulation = Staff, job performance = 5 (baseline), job start time = 8:00 (96), phantom clicks = Off, click type = Middle, window switching = Off, switchKeys = Alt-Tab (0), header display = Job sim name, sound = Off, sound type = MX Blue, volume theme = Basic, knob button = Play/Pause, side button = Next, shift duration = 480 (8h), lunch duration = 30 (30m).
 
 #### 4. Timing Profiles
 ```cpp
@@ -260,6 +263,8 @@ WEB → DEVICE                    DEVICE → WEB
 =soundType:N                →   +ok
 =encButton:N                →   +ok
 =sideButton:N               →   +ok
+=shiftDur:N                 →   +ok
+=lunchDur:N                 →   +ok
 =statusPush:1               →   +ok
 =name:MyDevice              →   +ok
 !save                       →   +ok

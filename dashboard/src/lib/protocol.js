@@ -112,6 +112,9 @@ export function parseSettings(data) {
     // Sound settings
     sound: parseInt(data.sound) || 0,
     soundType: parseInt(data.soundType) || 0,
+    // Shift/lunch settings
+    shiftDur: parseInt(data.shiftDur ?? '480'),
+    lunchDur: parseInt(data.lunchDur ?? '30'),
   }
 }
 
@@ -196,4 +199,11 @@ export function formatTime5(slot) {
   const h = Math.floor(totalMinutes / 60)
   const m = totalMinutes % 60
   return `${h}:${String(m).padStart(2, '0')}`
+}
+
+/** Format a duration in minutes as "Xh" or "Xh Ym" */
+export function formatShiftDuration(minutes) {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
