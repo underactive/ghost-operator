@@ -45,6 +45,8 @@ static_assert(sizeof(AVAILABLE_KEYS) / sizeof(AVAILABLE_KEYS[0]) == NUM_KEYS,
 
 const char* BALL_SPEED_NAMES[]  = { "Slow", "Normal", "Fast" };
 const char* PADDLE_SIZE_NAMES[] = { "Small", "Normal", "Large", "XL" };
+const char* SNAKE_SPEED_NAMES[] = { "Slow", "Normal", "Fast" };
+const char* SNAKE_WALL_NAMES[]  = { "Solid", "Wrap" };
 
 const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   // idx 0-3: Breakout (breakout-only; orphan heading auto-hides in other modes)
@@ -52,24 +54,29 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Ball speed",    "Ball movement speed", FMT_BALL_SPEED, 0, 2, 1, SET_BALL_SPEED },
   { MENU_VALUE,   "Paddle size",   "Paddle width for catching the ball", FMT_PADDLE_SIZE, 0, 3, 1, SET_PADDLE_SIZE },
   { MENU_VALUE,   "Start lives",   "Number of lives per game", FMT_LIVES, 1, 5, 1, SET_START_LIVES },
-  // idx 4-7: Volume (vol-only; orphan heading auto-hides in other modes)
+  // idx 4-7: Snake (snake-only; orphan heading auto-hides in other modes)
+  { MENU_HEADING, "Snake",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
+  { MENU_VALUE,   "Speed",         "Snake movement speed", FMT_SNAKE_SPEED, 0, 2, 1, SET_SNAKE_SPEED },
+  { MENU_VALUE,   "Walls",         "Wall collision behavior", FMT_SNAKE_WALLS, 0, 1, 1, SET_SNAKE_WALLS },
+  { MENU_VALUE,   "High score",    "Best Snake score (persistent)", FMT_SNAKE_HIGH_SCORE, 0, 0, 0, SET_SNAKE_HIGH_SCORE },
+  // idx 8-11: Volume (vol-only; orphan heading auto-hides in other modes)
   { MENU_HEADING, "Volume",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Theme",         "Volume control display theme", FMT_VOLUME_THEME, 0, 2, 1, SET_VOLUME_THEME },
   { MENU_VALUE,   "Knob btn",      "Encoder button action in Volume mode", FMT_ENC_BTN_ACTION, 0, 1, 1, SET_ENC_BUTTON },
   { MENU_VALUE,   "Side btn",      "Side button (D7) action in Volume mode", FMT_SIDE_BTN_ACTION, 0, 2, 1, SET_SIDE_BUTTON },
-  // idx 8-11: Simulation (sim-only)
+  // idx 12-15: Simulation (sim-only; renumbered from +4 shift)
   { MENU_HEADING, "Simulation",    NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Job type",      "Daily schedule template for work simulation", FMT_JOB_SIM, 0, 2, 1, SET_JOB_SIM },
   { MENU_VALUE,   "Job start",     "Time of day your workday begins", FMT_TIME_5MIN, 0, 287, 1, SET_JOB_START_TIME },
   { MENU_VALUE,   "Performance",   "Job performance level (0-11)", FMT_PERF_LEVEL, 0, 11, 1, SET_JOB_PERFORMANCE },
-  // idx 12-17: Keyboard
+  // idx 16-21: Keyboard
   { MENU_HEADING, "Keyboard",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Key min",       "Minimum delay between keystrokes", FMT_DURATION_MS, 500, 30000, 500, SET_KEY_MIN },
   { MENU_VALUE,   "Key max",       "Maximum delay between keystrokes", FMT_DURATION_MS, 500, 30000, 500, SET_KEY_MAX },
   { MENU_ACTION,  "Key slots",     "Configure 8 key slots", FMT_DURATION_MS, 0, 0, 0, SET_KEY_SLOTS },
   { MENU_VALUE,   "Window switch", "Alt/Cmd-Tab at long intervals (WARNING: may move focus)", FMT_ON_OFF, 0, 1, 1, SET_WINDOW_SWITCH },
   { MENU_VALUE,   "Switch keys",   "Key combo for window switching", FMT_SWITCH_KEYS, 0, 1, 1, SET_SWITCH_KEYS },
-  // idx 18-25: Mouse
+  // idx 22-29: Mouse
   { MENU_HEADING, "Mouse",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Move duration", "Duration of mouse jiggle movement", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_JIG },
   { MENU_VALUE,   "Idle duration", "Pause between mouse jiggles", FMT_DURATION_MS, 500, 90000, 500, SET_MOUSE_IDLE },
@@ -78,27 +85,27 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Scroll",        "Random scroll wheel during mouse movement", FMT_ON_OFF, 0, 1, 1, SET_SCROLL },
   { MENU_VALUE,   "Auto-clicks",   "Inject clicks during mouse phases", FMT_ON_OFF, 0, 1, 1, SET_PHANTOM_CLICKS },
   { MENU_VALUE,   "Click type",    "Mouse button for auto-clicks", FMT_CLICK_TYPE, 0, 1, 1, SET_CLICK_TYPE },
-  // idx 26-28: Profiles
+  // idx 30-32: Profiles
   { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },
   { MENU_VALUE,   "Busy adjust",   "Speed up timing by this percent", FMT_PERCENT, 0, 50, 5, SET_BUSY_PCT },
-  // idx 29-34: Display
+  // idx 33-38: Display
   { MENU_HEADING, "Display",       NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Brightness",    "OLED display brightness", FMT_PERCENT, 10, 100, 10, SET_DISPLAY_BRIGHT },
   { MENU_VALUE,   "Saver bright",  "Screensaver dimmed brightness", FMT_PERCENT, 10, 100, 10, SET_SAVER_BRIGHT },
   { MENU_VALUE,   "Saver T.O.",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
   { MENU_VALUE,   "Animation",     "Status animation style", FMT_ANIM_NAME, 0, 5, 1, SET_ANIMATION },
   { MENU_VALUE,   "Header txt",   "Normal screen header shows job or device name", FMT_HEADER_DISP, 0, 1, 1, SET_HEADER_DISPLAY },
-  // idx 35-38: Sound
+  // idx 39-42: Sound
   { MENU_HEADING, "Sound",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Sys. sounds", "BLE connect/disconnect alert tones", FMT_ON_OFF, 0, 1, 1, SET_SYSTEM_SOUND },
   { MENU_VALUE,   "Sound",        "Mechanical keyboard sound on keystroke", FMT_ON_OFF, 0, 1, 1, SET_SOUND_ENABLED },
   { MENU_VALUE,   "Key sound",    "Keyboard switch sound profile", FMT_KEY_SOUND, 0, 4, 1, SET_SOUND_TYPE },
-  // idx 39-41: Schedule
+  // idx 43-45: Schedule
   { MENU_HEADING, "Schedule",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Set clock",     "Set device time manually", FMT_DURATION_MS, 0, 0, 0, SET_SET_CLOCK },
   { MENU_ACTION,  "Schedule",      "Configure schedule mode & times", FMT_DURATION_MS, 0, 0, 0, SET_SCHEDULE_MODE },
-  // idx 42-49: Device
+  // idx 46-53: Device
   { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Mode",          "Select operation mode (reboot required)", FMT_DURATION_MS, 0, 0, 0, SET_OP_MODE },
   { MENU_ACTION,  "BLE identity",  "BLE device name preset (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_BLE_IDENTITY },
@@ -107,7 +114,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Invert dial",   "Reverse encoder rotation direction", FMT_ON_OFF, 0, 1, 1, SET_INVERT_DIAL },
   { MENU_ACTION,  "Restore defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
   { MENU_ACTION,  "Reboot",        "Restart device (applies pending changes)", FMT_DURATION_MS, 0, 0, 0, SET_REBOOT },
-  // idx 50-54: About
+  // idx 54-58: About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Uptime",        "Time since last boot", FMT_UPTIME, 0, 0, 0, SET_UPTIME },
   { MENU_VALUE,   "Die temp",      "nRF52840 internal die temperature", FMT_DIE_TEMP, 0, 0, 0, SET_DIE_TEMP },

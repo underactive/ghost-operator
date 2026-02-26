@@ -13,7 +13,8 @@ void enterDeepSleep() {
   scheduleSleeping = false;
   scheduleManualWake = false;
 
-  // Save settings before sleep
+  // Save settings before sleep (clears deferred-save flag)
+  settingsDirty = false;
   saveSettings();
 
   if (displayInitialized) {

@@ -25,6 +25,8 @@ extern const char* SIDE_BTN_ACTION_NAMES[];
 extern const char* SCHEDULE_MODE_NAMES[];
 extern const char* BALL_SPEED_NAMES[];
 extern const char* PADDLE_SIZE_NAMES[];
+extern const char* SNAKE_SPEED_NAMES[];
+extern const char* SNAKE_WALL_NAMES[];
 extern const char* const DECOY_NAMES[];
 extern const char* const DECOY_MANUFACTURERS[];
 
@@ -32,14 +34,14 @@ void validateMenuIndices();
 const CarouselConfig* getCarouselConfig(uint8_t settingId);
 
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
-#define MENU_IDX_KEY_SLOTS    15
-#define MENU_IDX_SET_CLOCK    40
-#define MENU_IDX_SCHEDULE     41
-#define MENU_IDX_OP_MODE      43   // "Mode" (Simple/Simulation/Volume/Breakout) — under Device heading
-#define MENU_IDX_BLE_IDENTITY 44
-#define MENU_IDX_UPTIME       51
-#define MENU_IDX_DIE_TEMP     52
-#define MENU_IDX_HIGH_SCORE   53
-#define MENU_IDX_VERSION      54
+#define MENU_IDX_KEY_SLOTS    19
+#define MENU_IDX_SET_CLOCK    44
+#define MENU_IDX_SCHEDULE     45
+#define MENU_IDX_OP_MODE      47   // "Mode" (Simple/Simulation/Volume/Breakout/Snake) — under Device heading
+#define MENU_IDX_BLE_IDENTITY 48
+#define MENU_IDX_UPTIME       55
+#define MENU_IDX_DIE_TEMP     56
+#define MENU_IDX_HIGH_SCORE   57
+#define MENU_IDX_VERSION      58
 
 #endif // GHOST_KEYS_H

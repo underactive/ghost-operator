@@ -9,6 +9,7 @@
 #include "sim_data.h"
 #include "orchestrator.h"
 #include "breakout.h"
+#include "snake.h"
 
 // ============================================================================
 // DIRTY FLAG
@@ -1844,6 +1845,93 @@ static void drawBreakoutNormal() {
 }
 
 // ============================================================================
+// SNAKE GAME MODE (NORMAL display)
+// ============================================================================
+
+static void drawSnakeNormal() {
+  display.setTextSize(1);
+
+  // --- Header: Score, Hi-Score, Battery ---
+  {
+    char hdr[32];
+    snprintf(hdr, sizeof(hdr), "S:%u Hi:%u", snk.score, settings.snakeHighScore);
+    display.setCursor(0, 0);
+    display.print(hdr);
+
+    // Battery (far right)
+    char batBuf[8];
+    snprintf(batBuf, sizeof(batBuf), "%d%%", batteryPercent);
+    int batW = strlen(batBuf) * 6;
+    display.setCursor(128 - batW, 0);
+    display.print(batBuf);
+  }
+
+  // --- Game grid (y starts at SNAKE_HEADER_H) ---
+  // Draw snake body
+  for (uint8_t i = 0; i < snk.length; i++) {
+    uint8_t idx = (snk.headIdx - i) & 0xFF;
+    int16_t px = (int16_t)snk.bodyX[idx] * SNAKE_GRID_CELL;
+    int16_t py = (int16_t)snk.bodyY[idx] * SNAKE_GRID_CELL + SNAKE_HEADER_H;
+    if (i == 0) {
+      // Head: filled
+      display.fillRect(px, py, SNAKE_GRID_CELL, SNAKE_GRID_CELL, SSD1306_WHITE);
+    } else {
+      // Body: filled with 1px inner gap for segmented look
+      display.fillRect(px, py, SNAKE_GRID_CELL - 1, SNAKE_GRID_CELL - 1, SSD1306_WHITE);
+    }
+  }
+
+  // Draw food (blinking dot)
+  {
+    bool blink = ((millis() / 300) & 1);
+    int16_t fx = (int16_t)snk.foodX * SNAKE_GRID_CELL;
+    int16_t fy = (int16_t)snk.foodY * SNAKE_GRID_CELL + SNAKE_HEADER_H;
+    if (blink) {
+      display.fillRect(fx, fy, SNAKE_GRID_CELL, SNAKE_GRID_CELL, SSD1306_WHITE);
+    } else {
+      display.fillRect(fx + 1, fy + 1, SNAKE_GRID_CELL - 2, SNAKE_GRID_CELL - 2, SSD1306_WHITE);
+    }
+  }
+
+  // --- Footer / overlays ---
+  display.drawFastHLine(0, 56, 128, SSD1306_WHITE);
+
+  if (snk.state == SNAKE_IDLE) {
+    display.setCursor(0, 57);
+    display.print("D7=Start  Turn=Steer");
+  } else if (snk.state == SNAKE_PAUSED) {
+    const char* msg = "PAUSED";
+    int w = strlen(msg) * 6;
+    display.fillRect((128 - w) / 2 - 4, 28, w + 8, 12, SSD1306_BLACK);
+    display.drawRect((128 - w) / 2 - 4, 28, w + 8, 12, SSD1306_WHITE);
+    display.setCursor((128 - w) / 2, 30);
+    display.print(msg);
+    display.setCursor(0, 57);
+    display.print("D7=Resume");
+  } else if (snk.state == SNAKE_GAME_OVER) {
+    const char* msg = "GAME OVER";
+    int w = strlen(msg) * 6;
+    display.fillRect((128 - w) / 2 - 6, 24, w + 12, 20, SSD1306_BLACK);
+    display.drawRect((128 - w) / 2 - 6, 24, w + 12, 20, SSD1306_WHITE);
+    display.setCursor((128 - w) / 2, 26);
+    display.print(msg);
+
+    char scoreBuf[20];
+    snprintf(scoreBuf, sizeof(scoreBuf), "Score: %u", snk.score);
+    int sw = strlen(scoreBuf) * 6;
+    display.setCursor((128 - sw) / 2, 36);
+    display.print(scoreBuf);
+
+    display.setCursor(0, 57);
+    display.print("D7=New game");
+  } else {
+    // Playing
+    display.setCursor(0, 57);
+    display.print("D7=Pause  Turn=Steer");
+  }
+}
+
+// ============================================================================
 // MODE PICKER (MODE_MODE sub-page)
 // ============================================================================
 
@@ -1857,7 +1945,7 @@ static void drawModePickerPage() {
     display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
 
     // Show new mode name in quotes, centered
-    const char* modeName = (settings.operationMode < 4) ? OP_MODE_NAMES[settings.operationMode] : "???";
+    const char* modeName = (settings.operationMode < 5) ? OP_MODE_NAMES[settings.operationMode] : "???";
     char nameBuf[20];
     snprintf(nameBuf, sizeof(nameBuf), "\"%s\"", modeName);
     int nameW = strlen(nameBuf) * 6;
@@ -1909,11 +1997,11 @@ static void drawModePickerPage() {
     static float modeScrollX = 0.0f;
 
     // Compute cell layout (snap handled after target computation)
-    int cellWidth[4];
-    int cellCenterX[4];
+    int cellWidth[5];
+    int cellCenterX[5];
     int runX = 0;
-    for (int i = 0; i < 4; i++) {
-      const char* nm = (i < 4) ? OP_MODE_NAMES[i] : "???";
+    for (int i = 0; i < 5; i++) {
+      const char* nm = (i < 5) ? OP_MODE_NAMES[i] : "???";
       cellWidth[i] = (int)strlen(nm) * 6 + 16;
       cellCenterX[i] = runX + cellWidth[i] / 2;
       runX += cellWidth[i];
@@ -1939,7 +2027,7 @@ static void drawModePickerPage() {
     const int stripY = 24;
     const int stripH = 11;
     display.setTextWrap(false);
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       const char* nm = OP_MODE_NAMES[i];
       int tw = (int)strlen(nm) * 6;
       int tx = cellCenterX[i] - scrollI - tw / 2;
@@ -1962,8 +2050,8 @@ static void drawModePickerPage() {
   }
 
   // === Help text (scrolls if overflow) ===
-  static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller", "Brick-breaking arcade" };
-  const char* desc = (modePickerCursor < 4) ? MODE_DESCS[modePickerCursor] : "???";
+  static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller", "Brick-breaking arcade", "Classic snake game" };
+  const char* desc = (modePickerCursor < 5) ? MODE_DESCS[modePickerCursor] : "???";
   int descLen = strlen(desc);
   const int maxChars = 21;  // 128px / 6px per char
 
@@ -2643,12 +2731,14 @@ void updateDisplay() {
   } else if (sleepConfirmActive) {
     drawSleepConfirm();
   } else if (screensaverActive) {
-    if (settings.operationMode == 3) drawBreakoutNormal();  // dim the game display
+    if (settings.operationMode == 4) drawSnakeNormal();
+    else if (settings.operationMode == 3) drawBreakoutNormal();  // dim the game display
     else if (settings.operationMode == 2) drawVolumeNormal();
     else if (settings.operationMode == 1) drawSimulationScreensaver();
     else drawScreensaver();
   } else if (currentMode == MODE_NORMAL) {
-    if (settings.operationMode == 3) drawBreakoutNormal();
+    if (settings.operationMode == 4) drawSnakeNormal();
+    else if (settings.operationMode == 3) drawBreakoutNormal();
     else if (settings.operationMode == 2) drawVolumeNormal();
     else if (settings.operationMode == 1) drawSimulationNormal();
     else drawNormalMode();
