@@ -94,6 +94,7 @@ export function parseSettings(data) {
     btWhileUsb: parseInt(data.btWhileUsb) || 0,
     scroll: parseInt(data.scroll) || 0,
     dashboard: parseInt(data.dashboard) || 0,
+    invertDial: parseInt(data.invertDial) || 0,
     decoy: parseInt(data.decoy) || 0,
     schedMode: parseInt(data.schedMode) || 0,
     schedStart: parseInt(data.schedStart ?? '108'),

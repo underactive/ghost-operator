@@ -57,6 +57,7 @@ export const settings = reactive({
   btWhileUsb: 0,
   scroll: 0,
   dashboard: 0,
+  invertDial: 0,
   decoy: 0,
   schedMode: 0,
   schedStart: 18,
@@ -451,4 +452,111 @@ function stopPolling() {
 
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms))
+}
+
+// --- Settings Export/Import ---
+
+const EXPORTABLE_KEYS = [
+  'keyMin', 'keyMax', 'mouseJig', 'mouseIdle', 'mouseAmp', 'mouseStyle', 'scroll',
+  'lazyPct', 'busyPct',
+  'dispBright', 'saverBright', 'saverTimeout', 'animStyle',
+  'decoy', 'name', 'btWhileUsb', 'invertDial',
+  'schedMode', 'schedStart', 'schedEnd',
+  'opMode', 'jobSim', 'jobPerf', 'jobStart',
+  'phantom', 'clickType', 'winSwitch', 'switchKeys', 'headerDisp',
+  'sound', 'soundType',
+  'shiftDur', 'lunchDur',
+  'slots',
+]
+
+/**
+ * Export current settings to a JSON file download.
+ */
+export function exportSettings() {
+  const exported = {}
+  for (const key of EXPORTABLE_KEYS) {
+    if (key === 'slots') {
+      exported.slots = settings.slots.join(',')
+    } else {
+      exported[key] = settings[key]
+    }
+  }
+
+  const payload = {
+    ghost_operator: {
+      version: 1,
+      device_name: settings.name || 'GhostOperator',
+      exported_at: new Date().toISOString(),
+      settings: exported,
+    },
+  }
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  const date = new Date().toISOString().slice(0, 10)
+  const name = (settings.name || 'GhostOperator').replace(/[^a-zA-Z0-9_-]/g, '_')
+  a.href = url
+  a.download = `${name}_settings_${date}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+
+  statusMessage.value = 'Settings exported'
+  setTimeout(() => { if (statusMessage.value === 'Settings exported') statusMessage.value = '' }, 2000)
+}
+
+/**
+ * Import settings from a JSON file.
+ * @param {File} file - JSON file selected by user
+ * @returns {Promise<{applied: number, skipped: string[], errors: string[]}>}
+ */
+export async function importSettings(file) {
+  const text = await file.text()
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error('Invalid JSON file')
+  }
+
+  if (!data.ghost_operator || !data.ghost_operator.settings) {
+    throw new Error('Not a Ghost Operator settings file')
+  }
+
+  const imported = data.ghost_operator.settings
+  const result = { applied: 0, skipped: [], errors: [] }
+
+  for (const key of EXPORTABLE_KEYS) {
+    if (!(key in imported)) {
+      result.skipped.push(key)
+      continue
+    }
+
+    let value = imported[key]
+
+    // Sanitize name: strip non-printable chars, limit to 14 chars
+    if (key === 'name' && typeof value === 'string') {
+      value = value.replace(/[^\x20-\x7E]/g, '').substring(0, 14)
+    }
+
+    try {
+      await setSetting(key, value)
+      result.applied++
+      await sleep(50)
+    } catch (err) {
+      result.errors.push(`${key}: ${err.message}`)
+    }
+  }
+
+  // Report unknown keys in file (forward compat)
+  for (const key of Object.keys(imported)) {
+    if (!EXPORTABLE_KEYS.includes(key)) {
+      result.skipped.push(`${key} (unknown)`)
+    }
+  }
+
+  // Save to flash
+  await saveToFlash()
+
+  return result
 }

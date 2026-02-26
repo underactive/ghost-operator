@@ -1,9 +1,13 @@
 <script setup>
 import { ref } from 'vue'
-import { settings, setSetting, resetDefaults, rebootDevice, decoyNames } from '../lib/store.js'
+import { settings, setSetting, resetDefaults, rebootDevice, decoyNames, exportSettings, importSettings } from '../lib/store.js'
 
 const showResetConfirm = ref(false)
 const showRebootConfirm = ref(false)
+const importing = ref(false)
+const importResult = ref(null)
+const importError = ref('')
+const fileInput = ref(null)
 
 function onDecoyChange(e) {
   setSetting('decoy', Number(e.target.value))
@@ -23,6 +27,35 @@ function confirmReset() {
 function confirmReboot() {
   showRebootConfirm.value = false
   rebootDevice()
+}
+
+function triggerImport() {
+  fileInput.value?.click()
+}
+
+async function onFileSelected(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  // Reset file input so the same file can be re-selected
+  e.target.value = ''
+
+  importing.value = true
+  importResult.value = null
+  importError.value = ''
+
+  try {
+    const result = await importSettings(file)
+    importResult.value = result
+  } catch (err) {
+    importError.value = err.message
+  } finally {
+    importing.value = false
+    // Clear feedback after 5 seconds
+    setTimeout(() => {
+      importResult.value = null
+      importError.value = ''
+    }, 5000)
+  }
 }
 </script>
 
@@ -64,6 +97,31 @@ function confirmReboot() {
         <option :value="0">Off</option>
         <option :value="1">On</option>
       </select>
+    </div>
+
+    <div class="backup-section">
+      <label>Settings Backup</label>
+      <div class="backup-buttons">
+        <button class="btn" @click="exportSettings">Export</button>
+        <button class="btn" @click="triggerImport" :disabled="importing">
+          {{ importing ? 'Importing...' : 'Import' }}
+        </button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".json"
+          style="display: none"
+          @change="onFileSelected"
+        />
+      </div>
+      <div v-if="importResult" class="import-feedback import-success">
+        Restored {{ importResult.applied }} settings.
+        <span v-if="importResult.skipped.length"> Skipped {{ importResult.skipped.length }}.</span>
+        <span v-if="importResult.errors.length"> {{ importResult.errors.length }} errors.</span>
+      </div>
+      <div v-if="importError" class="import-feedback import-error">
+        {{ importError }}
+      </div>
     </div>
 
     <div class="actions">
@@ -110,5 +168,31 @@ function confirmReboot() {
 .field-disabled {
   opacity: 0.4;
   pointer-events: none;
+}
+.backup-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #333);
+}
+.backup-section > label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+.backup-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+.import-feedback {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+}
+.import-success {
+  color: #4ade80;
+}
+.import-error {
+  color: #f87171;
 }
 </style>
