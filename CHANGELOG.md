@@ -5,17 +5,25 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0] - 2026-02-25
+## [2.3.0] - 2026-02-26
 
 ### Added
 
+- **7-slot click action system**: Replace single click type with 7 configurable slots — each slot can be Left, Middle, Right, Button 4, Button 5, Wheel Up, Wheel Down, or NONE; random non-NONE slot chosen at runtime (same pattern as keyboard slots); new MODE_CLICK_SLOTS UI with 4+3 grid editor; comma-separated BLE/USB protocol (`clickSlots=1,7,7,7,7,7,7`); dashboard 7-slot grid UI replaces single dropdown
+- **Expanded function keys (F1–F20)**: Add F1–F12 to available keystroke options, remove unused F21–F24; all function keys from F1 through F20 now accessible from key slot editor
 - **Snake game mode**: Fourth operation mode (operationMode = 4) — classic snake game played via rotary encoder on the OLED display
 - **Game-specific boot splashes**: Breakout and Snake modes show dedicated pixel art splash screens on boot instead of the default ghost splash
 - **Configurable shift/lunch duration**: Shift duration (4–12h, step 30m, default 8h) and lunch duration (15–120m, step 5m, default 30m) configurable via dashboard; used by Simulation mode day schedule calculations
 - **Dashboard settings export/import**: Back up all device settings to a JSON file and restore them after firmware updates; uses named protocol keys for forward/backward compatibility; unknown keys skipped on import, missing keys keep current values
 
+### Changed
+
+- **Redesigned pixel art icons**: Keycap pressed icon changed from 9×9 to 10×8 (same width as normal, vertical-only depression effect); mouse icons redesigned with wavy cord top and flat base across all three states (normal, click, scroll)
+- **Clearer menu labels**: "Sys. sounds" → "System sounds", "Sound" → "Keybd sounds", "BLE identity" → "Bluetooth name"
+
 ### Fixed
 
+- **Work mode timer stuck at 0s**: Mode timer check was chained as `else if` to block/lunch logic — when lunch force-jump outer condition was true but inner was false, mode timer was never evaluated; moved to independent `if` after skipBlockTransition label
 - **K+M and M+K phase bugs**: Resolved 5 QA bugs in combined keyboard+mouse phase implementation
 - **Breakout mode hardening**: Non-blocking sounds, physics guards, and display fixes for the Breakout game mode
 
