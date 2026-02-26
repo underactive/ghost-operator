@@ -69,7 +69,7 @@ export const settings = reactive({
   jobPerf: 5,
   jobStart: 96,
   phantom: 0,
-  clickType: 1,
+  clickSlots: [1, 7, 7, 7, 7, 7, 7],
   winSwitch: 0,
   switchKeys: 0,
   headerDisp: 0,
@@ -280,6 +280,8 @@ export async function setSetting(key, value) {
   // Update local state immediately for responsive UI
   if (key === 'slots') {
     settings.slots = String(value).split(',').map(Number)
+  } else if (key === 'clickSlots') {
+    settings.clickSlots = String(value).split(',').map(Number)
   } else if (key === 'name') {
     settings.name = value
   } else if (key === 'decoy') {
@@ -463,7 +465,7 @@ const EXPORTABLE_KEYS = [
   'decoy', 'name', 'btWhileUsb', 'invertDial',
   'schedMode', 'schedStart', 'schedEnd',
   'opMode', 'jobSim', 'jobPerf', 'jobStart',
-  'phantom', 'clickType', 'winSwitch', 'switchKeys', 'headerDisp',
+  'phantom', 'clickSlots', 'winSwitch', 'switchKeys', 'headerDisp',
   'sound', 'soundType',
   'shiftDur', 'lunchDur',
   'slots',

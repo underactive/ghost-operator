@@ -199,7 +199,7 @@ static void cmdQueryStatus() {
 // ?settings — all persistent settings
 // ----------------------------------------------------------------------------
 static void cmdQuerySettings() {
-  char buf[580];
+  char buf[640];
   int len = snprintf(buf, sizeof(buf),
     "!settings|keyMin=%lu|keyMax=%lu|mouseJig=%lu|mouseIdle=%lu"
     "|mouseAmp=%d|mouseStyle=%d|lazyPct=%d|busyPct=%d"
@@ -232,18 +232,25 @@ static void cmdQuerySettings() {
 
   // Simulation mode settings + volume control
   len += snprintf(buf + len, sizeof(buf) - len,
-    "|opMode=%d|jobSim=%d|jobPerf=%d|jobStart=%d|phantom=%d|clickType=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d"
+    "|opMode=%d|jobSim=%d|jobPerf=%d|jobStart=%d|phantom=%d|winSwitch=%d|switchKeys=%d|headerDisp=%d"
     "|volumeTheme=%d|encButton=%d|sideButton=%d"
     "|ballSpeed=%d|paddleSize=%d|startLives=%d|highScore=%d"
     "|snakeSpeed=%d|snakeWalls=%d|snakeHiScore=%d"
     "|shiftDur=%d|lunchDur=%d",
     settings.operationMode, settings.jobSimulation, settings.jobPerformance, settings.jobStartTime,
-    settings.phantomClicks, settings.clickType, settings.windowSwitching,
+    settings.phantomClicks, settings.windowSwitching,
     settings.switchKeys, settings.headerDisplay,
     settings.volumeTheme, settings.encButtonAction, settings.sideButtonAction,
     settings.ballSpeed, settings.paddleSize, settings.startLives, settings.highScore,
     settings.snakeSpeed, settings.snakeWalls, settings.snakeHighScore,
     settings.shiftDuration, settings.lunchDuration);
+
+  // Click slots as comma-separated indices
+  len += snprintf(buf + len, sizeof(buf) - len, "|clickSlots=");
+  for (int i = 0; i < NUM_CLICK_SLOTS; i++) {
+    len += snprintf(buf + len, sizeof(buf) - len, "%s%d",
+                    (i > 0) ? "," : "", settings.clickSlots[i]);
+  }
 
   currentWriter(buf);
 }
@@ -356,8 +363,20 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_JOB_START_TIME, (uint32_t)atol(valStr));
   } else if (strcmp(key, "phantom") == 0) {
     setSettingValue(SET_PHANTOM_CLICKS, (uint32_t)atol(valStr));
-  } else if (strcmp(key, "clickType") == 0) {
-    setSettingValue(SET_CLICK_TYPE, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "clickSlots") == 0) {
+    // Comma-separated click slot indices: "1,7,7,7,7,7,7"
+    int slot = 0;
+    const char* p = valStr;
+    while (slot < NUM_CLICK_SLOTS && *p) {
+      uint8_t v = (uint8_t)atoi(p);
+      settings.clickSlots[slot] = (v >= NUM_CLICK_TYPES) ? (NUM_CLICK_TYPES - 1) : v;
+      slot++;
+      while (*p && *p != ',') p++;
+      if (*p == ',') p++;
+    }
+    for (; slot < NUM_CLICK_SLOTS; slot++) {
+      settings.clickSlots[slot] = NUM_CLICK_TYPES - 1;
+    }
   } else if (strcmp(key, "winSwitch") == 0) {
     setSettingValue(SET_WINDOW_SWITCH, (uint32_t)atol(valStr));
   } else if (strcmp(key, "switchKeys") == 0) {

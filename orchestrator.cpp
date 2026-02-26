@@ -423,10 +423,11 @@ static void tickMousePhase(unsigned long now) {
   handleMouseStateMachine(now);
 
   // Phantom click: 25% chance on RETURNING → IDLE transition
-  if (settings.phantomClicks && prevState == MOUSE_RETURNING && mouseState == MOUSE_IDLE) {
+  if (settings.phantomClicks && hasPopulatedClickSlot() &&
+      prevState == MOUSE_RETURNING && mouseState == MOUSE_IDLE) {
     if (random(100) < 25) {
-      uint8_t btn = (settings.clickType < CLICK_TYPE_COUNT) ? CLICK_BUTTON_CODES[settings.clickType] : 0x04;
-      sendMouseClick(btn, (uint16_t)randRange(50, 150));
+      uint8_t action = pickNextClick();
+      executeClick(action, (uint16_t)randRange(50, 150));
       orch.lastPhantomClickMs = millis();
     }
   }
@@ -486,10 +487,10 @@ static void tickKbMouse(unsigned long now) {
       break;
 
     case KBMS_CLICK:
-      // Send one mouse click to simulate clicking into a form field
-      {
-        uint8_t btn = (settings.clickType < CLICK_TYPE_COUNT) ? CLICK_BUTTON_CODES[settings.clickType] : 0x04;
-        sendMouseClick(btn, (uint16_t)randRange(50, 100));
+      // Send one click to simulate clicking into a form field
+      if (hasPopulatedClickSlot()) {
+        uint8_t action = pickNextClick();
+        executeClick(action, (uint16_t)randRange(50, 100));
         orch.lastPhantomClickMs = now;
       }
       orch.kbmsSubPhase = KBMS_CLICK_PAUSE;

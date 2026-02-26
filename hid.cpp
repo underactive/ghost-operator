@@ -3,6 +3,7 @@
 #include "keys.h"
 #include "display.h"
 #include "sound.h"
+#include "sim_data.h"
 #include <Adafruit_TinyUSB.h>
 
 // RF/ADC calibration gate — shared by keyboard and mouse
@@ -214,5 +215,36 @@ void sendConsumerRelease() {
   if (TinyUSBDevice.mounted() && usb_hid.ready()) {
     uint16_t zero = 0;
     usb_hid.sendReport(RID_CONSUMER, &zero, sizeof(zero));
+  }
+}
+
+// ============================================================================
+// CLICK SLOT HELPERS (multi-slot random selection for phantom clicks)
+// ============================================================================
+
+bool hasPopulatedClickSlot() {
+  for (int i = 0; i < NUM_CLICK_SLOTS; i++) {
+    if (settings.clickSlots[i] < NUM_CLICK_TYPES - 1) return true;
+  }
+  return false;
+}
+
+uint8_t pickNextClick() {
+  uint8_t populated[NUM_CLICK_SLOTS];
+  uint8_t count = 0;
+  for (int i = 0; i < NUM_CLICK_SLOTS; i++) {
+    if (settings.clickSlots[i] < NUM_CLICK_TYPES - 1)
+      populated[count++] = i;
+  }
+  if (count == 0) return NUM_CLICK_TYPES - 1;  // NONE
+  return settings.clickSlots[populated[random(count)]];
+}
+
+void executeClick(uint8_t actionIdx, uint16_t holdMs) {
+  if (actionIdx >= NUM_CLICK_TYPES - 1) return;  // NONE or invalid
+  if (CLICK_SCROLL_DIRS[actionIdx] != 0) {
+    sendMouseScroll(CLICK_SCROLL_DIRS[actionIdx]);
+  } else {
+    sendMouseClick(CLICK_BUTTON_CODES[actionIdx], holdMs);
   }
 }

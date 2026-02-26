@@ -10,8 +10,9 @@
 #define VERSION "2.3.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F5F  // bumped: clickType values reordered + expanded
-#define CLICK_TYPE_COUNT  5       // Left, Middle, Right, Button 4, Button 5
+#define SETTINGS_MAGIC 0x50524F60  // bumped: clickType → clickSlots[7] array
+#define NUM_CLICK_SLOTS   7       // configurable click action slots (like key slots)
+#define NUM_CLICK_TYPES   8       // Left, Middle, Right, Btn4, Btn5, WheelUp, WheelDown, NONE
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 37  // must match AVAILABLE_KEYS[] array size
@@ -208,7 +209,7 @@
 // ============================================================================
 // ENUMS
 // ============================================================================
-enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_COUNT };
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_CLICK_SLOTS, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION, FMT_BALL_SPEED, FMT_PADDLE_SIZE, FMT_HIGH_SCORE, FMT_LIVES, FMT_SNAKE_SPEED, FMT_SNAKE_WALLS, FMT_SNAKE_HIGH_SCORE };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
@@ -253,7 +254,7 @@ enum SettingId {
   SET_JOB_PERFORMANCE,
   SET_JOB_START_TIME,
   SET_PHANTOM_CLICKS,
-  SET_CLICK_TYPE,
+  SET_CLICK_SLOTS,
   SET_WINDOW_SWITCH,
   SET_SWITCH_KEYS,
   SET_HEADER_DISPLAY,
@@ -333,7 +334,7 @@ struct Settings {
   uint8_t jobPerformance;   // 0-11, default 5 (level*10 = percentage, 5=baseline)
   uint16_t jobStartTime;    // 0-287 (5-min slots), default 96 (8:00)
   uint8_t phantomClicks;    // 0=Off (default), 1=On
-  uint8_t clickType;        // 0=Left, 1=Middle (default), 2=Right, 3=Button 4, 4=Button 5
+  uint8_t clickSlots[NUM_CLICK_SLOTS]; // 7 click action slots (index into CLICK_TYPE_NAMES[])
   uint8_t windowSwitching;  // 0=Off (default), 1=On
   uint8_t switchKeys;       // 0=Alt-Tab (default), 1=Cmd-Tab
   uint8_t headerDisplay;    // 0=Job sim name (default), 1=Device name

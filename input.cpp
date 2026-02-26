@@ -235,7 +235,7 @@ bool isMenuItemHidden(int8_t idx) {
 
   // Conditional visibility (independent of mode)
   if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) return true;
-  if (item.settingId == SET_CLICK_TYPE && !settings.phantomClicks) return true;
+  if (item.settingId == SET_CLICK_SLOTS && !settings.phantomClicks) return true;
   if (item.settingId == SET_SWITCH_KEYS && !settings.windowSwitching) return true;
   if (item.settingId == SET_SOUND_TYPE && !settings.soundEnabled) return true;
 
@@ -254,7 +254,7 @@ bool isMenuItemHidden(int8_t idx) {
   if (!isSim) {
     switch (item.settingId) {
       case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
-      case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
+      case SET_PHANTOM_CLICKS: case SET_CLICK_SLOTS:
       case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
         return true;
     }
@@ -268,7 +268,7 @@ bool isMenuItemHidden(int8_t idx) {
       case SET_MOUSE_AMP: case SET_SCROLL:
       case SET_LAZY_PCT: case SET_BUSY_PCT:
       case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
-      case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
+      case SET_PHANTOM_CLICKS: case SET_CLICK_SLOTS:
       case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
       case SET_ANIMATION:
       case SET_SCHEDULE_MODE: case SET_SET_CLOCK:
@@ -285,7 +285,7 @@ bool isMenuItemHidden(int8_t idx) {
       case SET_MOUSE_AMP: case SET_SCROLL:
       case SET_LAZY_PCT: case SET_BUSY_PCT:
       case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
-      case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
+      case SET_PHANTOM_CLICKS: case SET_CLICK_SLOTS:
       case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
       case SET_ANIMATION:
       case SET_SCHEDULE_MODE: case SET_SET_CLOCK:
@@ -303,7 +303,7 @@ bool isMenuItemHidden(int8_t idx) {
       case SET_MOUSE_AMP: case SET_SCROLL:
       case SET_LAZY_PCT: case SET_BUSY_PCT:
       case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
-      case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
+      case SET_PHANTOM_CLICKS: case SET_CLICK_SLOTS:
       case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
       case SET_ANIMATION:
       case SET_SCHEDULE_MODE: case SET_SET_CLOCK:
@@ -492,6 +492,12 @@ void handleEncoder() {
       case MODE_SLOTS:
         // Cycle key for active slot
         settings.keySlots[activeSlot] = (settings.keySlots[activeSlot] + direction + NUM_KEYS) % NUM_KEYS;
+        break;
+
+      case MODE_CLICK_SLOTS:
+        // Cycle click action for active slot
+        settings.clickSlots[activeClickSlot] =
+          (settings.clickSlots[activeClickSlot] + direction + NUM_CLICK_TYPES) % NUM_CLICK_TYPES;
         break;
 
       case MODE_NAME:
@@ -757,6 +763,11 @@ void handleButtons() {
                 activeSlot = 0;
                 Serial.println("Mode: SLOTS");
                 pushSerialStatus();
+              } else if (item.settingId == SET_CLICK_SLOTS) {
+                currentMode = MODE_CLICK_SLOTS;
+                activeClickSlot = 0;
+                Serial.println("Mode: CLICK_SLOTS");
+                pushSerialStatus();
               } else if (item.settingId == SET_BLE_IDENTITY) {
                 currentMode = MODE_DECOY;
                 initDecoyPicker();
@@ -779,6 +790,13 @@ void handleButtons() {
           activeSlot = (activeSlot + 1) % NUM_SLOTS;
           saveSettings();
           Serial.print("Active slot: "); Serial.println(activeSlot);
+          break;
+
+        case MODE_CLICK_SLOTS:
+          // Advance active click slot cursor (0->1->...->6->0)
+          activeClickSlot = (activeClickSlot + 1) % NUM_CLICK_SLOTS;
+          saveSettings();
+          Serial.print("Active click slot: "); Serial.println(activeClickSlot);
           break;
 
         case MODE_NAME:
@@ -987,6 +1005,17 @@ void handleButtons() {
             menuEditing = false;
             menuScrollOffset = (MENU_IDX_KEY_SLOTS > 4) ? MENU_IDX_KEY_SLOTS - 4 : 0;
             Serial.println("Mode: MENU (from SLOTS)");
+            pushSerialStatus();
+            break;
+
+          case MODE_CLICK_SLOTS:
+            // Back to menu at "Click slots" item
+            saveSettings();
+            currentMode = MODE_MENU;
+            menuCursor = MENU_IDX_CLICK_SLOTS;
+            menuEditing = false;
+            menuScrollOffset = (MENU_IDX_CLICK_SLOTS > 4) ? MENU_IDX_CLICK_SLOTS - 4 : 0;
+            Serial.println("Mode: MENU (from CLICK_SLOTS)");
             pushSerialStatus();
             break;
 

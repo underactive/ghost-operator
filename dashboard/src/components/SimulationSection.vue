@@ -4,6 +4,12 @@ import {
   JOB_SIM_NAMES, CLICK_TYPE_NAMES, SWITCH_KEYS_NAMES, HEADER_DISP_NAMES,
   formatTime5, formatShiftDuration,
 } from '../lib/protocol.js'
+
+function onClickSlotChange(slotIndex, event) {
+  const newSlots = [...settings.clickSlots]
+  newSlots[slotIndex] = Number(event.target.value)
+  setSetting('clickSlots', newSlots.join(','))
+}
 </script>
 
 <template>
@@ -125,16 +131,22 @@ import {
     </div>
 
     <div class="field" v-if="settings.phantom === 1">
-      <label>Click Button</label>
-      <select
-        :value="settings.clickType"
-        @change="setSetting('clickType', Number($event.target.value))"
-      >
-        <option v-for="(name, idx) in CLICK_TYPE_NAMES" :key="idx" :value="idx">
-          {{ name }}
-        </option>
-      </select>
-      <p class="help-text">Middle click is safest. Right click triggers context menus. Button 4/5 are browser back/forward.</p>
+      <label>Click Slots</label>
+      <div class="click-slots-grid">
+        <div v-for="(slotVal, idx) in settings.clickSlots" :key="idx" class="click-slot">
+          <span class="click-slot-label">{{ idx + 1 }}</span>
+          <select :value="slotVal" @change="onClickSlotChange(idx, $event)">
+            <option
+              v-for="(name, cIdx) in CLICK_TYPE_NAMES"
+              :key="cIdx"
+              :value="cIdx"
+            >
+              {{ name }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <p class="help-text">Random click action from populated slots. Middle click is safest. Wheel Up/Down sends scroll ticks.</p>
     </div>
 
     <div class="field">
@@ -151,3 +163,30 @@ import {
     </div>
   </section>
 </template>
+
+<style scoped>
+.click-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+.click-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.click-slot-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+.click-slot select {
+  padding: 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+</style>

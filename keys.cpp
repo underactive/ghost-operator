@@ -92,7 +92,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Move size",     "Mouse movement step size in pixels", FMT_PIXELS, 1, 5, 1, SET_MOUSE_AMP },
   { MENU_VALUE,   "Scroll",        "Random scroll wheel during mouse movement", FMT_ON_OFF, 0, 1, 1, SET_SCROLL },
   { MENU_VALUE,   "Auto-clicks",   "Inject clicks during mouse phases", FMT_ON_OFF, 0, 1, 1, SET_PHANTOM_CLICKS },
-  { MENU_VALUE,   "Click btn",     "Mouse button for auto-clicks", FMT_CLICK_TYPE, 0, 4, 1, SET_CLICK_TYPE },
+  { MENU_ACTION,  "Click slots",   "Configure 7 click action slots", FMT_DURATION_MS, 0, 0, 0, SET_CLICK_SLOTS },
   // idx 30-32: Profiles
   { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },
@@ -151,6 +151,7 @@ void validateMenuIndices() {
     }
   };
   check(MENU_IDX_KEY_SLOTS,    SET_KEY_SLOTS,     "KEY_SLOTS");
+  check(MENU_IDX_CLICK_SLOTS,  SET_CLICK_SLOTS,   "CLICK_SLOTS");
   check(MENU_IDX_SET_CLOCK,    SET_SET_CLOCK,     "SET_CLOCK");
   check(MENU_IDX_SCHEDULE,     SET_SCHEDULE_MODE, "SCHEDULE");
   check(MENU_IDX_OP_MODE,      SET_OP_MODE,       "OP_MODE");
@@ -176,7 +177,7 @@ const char*   SAVER_NAMES[]   = { "Never", "1 min", "5 min", "10 min", "15 min",
 
 const char NAME_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -_";
 
-const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY", "SCHED", "MODE", "CLOCK", "CRSL" };
+const char* MODE_NAMES[] = { "NORMAL", "MENU", "SLOTS", "NAME", "DECOY", "SCHED", "MODE", "CLOCK", "CRSL", "CSLOT" };
 const char* PROFILE_NAMES[] = { "LAZY", "NORMAL", "BUSY" };
 const char* PROFILE_NAMES_TITLE[] = { "Lazy", "Normal", "Busy" };
 const char* ANIM_NAMES[] = { "ECG", "EQ", "Ghost", "Matrix", "Radar", "None" };
@@ -250,14 +251,6 @@ static const char* const KB_SOUND_DESCS[] = {
   "Deep muted keystroke"
 };
 
-static const char* const CLICK_TYPE_DESCS[] = {
-  "Left click (standard)",
-  "Middle click (least visible)",
-  "Right click (context menu)",
-  "Back / side button",
-  "Forward / side button"
-};
-
 static const char* const SWITCH_KEYS_DESCS[] = {
   "Alt-Tab (Windows/Linux)",
   "Cmd-Tab (macOS)"
@@ -300,7 +293,6 @@ static const CarouselConfig CAROUSEL_CONFIGS[] = {
   { "MOVE STYLE",        (const char* const*)MOUSE_STYLE_NAMES,   MOUSE_STYLE_DESCS,   MOUSE_STYLE_COUNT,   SET_MOUSE_STYLE    },
   { "SCREENSAVER T.O.",  (const char* const*)SAVER_NAMES,         SAVER_TIMEOUT_DESCS,  SAVER_TIMEOUT_COUNT, SET_SAVER_TIMEOUT  },
   { "KEY SOUND",         (const char* const*)KB_SOUND_NAMES,      KB_SOUND_DESCS,       KB_SOUND_COUNT,      SET_SOUND_TYPE     },
-  { "CLICK BUTTON",      (const char* const*)CLICK_TYPE_NAMES,    CLICK_TYPE_DESCS,     CLICK_TYPE_COUNT,    SET_CLICK_TYPE     },
   { "SWITCH KEYS",       (const char* const*)SWITCH_KEYS_NAMES,   SWITCH_KEYS_DESCS,    SWITCH_KEYS_COUNT,   SET_SWITCH_KEYS    },
   { "HEADER TEXT",       (const char* const*)HEADER_DISP_NAMES,   HEADER_DISP_DESCS,    2,                   SET_HEADER_DISPLAY },
   { "VOLUME THEME",      (const char* const*)VOLUME_THEME_NAMES,  VOLUME_THEME_DESCS,   VOLUME_THEME_COUNT,  SET_VOLUME_THEME   },

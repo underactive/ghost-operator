@@ -106,7 +106,7 @@ export function parseSettings(data) {
     jobPerf: parseInt(data.jobPerf ?? '5'),
     jobStart: parseInt(data.jobStart ?? '96'),
     phantom: parseInt(data.phantom) || 0,
-    clickType: parseInt(data.clickType) || 0,
+    clickSlots: (data.clickSlots || '1,7,7,7,7,7,7').split(',').map(Number),
     winSwitch: parseInt(data.winSwitch) || 0,
     switchKeys: parseInt(data.switchKeys) || 0,
     headerDisp: parseInt(data.headerDisp) || 0,
@@ -177,7 +177,7 @@ export const JOB_SIM_NAMES = ['Staff', 'Developer', 'Designer']
 export const PHASE_NAMES = ['TYPE', 'MOUSE', 'IDLE', 'SWITCH', 'K+M', 'M+K']
 
 /** Click type index to name mapping (matches firmware CLICK_TYPE_NAMES[]) */
-export const CLICK_TYPE_NAMES = ['Left', 'Middle', 'Right', 'Button 4', 'Button 5']
+export const CLICK_TYPE_NAMES = ['Left', 'Middle', 'Right', 'Button 4', 'Button 5', 'Wheel Up', 'Wheel Down', 'NONE']
 
 /** Switch keys index to name mapping (matches firmware SWITCH_KEYS_NAMES[]) */
 export const SWITCH_KEYS_NAMES = ['Alt-Tab', 'Cmd-Tab']

@@ -1209,6 +1209,65 @@ static void drawSlotsMode() {
 }
 
 // ============================================================================
+// CLICK SLOTS MODE
+// ============================================================================
+
+static const char* clickSlotName(uint8_t actionIdx) {
+  static const char* SHORT_NAMES[] = {
+    "Lft", "Mid", "Rgt", "Bt4", "Bt5", "W^ ", "Wv ", "---"
+  };
+  if (actionIdx >= NUM_CLICK_TYPES) return "---";
+  return SHORT_NAMES[actionIdx];
+}
+
+static void drawClickSlotsMode() {
+  // === Header ===
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("CLICK SLOTS");
+
+  // Slot indicator right aligned: [3/7]
+  char slotIndicator[8];
+  snprintf(slotIndicator, sizeof(slotIndicator), "[%d/%d]", activeClickSlot + 1, NUM_CLICK_SLOTS);
+  int indWidth = strlen(slotIndicator) * 6;
+  display.setCursor(128 - indWidth, 0);
+  display.print(slotIndicator);
+
+  display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+
+  // === 2 rows: row 0 = slots 0-3, row 1 = slots 4-6 (left-aligned) ===
+  for (int row = 0; row < 2; row++) {
+    int y = 20 + row * 10;
+    int slotsInRow = (row == 0) ? 4 : 3;
+
+    for (int col = 0; col < slotsInRow; col++) {
+      int slot = row * 4 + col;
+      int x = 14 + col * 26;
+
+      if (slot == activeClickSlot) {
+        display.fillRect(x, y, 24, 9, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+      } else {
+        display.setTextColor(SSD1306_WHITE);
+      }
+
+      display.setCursor(x + 3, y + 1);
+      display.print(clickSlotName(settings.clickSlots[slot]));
+    }
+  }
+  display.setTextColor(SSD1306_WHITE);
+
+  display.drawFastHLine(0, 42, 128, SSD1306_WHITE);
+
+  // === Instructions ===
+  display.setCursor(0, 48);
+  display.print("Turn=action Press=slot");
+
+  display.setCursor(0, 57);
+  display.print("Func=back");
+}
+
+// ============================================================================
 // NAME MODE
 // ============================================================================
 
@@ -2747,6 +2806,8 @@ void updateDisplay() {
     drawMenuMode();
   } else if (currentMode == MODE_SLOTS) {
     drawSlotsMode();
+  } else if (currentMode == MODE_CLICK_SLOTS) {
+    drawClickSlotsMode();
   } else if (currentMode == MODE_NAME) {
     drawNameMode();
   } else if (currentMode == MODE_DECOY) {

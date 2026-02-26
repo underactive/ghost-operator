@@ -13,9 +13,14 @@ void sendMouseScroll(int8_t scroll);
 void sendKeyDown(uint8_t keyIndex, bool silent = false);
 void sendKeyUp();
 
-// Simulation mode: phantom middle-click and window switching
+// Simulation mode: phantom click and window switching
 void sendMouseClick(uint8_t button, uint16_t holdMs);
 void sendWindowSwitch();
+
+// Click slot helpers (multi-slot random selection)
+bool hasPopulatedClickSlot();
+uint8_t pickNextClick();
+void executeClick(uint8_t actionIdx, uint16_t holdMs);
 
 // Consumer control (media keys) — send over both BLE and USB
 void sendConsumerPress(uint16_t usageCode);

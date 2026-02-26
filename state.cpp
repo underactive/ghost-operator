@@ -39,6 +39,7 @@ bool bleDisabledForUsb = false;
 bool keyEnabled = true;
 bool mouseEnabled = true;
 uint8_t activeSlot = 0;
+uint8_t activeClickSlot = 0;
 uint8_t nextKeyIndex = 0;
 
 // Name editor state

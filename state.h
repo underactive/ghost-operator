@@ -47,6 +47,7 @@ extern bool bleDisabledForUsb;
 extern bool keyEnabled;
 extern bool mouseEnabled;
 extern uint8_t activeSlot;
+extern uint8_t activeClickSlot;
 extern uint8_t nextKeyIndex;
 
 // Name editor state
