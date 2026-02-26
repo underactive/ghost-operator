@@ -10,6 +10,7 @@
 #include "orchestrator.h"
 #include "breakout.h"
 #include "snake.h"
+#include "racer.h"
 
 // ============================================================================
 // DIRTY FLAG
@@ -1992,6 +1993,82 @@ static void drawSnakeNormal() {
 }
 
 // ============================================================================
+// RACER GAME MODE (portrait 64w × 128h)
+// ============================================================================
+
+static void drawRacerNormal() {
+  // Switch to portrait orientation: 64px wide, 128px tall
+  display.setRotation(1);
+  display.setTextSize(1);
+
+  // --- Header: Score + High Score ---
+  char hdr[22];
+  snprintf(hdr, sizeof(hdr), "%d  Hi:%d", rcr.score, settings.racerHighScore);
+  display.setCursor(0, 0);
+  display.print(hdr);
+  display.drawFastHLine(0, 9, 64, SSD1306_WHITE);
+
+  // --- Road ---
+  int roadLeft = rcr.roadCenterX - RACER_ROAD_W / 2;
+  int roadRight = roadLeft + RACER_ROAD_W;
+
+  // Draw road edges (solid vertical lines)
+  display.drawFastVLine(roadLeft, 10, 108, SSD1306_WHITE);
+  display.drawFastVLine(roadRight, 10, 108, SSD1306_WHITE);
+
+  // Dashed center line (animated by scrollOffset)
+  int centerX = rcr.roadCenterX;
+  for (int y = 10 - (int)rcr.scrollOffset; y < 118; y += 8) {
+    if (y < 10) continue;
+    int segEnd = y + 4;
+    if (segEnd > 118) segEnd = 118;
+    display.drawFastVLine(centerX, y, segEnd - y, SSD1306_WHITE);
+  }
+
+  // --- Enemy cars ---
+  for (int i = 0; i < RACER_MAX_ENEMIES; i++) {
+    if (!rcr.enemies[i].active) continue;
+    RacerEnemy& e = rcr.enemies[i];
+    if (e.y + RACER_ENEMY_H < 10 || e.y > 118) continue;  // off-screen
+    // Draw enemy as filled rect with hollow center for visibility
+    display.fillRect(e.x, e.y, RACER_ENEMY_W, RACER_ENEMY_H, SSD1306_WHITE);
+    // Cut a 1px interior gap for distinction
+    if (RACER_ENEMY_W > 2 && RACER_ENEMY_H > 2) {
+      display.fillRect(e.x + 1, e.y + 1, RACER_ENEMY_W - 2, RACER_ENEMY_H - 2, SSD1306_BLACK);
+    }
+  }
+
+  // --- Player car ---
+  display.fillRect(rcr.playerX, RACER_PLAYER_Y, RACER_CAR_W, RACER_CAR_H, SSD1306_WHITE);
+  // Small notch at top center for car shape
+  if (RACER_CAR_W >= 3) {
+    display.drawPixel(rcr.playerX + RACER_CAR_W / 2, RACER_PLAYER_Y - 1, SSD1306_WHITE);
+  }
+
+  // --- Footer ---
+  display.drawFastHLine(0, 119, 64, SSD1306_WHITE);
+  display.setCursor(0, 121);
+
+  switch (rcr.state) {
+    case RACER_IDLE:
+      display.print("D7=Start");
+      break;
+    case RACER_PLAYING:
+      display.print("D7=Pause");
+      break;
+    case RACER_PAUSED:
+      display.print("PAUSED");
+      break;
+    case RACER_GAME_OVER:
+      display.print("OVER  D7=New");
+      break;
+  }
+
+  // Restore landscape orientation
+  display.setRotation(0);
+}
+
+// ============================================================================
 // MODE PICKER (MODE_MODE sub-page)
 // ============================================================================
 
@@ -2005,7 +2082,7 @@ static void drawModePickerPage() {
     display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
 
     // Show new mode name in quotes, centered
-    const char* modeName = (settings.operationMode < 5) ? OP_MODE_NAMES[settings.operationMode] : "???";
+    const char* modeName = (settings.operationMode < 6) ? OP_MODE_NAMES[settings.operationMode] : "???";
     char nameBuf[20];
     snprintf(nameBuf, sizeof(nameBuf), "\"%s\"", modeName);
     int nameW = strlen(nameBuf) * 6;
@@ -2057,11 +2134,11 @@ static void drawModePickerPage() {
     static float modeScrollX = 0.0f;
 
     // Compute cell layout (snap handled after target computation)
-    int cellWidth[5];
-    int cellCenterX[5];
+    int cellWidth[6];
+    int cellCenterX[6];
     int runX = 0;
-    for (int i = 0; i < 5; i++) {
-      const char* nm = (i < 5) ? OP_MODE_NAMES[i] : "???";
+    for (int i = 0; i < 6; i++) {
+      const char* nm = (i < 6) ? OP_MODE_NAMES[i] : "???";
       cellWidth[i] = (int)strlen(nm) * 6 + 16;
       cellCenterX[i] = runX + cellWidth[i] / 2;
       runX += cellWidth[i];
@@ -2087,7 +2164,7 @@ static void drawModePickerPage() {
     const int stripY = 24;
     const int stripH = 11;
     display.setTextWrap(false);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
       const char* nm = OP_MODE_NAMES[i];
       int tw = (int)strlen(nm) * 6;
       int tx = cellCenterX[i] - scrollI - tw / 2;
@@ -2110,8 +2187,8 @@ static void drawModePickerPage() {
   }
 
   // === Help text (scrolls if overflow) ===
-  static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller", "Brick-breaking arcade", "Classic snake game" };
-  const char* desc = (modePickerCursor < 5) ? MODE_DESCS[modePickerCursor] : "???";
+  static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller", "Brick-breaking arcade", "Classic snake game", "Pole Position racing" };
+  const char* desc = (modePickerCursor < 6) ? MODE_DESCS[modePickerCursor] : "???";
   int descLen = strlen(desc);
   const int maxChars = 21;  // 128px / 6px per char
 
@@ -2784,6 +2861,17 @@ void updateDisplay() {
     lastBrightness = settings.displayBrightness;
   }
 
+  // Portrait shadow buffer tracking — racer uses setRotation(1), everything else uses 0.
+  // The raw page buffer layout is completely different between orientations, so we must
+  // invalidate the shadow when transitioning to prevent artifacts.
+  static bool lastFramePortrait = false;
+  bool thisFramePortrait = (settings.operationMode == 5 && currentMode == MODE_NORMAL
+                            && !sleepConfirmActive && !sleepCancelActive && !scheduleSleeping);
+  if (thisFramePortrait != lastFramePortrait) {
+    invalidateDisplayShadow();
+    lastFramePortrait = thisFramePortrait;
+  }
+
   display.clearDisplay();
 
   if (sleepCancelActive) {
@@ -2791,13 +2879,15 @@ void updateDisplay() {
   } else if (sleepConfirmActive) {
     drawSleepConfirm();
   } else if (screensaverActive) {
-    if (settings.operationMode == 4) drawSnakeNormal();
+    if (settings.operationMode == 5) drawRacerNormal();
+    else if (settings.operationMode == 4) drawSnakeNormal();
     else if (settings.operationMode == 3) drawBreakoutNormal();  // dim the game display
     else if (settings.operationMode == 2) drawVolumeNormal();
     else if (settings.operationMode == 1) drawSimulationScreensaver();
     else drawScreensaver();
   } else if (currentMode == MODE_NORMAL) {
-    if (settings.operationMode == 4) drawSnakeNormal();
+    if (settings.operationMode == 5) drawRacerNormal();
+    else if (settings.operationMode == 4) drawSnakeNormal();
     else if (settings.operationMode == 3) drawBreakoutNormal();
     else if (settings.operationMode == 2) drawVolumeNormal();
     else if (settings.operationMode == 1) drawSimulationNormal();

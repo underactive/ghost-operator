@@ -10,7 +10,7 @@
 #define VERSION "2.3.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F60  // bumped: clickType → clickSlots[7] array
+#define SETTINGS_MAGIC 0x50524F61  // bumped: added racer settings
 #define NUM_CLICK_SLOTS   7       // configurable click action slots (like key slots)
 #define NUM_CLICK_TYPES   8       // Left, Middle, Right, Btn4, Btn5, WheelUp, WheelDown, NONE
 #define DECOY_COUNT 10
@@ -106,6 +106,18 @@
 #define SNAKE_TICK_FAST_MS        100
 #define SNAKE_SPEED_COUNT         3       // Slow, Normal, Fast
 #define SNAKE_WALL_COUNT          2       // Solid, Wrap
+
+// Racer game mode (portrait 64w × 128h)
+#define RACER_TICK_MS             33      // ~30 Hz game tick
+#define RACER_ROAD_W              32      // road strip width in pixels
+#define RACER_CAR_W               5       // player car width
+#define RACER_CAR_H               8       // player car height
+#define RACER_ENEMY_W             5       // enemy car width
+#define RACER_ENEMY_H             7       // enemy car height
+#define RACER_MAX_ENEMIES         4       // max simultaneous enemies
+#define RACER_PLAYER_Y            110     // player car Y position (portrait coords)
+#define RACER_SPEED_COUNT         3       // Slow, Normal, Fast
+#define RACER_STEER_STEP          3       // pixels per encoder click
 
 // Volume control mode
 #define VOLUME_THEME_COUNT        3       // Basic, Retro, Futuristic
@@ -211,7 +223,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_CLICK_SLOTS, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION, FMT_BALL_SPEED, FMT_PADDLE_SIZE, FMT_HIGH_SCORE, FMT_LIVES, FMT_SNAKE_SPEED, FMT_SNAKE_WALLS, FMT_SNAKE_HIGH_SCORE };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION, FMT_BALL_SPEED, FMT_PADDLE_SIZE, FMT_HIGH_SCORE, FMT_LIVES, FMT_SNAKE_SPEED, FMT_SNAKE_WALLS, FMT_SNAKE_HIGH_SCORE, FMT_RACER_SPEED, FMT_RACER_HIGH_SCORE };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -231,6 +243,9 @@ enum BreakoutState { BRK_IDLE, BRK_PLAYING, BRK_PAUSED, BRK_LEVEL_CLEAR, BRK_GAM
 
 // Snake game states
 enum SnakeState { SNAKE_IDLE, SNAKE_PLAYING, SNAKE_PAUSED, SNAKE_GAME_OVER };
+
+// Racer game states
+enum RacerState { RACER_IDLE, RACER_PLAYING, RACER_PAUSED, RACER_GAME_OVER };
 
 // USB HID report IDs (for composite keyboard + mouse + consumer descriptor)
 enum USBReportId { RID_KEYBOARD = 1, RID_MOUSE, RID_CONSUMER };
@@ -271,6 +286,8 @@ enum SettingId {
   SET_SNAKE_SPEED,
   SET_SNAKE_WALLS,
   SET_SNAKE_HIGH_SCORE,
+  SET_RACER_SPEED,
+  SET_RACER_HIGH_SCORE,
   SET_SHIFT_DURATION,
   SET_LUNCH_DURATION,
   SET_SET_CLOCK,
@@ -300,7 +317,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 59
+#define MENU_ITEM_COUNT 62
 #define KB_SOUND_COUNT  5
 
 struct Settings {
@@ -354,6 +371,9 @@ struct Settings {
   uint8_t snakeSpeed;       // 0=Slow, 1=Normal (default), 2=Fast
   uint8_t snakeWalls;       // 0=Solid (default), 1=Wrap
   uint16_t snakeHighScore;  // persistent high score (snake)
+  // Racer game settings
+  uint8_t racerSpeed;       // 0=Slow, 1=Normal (default), 2=Fast
+  uint16_t racerHighScore;  // persistent high score (racer)
   // Shift/lunch settings (dashboard-only)
   uint16_t shiftDuration;   // 240-720 min, step 30, default 480 (8h)
   uint8_t lunchDuration;    // 15-120 min, step 5, default 30 (30m)
@@ -389,6 +409,25 @@ struct SnakeGameState {
   uint16_t score;
   SnakeState state;
   unsigned long lastTickMs;
+};
+
+// Racer game state (runtime, not persisted)
+struct RacerEnemy {
+  int8_t x;           // X position (portrait coords)
+  int16_t y;          // Y position (portrait coords, can be negative for spawn)
+  bool active;
+};
+struct RacerGameState {
+  int8_t playerX;             // player car X (portrait, left edge)
+  int16_t roadCenterX;        // current road center X (portrait width=64)
+  int16_t roadTargetX;        // target center for smooth curve
+  uint16_t score;
+  uint8_t scrollOffset;       // 0-7, animates dashed lines
+  RacerEnemy enemies[RACER_MAX_ENEMIES];
+  RacerState state;
+  unsigned long lastTickMs;
+  unsigned long lastEnemySpawnMs;
+  uint16_t spawnIntervalMs;   // decreases with score for difficulty
 };
 
 // Carousel page config (generic full-screen picker for named-option settings)

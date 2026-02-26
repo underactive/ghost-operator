@@ -189,7 +189,7 @@ uint8_t       volD7ClickCount   = 0;
 // Orchestrator state (simulation mode)
 OrchestratorState orch = {};
 
-// Game state (union — breakout and snake are mutually exclusive)
+// Game state (union — breakout, snake, and racer are mutually exclusive)
 GameState gameState = {};
 
 // Deferred settings save
