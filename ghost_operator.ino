@@ -47,6 +47,7 @@
 #include "sound.h"
 #include "breakout.h"
 #include "snake.h"
+#include "racer.h"
 
 #include <nrf_soc.h>
 #include <nrf_power.h>
@@ -169,7 +170,7 @@ void setupDisplay() {
   display.clearDisplay();
   // Select splash bitmap based on operation mode
   const uint8_t *splash = (settings.operationMode == 2) ? splashVolumeBitmap
-                        : (settings.operationMode == 3 || settings.operationMode == 4) ? splashGameBitmap
+                        : (settings.operationMode >= 3) ? splashGameBitmap
                         : splashBitmap;
   display.drawBitmap(0, 0, splash, 128, 64, SSD1306_WHITE);
   // Version in lower-right corner (black text on white background)
@@ -350,6 +351,10 @@ void setup() {
   // Initialize Snake game
   if (settings.operationMode == 4) {
     initSnake();
+  }
+  // Initialize Racer game
+  if (settings.operationMode == 5) {
+    initRacer();
   }
 
   startTime = millis();
@@ -543,7 +548,11 @@ void loop() {
 
   // Jiggler logic runs in background regardless of UI mode
   if ((deviceConnected || usbConnected) && !scheduleSleeping) {
-    if (settings.operationMode == 4) {
+    if (settings.operationMode == 5) {
+      // Racer mode — game tick only, no jiggler activity
+      tickRacer();
+      updateRacerSound();
+    } else if (settings.operationMode == 4) {
       // Snake mode — game tick only, no jiggler activity
       tickSnake();
       updateSnakeSound();

@@ -274,14 +274,16 @@ struct OrchestratorState {
 
 extern OrchestratorState orch;
 
-// Game state (union — breakout and snake are mutually exclusive)
+// Game state (union — breakout, snake, and racer are mutually exclusive)
 union GameState {
   BreakoutGameState brk;
   SnakeGameState snk;
+  RacerGameState rcr;
 };
 extern GameState gameState;
 #define brk (gameState.brk)
 #define snk (gameState.snk)
+#define rcr (gameState.rcr)
 
 // Deferred settings save (avoids flash wear on rapid game-over)
 extern bool settingsDirty;

@@ -174,7 +174,11 @@ static void cmdQueryStatus() {
   }
 
   // Mode-specific status
-  if (settings.operationMode == 4) {
+  if (settings.operationMode == 5) {
+    len += snprintf(buf + len, sizeof(buf) - len,
+      "|rcrState=%d|rcrScore=%d",
+      (int)rcr.state, rcr.score);
+  } else if (settings.operationMode == 4) {
     len += snprintf(buf + len, sizeof(buf) - len,
       "|snkState=%d|snkScore=%d|snkLen=%d",
       (int)snk.state, snk.score, snk.length);
@@ -236,6 +240,7 @@ static void cmdQuerySettings() {
     "|volumeTheme=%d|encButton=%d|sideButton=%d"
     "|ballSpeed=%d|paddleSize=%d|startLives=%d|highScore=%d"
     "|snakeSpeed=%d|snakeWalls=%d|snakeHiScore=%d"
+    "|racerSpeed=%d|racerHiScore=%d"
     "|shiftDur=%d|lunchDur=%d",
     settings.operationMode, settings.jobSimulation, settings.jobPerformance, settings.jobStartTime,
     settings.phantomClicks, settings.windowSwitching,
@@ -243,6 +248,7 @@ static void cmdQuerySettings() {
     settings.volumeTheme, settings.encButtonAction, settings.sideButtonAction,
     settings.ballSpeed, settings.paddleSize, settings.startLives, settings.highScore,
     settings.snakeSpeed, settings.snakeWalls, settings.snakeHighScore,
+    settings.racerSpeed, settings.racerHighScore,
     settings.shiftDuration, settings.lunchDuration);
 
   // Click slots as comma-separated indices
@@ -405,6 +411,8 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SNAKE_SPEED, (uint32_t)atol(valStr));
   } else if (strcmp(key, "snakeWalls") == 0) {
     setSettingValue(SET_SNAKE_WALLS, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "racerSpeed") == 0) {
+    setSettingValue(SET_RACER_SPEED, (uint32_t)atol(valStr));
   } else if (strcmp(key, "shiftDur") == 0) {
     setSettingValue(SET_SHIFT_DURATION, (uint32_t)atol(valStr));
   } else if (strcmp(key, "lunchDur") == 0) {

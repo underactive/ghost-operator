@@ -4,7 +4,7 @@
 // NAME ARRAYS
 // ============================================================================
 
-const char* OP_MODE_NAMES[]     = { "Simple", "Simulation", "Volume", "Breakout", "Snake" };
+const char* OP_MODE_NAMES[]     = { "Simple", "Simulation", "Volume", "Breakout", "Snake", "Racer" };
 const char* JOB_SIM_NAMES[]     = { "Staff", "Developer", "Designer" };
 const char* HEADER_DISP_NAMES[] = { "Job", "Device" };
 const char* CLICK_TYPE_NAMES[] = { "Left", "Middle", "Right", "Button 4", "Button 5", "Wheel Up", "Wheel Dn", "NONE" };

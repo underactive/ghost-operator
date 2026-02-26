@@ -64,6 +64,13 @@ void printStatus() {
     Serial.print("Score: "); Serial.println(brk.score);
     Serial.print("Lives: "); Serial.println(brk.lives);
     Serial.print("High score: "); Serial.println(settings.highScore);
+  } else if (settings.operationMode == 5) {
+    Serial.println("--- Racer ---");
+    Serial.print("State: ");
+    static const char* RCR_STATE_NAMES[] = { "IDLE", "PLAYING", "PAUSED", "GAMEOVER" };
+    Serial.println(rcr.state < 4 ? RCR_STATE_NAMES[rcr.state] : "???");
+    Serial.print("Score: "); Serial.println(rcr.score);
+    Serial.print("High score: "); Serial.println(settings.racerHighScore);
   }
 }
 
@@ -194,7 +201,7 @@ void handleSerialCommands() {
           Serial.print("Schedule sleeping: "); Serial.println(scheduleSleeping ? "YES" : "NO");
         }
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
-        Serial.print("Operation mode: "); Serial.println((settings.operationMode < 5) ? OP_MODE_NAMES[settings.operationMode] : "???");
+        Serial.print("Operation mode: "); Serial.println((settings.operationMode < 6) ? OP_MODE_NAMES[settings.operationMode] : "???");
         if (settings.operationMode == 2) {
           Serial.println("--- Volume Control ---");
           Serial.print("Muted: "); Serial.println(volMuted ? "YES" : "NO");
