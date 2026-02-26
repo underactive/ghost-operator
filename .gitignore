@@ -30,6 +30,9 @@ docs/IDEAS.md
 .DS_Store
 Thumbs.db
 
+# Claude Code
+.claude/
+
 # IDE / editor
 *.swp
 *.swo
