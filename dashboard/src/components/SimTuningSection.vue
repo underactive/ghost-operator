@@ -34,7 +34,10 @@ function updateKb(idx, val) {
 
 function updateWeight(idx, profile, val) {
   const fields = ['wL', 'wN', 'wB']
-  setWorkModeParam(idx, fields[profile], val)
+  const mode = simModes[idx]
+  if (!mode) return
+  const others = fields.reduce((sum, f, i) => i === profile ? sum : sum + mode[f], 0)
+  setWorkModeParam(idx, fields[profile], Math.min(val, 100 - others))
 }
 
 function updateDurMin(idx, val) {
@@ -62,19 +65,49 @@ function updateTimingField(modeIdx, profileIdx, field, val) {
 }
 
 // Timing field definitions for the per-profile editor
-const timingFields = [
-  { key: 'burstKeysMin', label: 'Burst Keys Min', max: 255, step: 1 },
-  { key: 'burstKeysMax', label: 'Burst Keys Max', max: 255, step: 1 },
-  { key: 'interKeyMinMs', label: 'Inter-Key Min', max: 2000, step: 10, fmt: true },
-  { key: 'interKeyMaxMs', label: 'Inter-Key Max', max: 2000, step: 10, fmt: true },
-  { key: 'burstGapMinMs', label: 'Burst Gap Min', max: 120000, step: 500, fmt: true },
-  { key: 'burstGapMaxMs', label: 'Burst Gap Max', max: 120000, step: 500, fmt: true },
-  { key: 'keyHoldMinMs', label: 'Key Hold Min', max: 1000, step: 10, fmt: true },
-  { key: 'keyHoldMaxMs', label: 'Key Hold Max', max: 1000, step: 10, fmt: true },
-  { key: 'mouseDurMinMs', label: 'Mouse Dur Min', max: 120000, step: 500, fmt: true },
-  { key: 'mouseDurMaxMs', label: 'Mouse Dur Max', max: 120000, step: 500, fmt: true },
-  { key: 'idleDurMinMs', label: 'Idle Dur Min', max: 120000, step: 500, fmt: true },
-  { key: 'idleDurMaxMs', label: 'Idle Dur Max', max: 120000, step: 500, fmt: true },
+const timingFieldPairs = [
+  {
+    help: 'Number of keys pressed in a rapid burst before pausing.',
+    fields: [
+      { key: 'burstKeysMin', label: 'Burst Keys Min', max: 255, step: 1 },
+      { key: 'burstKeysMax', label: 'Burst Keys Max', max: 255, step: 1 },
+    ],
+  },
+  {
+    help: 'Delay between individual keystrokes within a burst.',
+    fields: [
+      { key: 'interKeyMinMs', label: 'Inter-Key Min', max: 2000, step: 10, fmt: true },
+      { key: 'interKeyMaxMs', label: 'Inter-Key Max', max: 2000, step: 10, fmt: true },
+    ],
+  },
+  {
+    help: 'Pause between typing bursts (thinking time).',
+    fields: [
+      { key: 'burstGapMinMs', label: 'Burst Gap Min', max: 120000, step: 500, fmt: true },
+      { key: 'burstGapMaxMs', label: 'Burst Gap Max', max: 120000, step: 500, fmt: true },
+    ],
+  },
+  {
+    help: 'How long each key is held down before release.',
+    fields: [
+      { key: 'keyHoldMinMs', label: 'Key Hold Min', max: 1000, step: 10, fmt: true },
+      { key: 'keyHoldMaxMs', label: 'Key Hold Max', max: 1000, step: 10, fmt: true },
+    ],
+  },
+  {
+    help: 'Duration of mouse movement phases.',
+    fields: [
+      { key: 'mouseDurMinMs', label: 'Mouse Dur Min', max: 120000, step: 500, fmt: true },
+      { key: 'mouseDurMaxMs', label: 'Mouse Dur Max', max: 120000, step: 500, fmt: true },
+    ],
+  },
+  {
+    help: 'Idle pauses where no input is sent (reading/thinking).',
+    fields: [
+      { key: 'idleDurMinMs', label: 'Idle Dur Min', max: 120000, step: 500, fmt: true },
+      { key: 'idleDurMaxMs', label: 'Idle Dur Max', max: 120000, step: 500, fmt: true },
+    ],
+  },
 ]
 
 function modeName(modeId) {
@@ -134,7 +167,7 @@ function modeName(modeId) {
             <!-- Profile Weights -->
             <div class="subsection">
               <h3>Profile Weights</h3>
-              <div class="weight-grid">
+              <div class="weight-grid" :class="{ 'weights-under': mode.wL + mode.wN + mode.wB < 100 }">
                 <div v-for="(pName, pIdx) in PROFILE_LABEL_NAMES" :key="pIdx" class="field">
                   <label>
                     {{ pName }}
@@ -204,22 +237,27 @@ function modeName(modeId) {
                   {{ pName }}
                 </button>
               </div>
-              <div class="timing-grid" v-if="mode.timing[activeProfile]">
-                <div v-for="tf in timingFields" :key="tf.key" class="field field-compact">
-                  <label>
-                    {{ tf.label }}
-                    <span class="field-value">
-                      {{ tf.fmt ? formatMs(mode.timing[activeProfile][tf.key]) : mode.timing[activeProfile][tf.key] }}
-                    </span>
-                  </label>
-                  <input
-                    type="range"
-                    :min="0"
-                    :max="tf.max"
-                    :step="tf.step"
-                    :value="mode.timing[activeProfile][tf.key]"
-                    @input="updateTimingField(idx, activeProfile, tf.key, $event.target.value)"
-                  />
+              <div v-if="mode.timing[activeProfile]">
+                <div v-for="(pair, pairIdx) in timingFieldPairs" :key="pairIdx" class="timing-pair">
+                  <div class="timing-grid">
+                    <div v-for="tf in pair.fields" :key="tf.key" class="field field-compact">
+                      <label>
+                        {{ tf.label }}
+                        <span class="field-value">
+                          {{ tf.fmt ? formatMs(mode.timing[activeProfile][tf.key]) : mode.timing[activeProfile][tf.key] }}
+                        </span>
+                      </label>
+                      <input
+                        type="range"
+                        :min="0"
+                        :max="tf.max"
+                        :step="tf.step"
+                        :value="mode.timing[activeProfile][tf.key]"
+                        @input="updateTimingField(idx, activeProfile, tf.key, $event.target.value)"
+                      />
+                    </div>
+                  </div>
+                  <p class="help-text">{{ pair.help }}</p>
                 </div>
               </div>
             </div>
@@ -366,6 +404,14 @@ function modeName(modeId) {
   gap: 0.5rem;
 }
 
+.weight-grid.weights-under input[type="range"] {
+  filter: brightness(0.5);
+}
+
+.weight-grid.weights-under .field-value {
+  color: #1a5276;
+}
+
 .range-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -395,6 +441,14 @@ function modeName(modeId) {
   color: #000;
   border-color: var(--accent);
   font-weight: 600;
+}
+
+.timing-pair {
+  margin-bottom: 0.5rem;
+}
+
+.timing-pair .help-text {
+  margin-top: 0.15rem;
 }
 
 .timing-grid {
