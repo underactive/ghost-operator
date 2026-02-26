@@ -1381,7 +1381,7 @@ static void drawDecoyMode() {
   } else {
     // === Preset list picker ===
     display.setCursor(0, 0);
-    display.print("BLE IDENTITY");
+    display.print("BLUETOOTH NAME");
     display.drawFastHLine(0, 9, 128, SSD1306_WHITE);
 
     // 5-row scrollable viewport (y=10..49, 8px rows)
