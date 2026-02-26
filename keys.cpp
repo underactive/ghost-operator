@@ -2,7 +2,19 @@
 #include "sim_data.h"
 
 const KeyDef AVAILABLE_KEYS[] = {
-  // Ghost keys (F13-F24) -- invisible to OS, ideal for keep-alive
+  // Function keys F1-F20
+  { HID_KEY_F1,           "F1",     false },
+  { HID_KEY_F2,           "F2",     false },
+  { HID_KEY_F3,           "F3",     false },
+  { HID_KEY_F4,           "F4",     false },
+  { HID_KEY_F5,           "F5",     false },
+  { HID_KEY_F6,           "F6",     false },
+  { HID_KEY_F7,           "F7",     false },
+  { HID_KEY_F8,           "F8",     false },
+  { HID_KEY_F9,           "F9",     false },
+  { HID_KEY_F10,          "F10",    false },
+  { HID_KEY_F11,          "F11",    false },
+  { HID_KEY_F12,          "F12",    false },
   { HID_KEY_F13,          "F13",    false },
   { HID_KEY_F14,          "F14",    false },
   { HID_KEY_F15,          "F15",    false },
@@ -11,10 +23,6 @@ const KeyDef AVAILABLE_KEYS[] = {
   { HID_KEY_F18,          "F18",    false },
   { HID_KEY_F19,          "F19",    false },
   { HID_KEY_F20,          "F20",    false },
-  { HID_KEY_F21,          "F21",    false },
-  { HID_KEY_F22,          "F22",    false },
-  { HID_KEY_F23,          "F23",    false },
-  { HID_KEY_F24,          "F24",    false },
   // System keys
   { HID_KEY_SCROLL_LOCK,  "ScrLk",  false },
   { HID_KEY_PAUSE,        "Pause",  false },

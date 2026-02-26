@@ -10,10 +10,10 @@
 #define VERSION "2.3.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F5D  // bumped: +snake settings (on top of breakout+shift/lunch)
+#define SETTINGS_MAGIC 0x50524F5E  // bumped: F1-F20 key indices shifted
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
-#define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
+#define NUM_KEYS 37  // must match AVAILABLE_KEYS[] array size
 
 // ============================================================================
 // DISPLAY CONFIGURATION

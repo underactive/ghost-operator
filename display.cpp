@@ -100,8 +100,9 @@ static void sendDirtyPages() {
 // Get short 3-char display name for a key slot
 static const char* slotName(uint8_t slotIdx) {
   static const char* SHORT_NAMES[] = {
-    "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20",
-    "F21", "F22", "F23", "F24", "SLk", "Pau", "NLk", "LSh",
+    "F1 ", "F2 ", "F3 ", "F4 ", "F5 ", "F6 ", "F7 ", "F8 ",
+    "F9 ", "F10", "F11", "F12", "F13", "F14", "F15", "F16",
+    "F17", "F18", "F19", "F20", "SLk", "Pau", "NLk", "LSh",
     "LCt", "LAl", "RSh", "RCt", "RAl", "Esc", "Spc", "Ent",
     " ^ ", " v ", " < ", " > ", "---"
   };
