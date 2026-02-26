@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import {
-  simModes, simBlocks, simDataDirty, simDataLoading, settings,
-  setWorkModeParam, setWorkModeTiming, saveSimDataToFlash, resetSimDataToDefaults, fetchSimData,
+  simModes, simBlocks, simDataLoading, settings,
+  setWorkModeParam, setWorkModeTiming, resetSimDataToDefaults, fetchSimData,
 } from '../lib/store.js'
 import {
   WORK_MODE_NAMES, PROFILE_LABEL_NAMES, JOB_SIM_NAMES, formatMs,
@@ -251,13 +251,6 @@ function modeName(modeId) {
 
       <!-- Actions -->
       <div class="actions">
-        <button
-          class="btn btn-save"
-          :disabled="!simDataDirty"
-          @click="saveSimDataToFlash"
-        >
-          Save Sim Data
-        </button>
         <button
           class="btn btn-danger"
           @click="resetSimDataToDefaults"

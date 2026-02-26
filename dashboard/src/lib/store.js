@@ -321,6 +321,7 @@ export async function saveToFlash() {
   await sendAndWait(buildAction('save'))
   savedSnapshot = JSON.stringify({ ...settings })
   dirty.value = false
+  simDataDirty.value = false
   saving.value = false
   statusMessage.value = 'Saved'
   setTimeout(() => { if (statusMessage.value === 'Saved') statusMessage.value = '' }, 2000)
@@ -456,6 +457,7 @@ export async function setWorkModeParam(modeIdx, field, value) {
   await sleep(50)
   await activeTransport.send(buildQuery(`wmode:${modeIdx}`))
   simDataDirty.value = true
+  dirty.value = true
 }
 
 /**
@@ -474,6 +476,7 @@ export async function setWorkModeTiming(modeIdx, profileIdx, timing) {
   await sleep(50)
   await activeTransport.send(buildQuery(`wmode:${modeIdx}`))
   simDataDirty.value = true
+  dirty.value = true
 }
 
 /**

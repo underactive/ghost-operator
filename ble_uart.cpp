@@ -539,6 +539,7 @@ static void cmdSetValue(const char* body) {
 // ----------------------------------------------------------------------------
 static void cmdSave() {
   saveSettings();
+  saveSimData();
   currentWriter("+ok");
 }
 
