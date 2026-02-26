@@ -10,7 +10,8 @@
 #define VERSION "2.3.0"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F5E  // bumped: F1-F20 key indices shifted
+#define SETTINGS_MAGIC 0x50524F5F  // bumped: clickType values reordered + expanded
+#define CLICK_TYPE_COUNT  5       // Left, Middle, Right, Button 4, Button 5
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 37  // must match AVAILABLE_KEYS[] array size
@@ -332,7 +333,7 @@ struct Settings {
   uint8_t jobPerformance;   // 0-11, default 5 (level*10 = percentage, 5=baseline)
   uint16_t jobStartTime;    // 0-287 (5-min slots), default 96 (8:00)
   uint8_t phantomClicks;    // 0=Off (default), 1=On
-  uint8_t clickType;        // 0=Middle (default), 1=Left
+  uint8_t clickType;        // 0=Left, 1=Middle (default), 2=Right, 3=Button 4, 4=Button 5
   uint8_t windowSwitching;  // 0=Off (default), 1=On
   uint8_t switchKeys;       // 0=Alt-Tab (default), 1=Cmd-Tab
   uint8_t headerDisplay;    // 0=Job sim name (default), 1=Device name

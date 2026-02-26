@@ -125,7 +125,7 @@ import {
     </div>
 
     <div class="field" v-if="settings.phantom === 1">
-      <label>Click Type</label>
+      <label>Click Button</label>
       <select
         :value="settings.clickType"
         @change="setSetting('clickType', Number($event.target.value))"
@@ -134,7 +134,7 @@ import {
           {{ name }}
         </option>
       </select>
-      <p class="help-text">Middle click is safest (no accidental window actions). Left click is more realistic.</p>
+      <p class="help-text">Middle click is safest. Right click triggers context menus. Button 4/5 are browser back/forward.</p>
     </div>
 
     <div class="field">

@@ -65,6 +65,7 @@ extern const char* JOB_SIM_NAMES[];
 extern const char* HEADER_DISP_NAMES[];
 extern const char* PHASE_NAMES[];
 extern const char* CLICK_TYPE_NAMES[];
+extern const uint8_t CLICK_BUTTON_CODES[];
 extern const char* WMODE_SHORT_NAMES[];
 
 #endif // GHOST_SIM_DATA_H

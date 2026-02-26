@@ -92,7 +92,7 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Move size",     "Mouse movement step size in pixels", FMT_PIXELS, 1, 5, 1, SET_MOUSE_AMP },
   { MENU_VALUE,   "Scroll",        "Random scroll wheel during mouse movement", FMT_ON_OFF, 0, 1, 1, SET_SCROLL },
   { MENU_VALUE,   "Auto-clicks",   "Inject clicks during mouse phases", FMT_ON_OFF, 0, 1, 1, SET_PHANTOM_CLICKS },
-  { MENU_VALUE,   "Click type",    "Mouse button for auto-clicks", FMT_CLICK_TYPE, 0, 1, 1, SET_CLICK_TYPE },
+  { MENU_VALUE,   "Click btn",     "Mouse button for auto-clicks", FMT_CLICK_TYPE, 0, 4, 1, SET_CLICK_TYPE },
   // idx 30-32: Profiles
   { MENU_HEADING, "Profiles",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Lazy adjust",   "Slow down timing by this percent", FMT_PERCENT_NEG, 0, 50, 5, SET_LAZY_PCT },
@@ -251,8 +251,11 @@ static const char* const KB_SOUND_DESCS[] = {
 };
 
 static const char* const CLICK_TYPE_DESCS[] = {
+  "Left click (standard)",
   "Middle click (least visible)",
-  "Left click (standard)"
+  "Right click (context menu)",
+  "Back / side button",
+  "Forward / side button"
 };
 
 static const char* const SWITCH_KEYS_DESCS[] = {
@@ -297,7 +300,7 @@ static const CarouselConfig CAROUSEL_CONFIGS[] = {
   { "MOVE STYLE",        (const char* const*)MOUSE_STYLE_NAMES,   MOUSE_STYLE_DESCS,   MOUSE_STYLE_COUNT,   SET_MOUSE_STYLE    },
   { "SCREENSAVER T.O.",  (const char* const*)SAVER_NAMES,         SAVER_TIMEOUT_DESCS,  SAVER_TIMEOUT_COUNT, SET_SAVER_TIMEOUT  },
   { "KEY SOUND",         (const char* const*)KB_SOUND_NAMES,      KB_SOUND_DESCS,       KB_SOUND_COUNT,      SET_SOUND_TYPE     },
-  { "CLICK TYPE",        (const char* const*)CLICK_TYPE_NAMES,    CLICK_TYPE_DESCS,     2,                   SET_CLICK_TYPE     },
+  { "CLICK BUTTON",      (const char* const*)CLICK_TYPE_NAMES,    CLICK_TYPE_DESCS,     CLICK_TYPE_COUNT,    SET_CLICK_TYPE     },
   { "SWITCH KEYS",       (const char* const*)SWITCH_KEYS_NAMES,   SWITCH_KEYS_DESCS,    SWITCH_KEYS_COUNT,   SET_SWITCH_KEYS    },
   { "HEADER TEXT",       (const char* const*)HEADER_DISP_NAMES,   HEADER_DISP_DESCS,    2,                   SET_HEADER_DISPLAY },
   { "VOLUME THEME",      (const char* const*)VOLUME_THEME_NAMES,  VOLUME_THEME_DESCS,   VOLUME_THEME_COUNT,  SET_VOLUME_THEME   },

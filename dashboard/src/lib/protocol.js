@@ -177,7 +177,7 @@ export const JOB_SIM_NAMES = ['Staff', 'Developer', 'Designer']
 export const PHASE_NAMES = ['TYPE', 'MOUSE', 'IDLE', 'SWITCH', 'K+M', 'M+K']
 
 /** Click type index to name mapping (matches firmware CLICK_TYPE_NAMES[]) */
-export const CLICK_TYPE_NAMES = ['Middle', 'Left']
+export const CLICK_TYPE_NAMES = ['Left', 'Middle', 'Right', 'Button 4', 'Button 5']
 
 /** Switch keys index to name mapping (matches firmware SWITCH_KEYS_NAMES[]) */
 export const SWITCH_KEYS_NAMES = ['Alt-Tab', 'Cmd-Tab']

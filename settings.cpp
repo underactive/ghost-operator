@@ -59,7 +59,7 @@ void loadDefaults() {
   settings.jobPerformance = 5;    // Baseline (50%)
   settings.jobStartTime = 96;    // 8:00 (96 * 5min = 480min = 8h)
   settings.phantomClicks = 0;     // Off
-  settings.clickType = 0;         // Middle
+  settings.clickType = 1;         // Middle
   settings.windowSwitching = 0;   // Off
   settings.switchKeys = SWITCH_KEYS_ALT_TAB;
   settings.headerDisplay = 0;     // Job sim name
@@ -178,7 +178,7 @@ void loadSettings() {
         if (settings.jobPerformance > 11) settings.jobPerformance = 5;
         if (settings.jobStartTime >= SCHEDULE_SLOTS) settings.jobStartTime = 96;
         if (settings.phantomClicks > 1) settings.phantomClicks = 0;
-        if (settings.clickType > 1) settings.clickType = 0;
+        if (settings.clickType >= CLICK_TYPE_COUNT) settings.clickType = 1;
         if (settings.windowSwitching > 1) settings.windowSwitching = 0;
         if (settings.switchKeys >= SWITCH_KEYS_COUNT) settings.switchKeys = SWITCH_KEYS_ALT_TAB;
         if (settings.headerDisplay > 1) settings.headerDisplay = 0;
@@ -327,7 +327,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_JOB_PERFORMANCE: settings.jobPerformance = (uint8_t)clampVal(value, 0, 11); break;
     case SET_JOB_START_TIME: settings.jobStartTime = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
     case SET_PHANTOM_CLICKS: settings.phantomClicks = (uint8_t)clampVal(value, 0, 1); break;
-    case SET_CLICK_TYPE:     settings.clickType = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_CLICK_TYPE:     settings.clickType = (uint8_t)clampVal(value, 0, CLICK_TYPE_COUNT - 1); break;
     case SET_WINDOW_SWITCH:  settings.windowSwitching = (uint8_t)clampVal(value, 0, 1); break;
     case SET_SWITCH_KEYS:    settings.switchKeys = (uint8_t)clampVal(value, 0, SWITCH_KEYS_COUNT - 1); break;
     case SET_HEADER_DISPLAY: settings.headerDisplay = (uint8_t)clampVal(value, 0, 1); break;
@@ -385,7 +385,7 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
     case FMT_JOB_SIM:       snprintf(buf, bufSize, "%s", (val < JOB_SIM_COUNT) ? JOB_SIM_NAMES[val] : "???"); return;
     case FMT_SWITCH_KEYS:   snprintf(buf, bufSize, "%s", (val < SWITCH_KEYS_COUNT) ? SWITCH_KEYS_NAMES[val] : "???"); return;
     case FMT_HEADER_DISP:   snprintf(buf, bufSize, "%s", (val < 2) ? HEADER_DISP_NAMES[val] : "???"); return;
-    case FMT_CLICK_TYPE:    snprintf(buf, bufSize, "%s", (val < 2) ? CLICK_TYPE_NAMES[val] : "???"); return;
+    case FMT_CLICK_TYPE:    snprintf(buf, bufSize, "%s", (val < CLICK_TYPE_COUNT) ? CLICK_TYPE_NAMES[val] : "???"); return;
     case FMT_KEY_SOUND:     snprintf(buf, bufSize, "%s", (val < KB_SOUND_COUNT) ? KB_SOUND_NAMES[val] : "???"); return;
     case FMT_PERF_LEVEL:    snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
     case FMT_VOLUME_THEME:  snprintf(buf, bufSize, "%s", (val < VOLUME_THEME_COUNT) ? VOLUME_THEME_NAMES[val] : "???"); return;

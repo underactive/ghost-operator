@@ -69,7 +69,7 @@ export const settings = reactive({
   jobPerf: 5,
   jobStart: 96,
   phantom: 0,
-  clickType: 0,
+  clickType: 1,
   winSwitch: 0,
   switchKeys: 0,
   headerDisp: 0,

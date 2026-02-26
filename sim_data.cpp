@@ -7,7 +7,8 @@
 const char* OP_MODE_NAMES[]     = { "Simple", "Simulation", "Volume", "Breakout", "Snake" };
 const char* JOB_SIM_NAMES[]     = { "Staff", "Developer", "Designer" };
 const char* HEADER_DISP_NAMES[] = { "Job", "Device" };
-const char* CLICK_TYPE_NAMES[] = { "Middle", "Left" };
+const char* CLICK_TYPE_NAMES[] = { "Left", "Middle", "Right", "Button 4", "Button 5" };
+const uint8_t CLICK_BUTTON_CODES[] = { 0x01, 0x04, 0x02, 0x08, 0x10 };
 const char* PHASE_NAMES[]       = { "TYPE", "MOUSE", "IDLE", "SWITCH", "K+M", "M+K" };
 
 // ============================================================================
