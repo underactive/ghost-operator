@@ -169,6 +169,7 @@ function modeName(modeId) {
                     @change="updateDurMax(idx, Number($event.target.value))" />
                 </div>
               </div>
+              <p class="help-text">How long this work mode stays active before the orchestrator picks another mode from the current block.</p>
             </div>
 
             <!-- Profile Stint Duration -->
@@ -186,6 +187,7 @@ function modeName(modeId) {
                     @change="updateStintMax(idx, Number($event.target.value))" />
                 </div>
               </div>
+              <p class="help-text">How long a profile (Lazy/Normal/Busy) runs before switching to another, based on profile weights.</p>
             </div>
 
             <!-- Per-Profile Timing -->
