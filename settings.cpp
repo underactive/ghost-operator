@@ -75,6 +75,10 @@ void loadDefaults() {
   settings.paddleSize = 1;        // Normal
   settings.startLives = 3;
   settings.highScore = 0;
+  // Snake defaults
+  settings.snakeSpeed = 1;        // Normal
+  settings.snakeWalls = 0;        // Solid
+  settings.snakeHighScore = 0;
   // Shift/lunch defaults
   settings.shiftDuration = 480;   // 8 hours
   settings.lunchDuration = 30;    // 30 minutes
@@ -169,7 +173,7 @@ void loadSettings() {
         if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 204;
         if (settings.invertDial > 1) settings.invertDial = 0;
         // Simulation mode bounds
-        if (settings.operationMode > 3) settings.operationMode = 0;
+        if (settings.operationMode > 4) settings.operationMode = 0;
         if (settings.jobSimulation >= JOB_SIM_COUNT) settings.jobSimulation = 0;
         if (settings.jobPerformance > 11) settings.jobPerformance = 5;
         if (settings.jobStartTime >= SCHEDULE_SLOTS) settings.jobStartTime = 96;
@@ -190,6 +194,10 @@ void loadSettings() {
         if (settings.paddleSize >= PADDLE_SIZE_COUNT) settings.paddleSize = 1;
         if (settings.startLives < 1 || settings.startLives > 5) settings.startLives = 3;
         // highScore: no upper bound, just leave it
+        // Snake bounds
+        if (settings.snakeSpeed >= SNAKE_SPEED_COUNT) settings.snakeSpeed = 1;
+        if (settings.snakeWalls >= SNAKE_WALL_COUNT) settings.snakeWalls = 0;
+        // snakeHighScore: no upper bound, just leave it
         // Shift/lunch bounds
         if (settings.shiftDuration < SHIFT_MIN_MINUTES || settings.shiftDuration > SHIFT_MAX_MINUTES) settings.shiftDuration = 480;
         if (settings.lunchDuration < LUNCH_DUR_MIN || settings.lunchDuration > LUNCH_DUR_MAX) settings.lunchDuration = 30;
@@ -255,6 +263,9 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_PADDLE_SIZE:    return settings.paddleSize;
     case SET_START_LIVES:    return settings.startLives;
     case SET_HIGH_SCORE:     return settings.highScore;
+    case SET_SNAKE_SPEED:    return settings.snakeSpeed;
+    case SET_SNAKE_WALLS:    return settings.snakeWalls;
+    case SET_SNAKE_HIGH_SCORE: return settings.snakeHighScore;
     case SET_SHIFT_DURATION: return settings.shiftDuration;
     case SET_LUNCH_DURATION: return settings.lunchDuration;
     case SET_VERSION:        return 0;  // read-only display
@@ -311,7 +322,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       break;
     case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
     case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
-    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 3); break;
+    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 4); break;
     case SET_JOB_SIM:        settings.jobSimulation = (uint8_t)clampVal(value, 0, JOB_SIM_COUNT - 1); break;
     case SET_JOB_PERFORMANCE: settings.jobPerformance = (uint8_t)clampVal(value, 0, 11); break;
     case SET_JOB_START_TIME: settings.jobStartTime = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
@@ -330,6 +341,9 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_PADDLE_SIZE:    settings.paddleSize = (uint8_t)clampVal(value, 0, PADDLE_SIZE_COUNT - 1); break;
     case SET_START_LIVES:    settings.startLives = (uint8_t)clampVal(value, 1, 5); break;
     case SET_HIGH_SCORE:     settings.highScore = (uint16_t)clampVal(value, 0, 65535); break;
+    case SET_SNAKE_SPEED:    settings.snakeSpeed = (uint8_t)clampVal(value, 0, SNAKE_SPEED_COUNT - 1); break;
+    case SET_SNAKE_WALLS:    settings.snakeWalls = (uint8_t)clampVal(value, 0, SNAKE_WALL_COUNT - 1); break;
+    case SET_SNAKE_HIGH_SCORE: settings.snakeHighScore = (uint16_t)clampVal(value, 0, 65535); break;
     case SET_SHIFT_DURATION: settings.shiftDuration = (uint16_t)clampVal(value, SHIFT_MIN_MINUTES, SHIFT_MAX_MINUTES); break;
     case SET_LUNCH_DURATION: settings.lunchDuration = (uint8_t)clampVal(value, LUNCH_DUR_MIN, LUNCH_DUR_MAX); break;
   }
@@ -367,7 +381,7 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
       return;
     }
     case FMT_VERSION:       snprintf(buf, bufSize, "v%s", VERSION); return;
-    case FMT_OP_MODE:       snprintf(buf, bufSize, "%s", (val < 4) ? OP_MODE_NAMES[val] : "???"); return;
+    case FMT_OP_MODE:       snprintf(buf, bufSize, "%s", (val < 5) ? OP_MODE_NAMES[val] : "???"); return;
     case FMT_JOB_SIM:       snprintf(buf, bufSize, "%s", (val < JOB_SIM_COUNT) ? JOB_SIM_NAMES[val] : "???"); return;
     case FMT_SWITCH_KEYS:   snprintf(buf, bufSize, "%s", (val < SWITCH_KEYS_COUNT) ? SWITCH_KEYS_NAMES[val] : "???"); return;
     case FMT_HEADER_DISP:   snprintf(buf, bufSize, "%s", (val < 2) ? HEADER_DISP_NAMES[val] : "???"); return;
@@ -381,6 +395,9 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
     case FMT_PADDLE_SIZE:   snprintf(buf, bufSize, "%s", (val < PADDLE_SIZE_COUNT) ? PADDLE_SIZE_NAMES[val] : "???"); return;
     case FMT_HIGH_SCORE:    snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
     case FMT_LIVES:         snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
+    case FMT_SNAKE_SPEED:   snprintf(buf, bufSize, "%s", (val < SNAKE_SPEED_COUNT) ? SNAKE_SPEED_NAMES[val] : "???"); return;
+    case FMT_SNAKE_WALLS:   snprintf(buf, bufSize, "%s", (val < SNAKE_WALL_COUNT) ? SNAKE_WALL_NAMES[val] : "???"); return;
+    case FMT_SNAKE_HIGH_SCORE: snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
     default:                snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
   }
 }

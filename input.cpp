@@ -11,6 +11,7 @@
 #include "display.h"
 #include "sound.h"
 #include "breakout.h"
+#include "snake.h"
 
 // ============================================================================
 // NAME EDITOR HELPERS
@@ -217,6 +218,7 @@ bool isMenuItemHidden(int8_t idx) {
   bool isSim = (settings.operationMode == 1);
   bool isVol = (settings.operationMode == 2);
   bool isBrk = (settings.operationMode == 3);
+  bool isSnk = (settings.operationMode == 4);
 
   // Orphan heading auto-hide: headings with all children hidden.
   // Must run BEFORE settingId checks — headings have settingId=0 which
@@ -293,6 +295,25 @@ bool isMenuItemHidden(int8_t idx) {
     }
   }
 
+  // Snake mode: hide all jiggler/sim/volume/breakout/animation/schedule/key sound items
+  if (isSnk) {
+    switch (item.settingId) {
+      case SET_KEY_MIN: case SET_KEY_MAX: case SET_KEY_SLOTS:
+      case SET_MOUSE_JIG: case SET_MOUSE_IDLE: case SET_MOUSE_STYLE:
+      case SET_MOUSE_AMP: case SET_SCROLL:
+      case SET_LAZY_PCT: case SET_BUSY_PCT:
+      case SET_JOB_SIM: case SET_JOB_PERFORMANCE: case SET_JOB_START_TIME:
+      case SET_PHANTOM_CLICKS: case SET_CLICK_TYPE:
+      case SET_WINDOW_SWITCH: case SET_SWITCH_KEYS: case SET_HEADER_DISPLAY:
+      case SET_ANIMATION:
+      case SET_SCHEDULE_MODE: case SET_SET_CLOCK:
+      case SET_SOUND_ENABLED: case SET_SOUND_TYPE:
+      case SET_VOLUME_THEME: case SET_ENC_BUTTON: case SET_SIDE_BUTTON:
+      case SET_BALL_SPEED: case SET_PADDLE_SIZE: case SET_START_LIVES:
+        return true;
+    }
+  }
+
   // Volume-only items: only visible in Volume Control mode
   if (!isVol) {
     switch (item.settingId) {
@@ -309,8 +330,17 @@ bool isMenuItemHidden(int8_t idx) {
     }
   }
 
-  // High score: only visible in Breakout mode
+  // Snake-only items: only visible in Snake mode
+  if (!isSnk) {
+    switch (item.settingId) {
+      case SET_SNAKE_SPEED: case SET_SNAKE_WALLS:
+        return true;
+    }
+  }
+
+  // High score: only visible in respective game mode
   if (item.settingId == SET_HIGH_SCORE && !isBrk) return true;
+  if (item.settingId == SET_SNAKE_HIGH_SCORE && !isSnk) return true;
 
   return false;
 }
@@ -392,7 +422,10 @@ void handleEncoder() {
 
     switch (currentMode) {
       case MODE_NORMAL:
-        if (settings.operationMode == 3) {
+        if (settings.operationMode == 4) {
+          // Snake: encoder turns snake left/right (relative)
+          snakeEncoderInput(direction);
+        } else if (settings.operationMode == 3) {
           // Breakout: encoder moves paddle
           breakoutEncoderInput(direction);
         } else if (settings.operationMode == 2) {
@@ -549,10 +582,10 @@ void handleEncoder() {
         if (modeConfirming) {
           modeRebootYes = !modeRebootYes;
         } else {
-          // Clamp cursor across 4 options (Simple/Simulation/Volume/Breakout)
+          // Clamp cursor across 5 options (Simple/Simulation/Volume/Breakout/Snake)
           int next = (int)modePickerCursor + direction;
           if (next < 0) next = 0;
-          if (next > 3) next = 3;
+          if (next > 4) next = 4;
           modePickerCursor = (uint8_t)next;
         }
         break;
@@ -600,8 +633,8 @@ void handleButtons() {
     pushSerialStatus();
   }
 
-  // Breakout / Volume Control D2: mode-specific action
-  if (settings.operationMode == 3 && currentMode == MODE_NORMAL) {
+  // Breakout / Snake / Volume Control D2: mode-specific action
+  if ((settings.operationMode == 3 || settings.operationMode == 4) && currentMode == MODE_NORMAL) {
     // Breakout: D2 does nothing (game uses D7 for action)
     if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
       lastEncPress = now;
@@ -914,7 +947,7 @@ void handleButtons() {
         if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
 
         // Reset D7 pending click state when entering menu
-        if (settings.operationMode == 2 || settings.operationMode == 3) volD7ClickCount = 0;
+        if (settings.operationMode == 2 || settings.operationMode == 3 || settings.operationMode == 4) volD7ClickCount = 0;
 
         switch (currentMode) {
           case MODE_NORMAL:
@@ -1040,7 +1073,10 @@ void handleButtons() {
     if (screensaverActive) { screensaverActive = false; lastMuteBtn = muteBtn; return; }
     if (currentMode != MODE_NORMAL) { lastMuteBtn = muteBtn; return; }
 
-    if (settings.operationMode == 3) {
+    if (settings.operationMode == 4) {
+      // Snake: D7 = game action (start/pause/resume/new game)
+      snakeButtonPress();
+    } else if (settings.operationMode == 3) {
       // Breakout: D7 = game action (launch/pause/resume/next/new game)
       breakoutButtonPress();
     } else if (settings.operationMode == 2) {

@@ -10,7 +10,7 @@
 #define VERSION "2.2.2"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F5C  // bumped: +shiftDuration, +lunchDuration (on top of breakout)
+#define SETTINGS_MAGIC 0x50524F5D  // bumped: +snake settings (on top of breakout+shift/lunch)
 #define DECOY_COUNT 10
 #define NUM_SLOTS 8
 #define NUM_KEYS 29  // must match AVAILABLE_KEYS[] array size
@@ -92,6 +92,18 @@
 #define BALL_SPEED_COUNT          3       // Slow, Normal, Fast
 #define PADDLE_SIZE_COUNT         4       // Small, Normal, Large, XL
 #define BREAKOUT_TICK_MS          50      // 20 Hz game tick
+
+// Snake game mode
+#define SNAKE_GRID_CELL           4       // pixels per cell
+#define SNAKE_GRID_W              32      // cells wide  (32 * 4 = 128px)
+#define SNAKE_GRID_H              14      // cells tall  (14 * 4 = 56px)
+#define SNAKE_HEADER_H            8       // header height in pixels
+#define SNAKE_MAX_LENGTH          255     // max snake body segments (uint8_t index)
+#define SNAKE_TICK_SLOW_MS        200
+#define SNAKE_TICK_NORMAL_MS      150
+#define SNAKE_TICK_FAST_MS        100
+#define SNAKE_SPEED_COUNT         3       // Slow, Normal, Fast
+#define SNAKE_WALL_COUNT          2       // Solid, Wrap
 
 // Volume control mode
 #define VOLUME_THEME_COUNT        3       // Basic, Retro, Futuristic
@@ -197,7 +209,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION, FMT_BALL_SPEED, FMT_PADDLE_SIZE, FMT_HIGH_SCORE, FMT_LIVES };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION, FMT_BALL_SPEED, FMT_PADDLE_SIZE, FMT_HIGH_SCORE, FMT_LIVES, FMT_SNAKE_SPEED, FMT_SNAKE_WALLS, FMT_SNAKE_HIGH_SCORE };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -214,6 +226,9 @@ enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 
 // Breakout game states
 enum BreakoutState { BRK_IDLE, BRK_PLAYING, BRK_PAUSED, BRK_LEVEL_CLEAR, BRK_GAME_OVER };
+
+// Snake game states
+enum SnakeState { SNAKE_IDLE, SNAKE_PLAYING, SNAKE_PAUSED, SNAKE_GAME_OVER };
 
 // USB HID report IDs (for composite keyboard + mouse + consumer descriptor)
 enum USBReportId { RID_KEYBOARD = 1, RID_MOUSE, RID_CONSUMER };
@@ -251,6 +266,9 @@ enum SettingId {
   SET_PADDLE_SIZE,
   SET_START_LIVES,
   SET_HIGH_SCORE,
+  SET_SNAKE_SPEED,
+  SET_SNAKE_WALLS,
+  SET_SNAKE_HIGH_SCORE,
   SET_SHIFT_DURATION,
   SET_LUNCH_DURATION,
   SET_SET_CLOCK,
@@ -280,7 +298,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 55
+#define MENU_ITEM_COUNT 59
 #define KB_SOUND_COUNT  5
 
 struct Settings {
@@ -329,7 +347,11 @@ struct Settings {
   uint8_t ballSpeed;        // 0=Slow, 1=Normal (default), 2=Fast
   uint8_t paddleSize;       // 0=Small, 1=Normal (default), 2=Large, 3=XL
   uint8_t startLives;       // 1-5, default 3
-  uint16_t highScore;       // persistent high score
+  uint16_t highScore;       // persistent high score (breakout)
+  // Snake game settings
+  uint8_t snakeSpeed;       // 0=Slow, 1=Normal (default), 2=Fast
+  uint8_t snakeWalls;       // 0=Solid (default), 1=Wrap
+  uint16_t snakeHighScore;  // persistent high score (snake)
   // Shift/lunch settings (dashboard-only)
   uint16_t shiftDuration;   // 240-720 min, step 30, default 480 (8h)
   uint8_t lunchDuration;    // 15-120 min, step 5, default 30 (30m)
@@ -351,6 +373,20 @@ struct BreakoutGameState {
   BreakoutState state;
   unsigned long lastTickMs;
   unsigned long stateTimer;   // for level-clear/game-over display timing
+};
+
+// Snake game state (runtime, not persisted)
+struct SnakeGameState {
+  uint8_t bodyX[256];        // circular buffer X coordinates
+  uint8_t bodyY[256];        // circular buffer Y coordinates
+  uint8_t headIdx;           // index of head in circular buffer
+  uint8_t length;            // current snake length
+  int8_t  dirX, dirY;        // current heading direction
+  int8_t  nextDirX, nextDirY; // queued direction from encoder
+  uint8_t foodX, foodY;      // food position
+  uint16_t score;
+  SnakeState state;
+  unsigned long lastTickMs;
 };
 
 // Carousel page config (generic full-screen picker for named-option settings)

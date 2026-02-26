@@ -46,6 +46,7 @@
 #include "sim_data.h"
 #include "sound.h"
 #include "breakout.h"
+#include "snake.h"
 
 #include <nrf_soc.h>
 #include <nrf_power.h>
@@ -344,6 +345,10 @@ void setup() {
   if (settings.operationMode == 3) {
     initBreakout();
   }
+  // Initialize Snake game
+  if (settings.operationMode == 4) {
+    initSnake();
+  }
 
   startTime = millis();
   lastKeyTime = millis();
@@ -536,7 +541,11 @@ void loop() {
 
   // Jiggler logic runs in background regardless of UI mode
   if ((deviceConnected || usbConnected) && !scheduleSleeping) {
-    if (settings.operationMode == 3) {
+    if (settings.operationMode == 4) {
+      // Snake mode — game tick only, no jiggler activity
+      tickSnake();
+      updateSnakeSound();
+    } else if (settings.operationMode == 3) {
       // Breakout mode — game tick only, no jiggler activity
       tickBreakout();
       updateGameSound();  // non-blocking sound state machine
@@ -579,6 +588,12 @@ void loop() {
       }
       lastDisplayUpdate = now;
     }
+  }
+
+  // Deferred settings save (high-score updates, etc.) — 5s debounce avoids flash wear
+  if (settingsDirty && (now - settingsDirtyMs >= 5000)) {
+    saveSettings();
+    settingsDirty = false;
   }
 
   // Breathing circle during manual light sleep (10 Hz)

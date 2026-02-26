@@ -273,7 +273,17 @@ struct OrchestratorState {
 
 extern OrchestratorState orch;
 
-// Breakout game state
-extern BreakoutGameState brk;
+// Game state (union — breakout and snake are mutually exclusive)
+union GameState {
+  BreakoutGameState brk;
+  SnakeGameState snk;
+};
+extern GameState gameState;
+#define brk (gameState.brk)
+#define snk (gameState.snk)
+
+// Deferred settings save (avoids flash wear on rapid game-over)
+extern bool settingsDirty;
+extern unsigned long settingsDirtyMs;
 
 #endif // GHOST_STATE_H

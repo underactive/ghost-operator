@@ -429,7 +429,8 @@ void tickBreakout() {
       // Update high score
       if (brk.score > settings.highScore) {
         settings.highScore = brk.score;
-        saveSettings();
+        settingsDirty = true;
+        settingsDirtyMs = millis();
       }
       startGameOverSound();  // non-blocking (includes descending tone)
     } else {

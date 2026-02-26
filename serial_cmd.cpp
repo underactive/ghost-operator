@@ -8,6 +8,7 @@
 #include "sim_data.h"
 #include "orchestrator.h"
 #include "display.h"
+#include "snake.h"
 
 // Line buffer for protocol commands (?/=/!) arriving over USB serial
 #define SERIAL_BUF_SIZE 128
@@ -46,7 +47,15 @@ void printStatus() {
   Serial.print("Mouse state: ");
   Serial.println(mouseState == MOUSE_IDLE ? "IDLE" : mouseState == MOUSE_JIGGLING ? "JIG" : "RTN");
   Serial.print("Battery: "); Serial.print(batteryPercent); Serial.println("%");
-  if (settings.operationMode == 3) {
+  if (settings.operationMode == 4) {
+    Serial.println("--- Snake ---");
+    Serial.print("State: ");
+    static const char* SNK_STATE_NAMES[] = { "IDLE", "PLAYING", "PAUSED", "GAMEOVER" };
+    Serial.println(snk.state < 4 ? SNK_STATE_NAMES[snk.state] : "???");
+    Serial.print("Score: "); Serial.println(snk.score);
+    Serial.print("Length: "); Serial.println(snk.length);
+    Serial.print("High score: "); Serial.println(settings.snakeHighScore);
+  } else if (settings.operationMode == 3) {
     Serial.println("--- Breakout ---");
     Serial.print("State: ");
     static const char* BRK_STATE_NAMES[] = { "IDLE", "PLAYING", "PAUSED", "CLEAR", "GAMEOVER" };
@@ -185,7 +194,7 @@ void handleSerialCommands() {
           Serial.print("Schedule sleeping: "); Serial.println(scheduleSleeping ? "YES" : "NO");
         }
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
-        Serial.print("Operation mode: "); Serial.println((settings.operationMode < 4) ? OP_MODE_NAMES[settings.operationMode] : "???");
+        Serial.print("Operation mode: "); Serial.println((settings.operationMode < 5) ? OP_MODE_NAMES[settings.operationMode] : "???");
         if (settings.operationMode == 2) {
           Serial.println("--- Volume Control ---");
           Serial.print("Muted: "); Serial.println(volMuted ? "YES" : "NO");
