@@ -13,7 +13,7 @@ extern const uint8_t PROGMEM splashVolumeBitmap[];
 extern const uint8_t PROGMEM splashGameBitmap[];
 
 extern const uint8_t PROGMEM iconKeycapNormal[];   // 10x10 keycap with "A"
-extern const uint8_t PROGMEM iconKeycapPressed[];  // 9x9 keycap with "A" (depressed)
+extern const uint8_t PROGMEM iconKeycapPressed[];  // 10x8 keycap with "A" (depressed)
 extern const uint8_t PROGMEM iconMouseNormal[];    // 10x10 Mac Classic mouse
 extern const uint8_t PROGMEM iconMouseClick[];     // 10x10 mouse button pressed
 extern const uint8_t PROGMEM iconMouseScroll[];    // 10x10 mouse scroll arrow

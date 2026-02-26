@@ -853,7 +853,7 @@ static void drawSimulationNormal() {
     // Keycap icon: shrinks when key held (depressed), hidden when muted
     if (keyEnabled) {
       if (orch.keyDown) {
-        display.drawBitmap(60, 55, iconKeycapPressed, 9, 9, SSD1306_WHITE);
+        display.drawBitmap(60, 56, iconKeycapPressed, 10, 8, SSD1306_WHITE);
       } else {
         display.drawBitmap(60, 54, iconKeycapNormal, 10, 10, SSD1306_WHITE);
       }
@@ -945,9 +945,9 @@ static void drawSimulationScreensaver() {
   if (showKb) {
     bool showDepressed = orch.keyDown || (now - orch.keyDownMs < 200);
     if (showDepressed) {
-      // Pressed: 9x9 bitmap → 27x27, offset +1x,+3y within 30x30 footprint
-      drawBitmapScaled(kbX + scale, iconY + scale * 3, iconKeycapPressed,
-                       9, 9, scale, SSD1306_WHITE);
+      // Pressed: 10x8 bitmap → 30x24, offset +0x,+6y within 30x30 footprint
+      drawBitmapScaled(kbX, iconY + scale * 2, iconKeycapPressed,
+                       10, 8, scale, SSD1306_WHITE);
     } else {
       drawBitmapScaled(kbX, iconY, iconKeycapNormal,
                        10, 10, scale, SSD1306_WHITE);

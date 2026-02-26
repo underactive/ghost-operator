@@ -60,59 +60,58 @@ const uint8_t PROGMEM iconKeycapNormal[] = {
   0x7F, 0x80   // .########.
 };
 
-// Keycap pressed icon (9x9 pixels) — smaller keycap simulates key depression
+// Keycap pressed icon (10x8 pixels) — same width as normal, shorter to simulate depression
 const uint8_t PROGMEM iconKeycapPressed[] = {
-  0x7F, 0x00,  // .#######.
-  0x80, 0x80,  // #.......#
-  0x9C, 0x80,  // #..###..#
-  0xA2, 0x80,  // #.#...#.#
-  0xBE, 0x80,  // #.#####.#
-  0xA2, 0x80,  // #.#...#.#
-  0xA2, 0x80,  // #.#...#.#
-  0x80, 0x80,  // #.......#
-  0x7F, 0x00   // .#######.
+  0x7F, 0x80,  // .########.
+  0x80, 0x40,  // #........#
+  0x9E, 0x40,  // #..####..#
+  0xA1, 0x40,  // #.#....#.#
+  0xBF, 0x40,  // #.######.#
+  0xA1, 0x40,  // #.#....#.#
+  0x80, 0x40,  // #........#
+  0x7F, 0x80   // .########.
 };
 
 // Mouse icon (10x10 pixels) — Mac Classic style, button outline then solid body
 const uint8_t PROGMEM iconMouseNormal[] = {
-  0x3F, 0x00,  // ..######..
+  0x0C, 0x00,  // ....##....
+  0x06, 0x00,  // .....##...
+  0x0C, 0x00,  // ....##....
   0x7F, 0x80,  // .########.
   0x40, 0x80,  // .#......#.
   0x5E, 0x80,  // .#.####.#.
   0x40, 0x80,  // .#......#.
   0x7F, 0x80,  // .########.
   0x7F, 0x80,  // .########.
-  0x7F, 0x80,  // .########.
-  0x7F, 0x80,  // .########.
-  0x3F, 0x00   // ..######..
+  0x7F, 0x80   // .########.
 };
 
 // Mouse click icon (10x10 pixels) — button filled, solid body
 const uint8_t PROGMEM iconMouseClick[] = {
-  0x3F, 0x00,  // ..######..
+  0x0C, 0x00,  // ....##....
+  0x06, 0x00,  // .....##...
+  0x0C, 0x00,  // ....##....
   0x7F, 0x80,  // .########.
   0x40, 0x80,  // .#......#.
   0x40, 0x80,  // .#......#.
   0x40, 0x80,  // .#......#.
   0x7F, 0x80,  // .########.
   0x7F, 0x80,  // .########.
-  0x7F, 0x80,  // .########.
-  0x7F, 0x80,  // .########.
-  0x3F, 0x00   // ..######..
+  0x7F, 0x80   // .########.
 };
 
 // Mouse scroll icon (10x10 pixels) — arrow cutouts in solid body
 const uint8_t PROGMEM iconMouseScroll[] = {
-  0x3F, 0x00,  // ..######..
+  0x0C, 0x00,  // ....##....
+  0x06, 0x00,  // .....##...
+  0x0C, 0x00,  // ....##....
   0x7F, 0x80,  // .########.
   0x73, 0x80,  // .###..###.
-  0x61, 0x80,  // .##....##.
   0x73, 0x80,  // .###..###.
-  0x61, 0x80,  // .##....##.
   0x73, 0x80,  // .###..###.
   0x7F, 0x80,  // .########.
   0x7F, 0x80,  // .########.
-  0x3F, 0x00   // ..######..
+  0x7F, 0x80   // .########.
 };
 
 // Speaker icon (16x16 pixels) — speaker cone with 2 sound waves
