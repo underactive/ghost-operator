@@ -193,6 +193,12 @@ extern bool          volPlaying;          // play/pause toggle state (reset on b
 extern unsigned long volD7LastPress;
 extern uint8_t       volD7ClickCount;     // 0 or 1 (waiting for 2nd click)
 
+// K+M (form filling) sub-phase states
+enum KbmsSubPhase { KBMS_MOUSE_SWIPE, KBMS_CLICK, KBMS_CLICK_PAUSE, KBMS_TYPING, KBMS_TYPING_PAUSE };
+
+// M+K (drawing tool) sub-phase states
+enum MskbSubPhase { MSKB_KEY_DOWN, MSKB_MOUSE_DRAW, MSKB_KEY_UP_PAUSE };
+
 // Orchestrator state (simulation mode)
 struct OrchestratorState {
   // Position in hierarchy
@@ -230,6 +236,30 @@ struct OrchestratorState {
   unsigned long lastSimKeystrokeMs;   // last keystroke sent by orchestrator
   uint8_t keepaliveBurstRemaining;    // keys left in current keepalive burst
   unsigned long keepaliveNextKeyMs;   // when to send next keepalive key
+
+  // K+M (form filling) sub-phase state
+  KbmsSubPhase kbmsSubPhase;
+  uint8_t kbmsSwipesRemaining;
+  uint8_t kbmsKeysRemaining;
+  unsigned long kbmsSubPhaseStartMs;
+  unsigned long kbmsSubPhaseDurMs;
+  int8_t kbmsSwipeDx;
+  int8_t kbmsSwipeDy;
+
+  // K+M mouse step timer (replaces static local — reset on phase entry)
+  unsigned long kbmsLastStepMs;
+
+  // M+K (drawing tool) sub-phase state
+  MskbSubPhase mskbSubPhase;
+  uint8_t mskbStrokesRemaining;
+  unsigned long mskbSubPhaseStartMs;
+  unsigned long mskbSubPhaseDurMs;
+  unsigned long mskbKeyHoldTarget;
+  int8_t mskbStrokeDx;
+  int8_t mskbStrokeDy;
+
+  // M+K mouse step timer (replaces static local — reset on phase entry)
+  unsigned long mskbLastStepMs;
 
   // Schedule preview overlay
   bool previewActive;

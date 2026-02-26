@@ -64,6 +64,22 @@ static uint8_t scaleCountByPerformance(uint8_t value) {
   return (uint8_t)result;
 }
 
+// Returns true for phases that include keyboard activity (keepalive should not fire)
+static bool phaseHasKeystrokes(ActivityPhase phase) {
+  return phase == PHASE_TYPING || phase == PHASE_KB_MOUSE || phase == PHASE_MOUSE_KB;
+}
+
+// Pick a random cardinal/diagonal direction for micro-movements
+static void pickSwipeDirection(int8_t& dx, int8_t& dy) {
+  // 8 directions: N,NE,E,SE,S,SW,W,NW
+  static const int8_t dirs[][2] = {
+    {0,-1}, {1,-1}, {1,0}, {1,1}, {0,1}, {-1,1}, {-1,0}, {-1,-1}
+  };
+  uint8_t d = random(8);
+  dx = dirs[d][0];
+  dy = dirs[d][1];
+}
+
 // ============================================================================
 // WEIGHTED RANDOM SELECTION
 // ============================================================================
@@ -105,18 +121,18 @@ static ActivityPhase selectNextPhase(const WorkModeDef& mode, ActivityPhase curr
   // ~20% chance of idle phase
   if (random(100) < 20) return PHASE_IDLE;
 
-  // Transition through SWITCHING between KB and mouse
-  if (current == PHASE_TYPING) return PHASE_SWITCHING;
-  if (current == PHASE_MOUSING) return PHASE_SWITCHING;
-  if (current == PHASE_IDLE) {
-    // After idle, pick based on KB:MS ratio
-    return (random(100) < mode.kbPercent) ? PHASE_TYPING : PHASE_MOUSING;
+  // Active phases transition through SWITCHING
+  if (current == PHASE_TYPING || current == PHASE_MOUSING ||
+      current == PHASE_KB_MOUSE || current == PHASE_MOUSE_KB) {
+    return PHASE_SWITCHING;
   }
-  // After SWITCHING, go to the other side
-  if (current == PHASE_SWITCHING) {
-    return (random(100) < mode.kbPercent) ? PHASE_TYPING : PHASE_MOUSING;
-  }
-  return PHASE_TYPING;
+
+  // After IDLE or SWITCHING: pick next active phase
+  // 8% K+M, 4% M+K, remaining 88% split by kbPercent
+  uint8_t roll = random(100);
+  if (roll < 8) return PHASE_KB_MOUSE;
+  if (roll < 12) return PHASE_MOUSE_KB;
+  return (random(100) < mode.kbPercent) ? PHASE_TYPING : PHASE_MOUSING;
 }
 
 // Calculate phase duration from current work mode and profile
@@ -134,6 +150,10 @@ static unsigned long phaseDuration(ActivityPhase phase, const WorkModeDef& mode,
     }
     case PHASE_SWITCHING:
       return randRange(100, 500);
+    case PHASE_KB_MOUSE:
+      return jitter(scaleByPerformance(randRange(10000, 45000), true));
+    case PHASE_MOUSE_KB:
+      return jitter(scaleByPerformance(randRange(8000, 30000), true));
     default:
       return 5000;
   }
@@ -262,6 +282,32 @@ static void startPhase(ActivityPhase phase, unsigned long now) {
     mouseReturnTotal = 0;
     scheduleNextMouseState();
   }
+
+  // K+M: init sub-FSM for form filling
+  if (phase == PHASE_KB_MOUSE) {
+    orch.kbmsSubPhase = KBMS_MOUSE_SWIPE;
+    orch.kbmsSwipesRemaining = (uint8_t)randRange(KBMS_SWIPE_MIN, KBMS_SWIPE_MAX);
+    pickSwipeDirection(orch.kbmsSwipeDx, orch.kbmsSwipeDy);
+    orch.kbmsSubPhaseStartMs = now;
+    orch.kbmsSubPhaseDurMs = KBMS_SWIPE_DUR_MS;
+    orch.kbmsLastStepMs = now;  // prevent stale timestamp on re-entry
+    orch.kbmsKeysRemaining = 0;
+    orch.keyDown = false;
+    orch.inBurstGap = false;
+  }
+
+  // M+K: init sub-FSM for drawing tool
+  if (phase == PHASE_MOUSE_KB) {
+    orch.mskbSubPhase = MSKB_KEY_DOWN;
+    orch.mskbStrokesRemaining = (uint8_t)randRange(MSKB_STROKES_MIN, MSKB_STROKES_MAX);
+    orch.mskbKeyHoldTarget = randRange(MSKB_KEY_HOLD_MIN_MS, MSKB_KEY_HOLD_MAX_MS);
+    orch.mskbSubPhaseStartMs = now;
+    orch.mskbSubPhaseDurMs = MSKB_SETUP_DELAY_MS;
+    orch.mskbLastStepMs = now;  // prevent stale timestamp on re-entry
+    orch.keyDown = false;
+    orch.keyDownMs = now;  // sane baseline if key press is skipped
+    pickSwipeDirection(orch.mskbStrokeDx, orch.mskbStrokeDy);
+  }
 }
 
 // ============================================================================
@@ -363,6 +409,193 @@ static void tickSwitchPhase(unsigned long now) {
       orch.autoProfile != PROFILE_LAZY && now >= orch.nextWindowSwitchMs) {
     sendWindowSwitch();
     orch.nextWindowSwitchMs = now + randRange(180000, 900000);
+  }
+}
+
+// ============================================================================
+// K+M PHASE (form filling: swipe → click → type → repeat)
+// ============================================================================
+
+static void tickKbMouse(unsigned long now) {
+  unsigned long elapsed = now - orch.kbmsSubPhaseStartMs;
+
+  switch (orch.kbmsSubPhase) {
+
+    case KBMS_MOUSE_SWIPE:
+      // Send small mouse deltas at MOUSE_MOVE_STEP_MS intervals
+      if (mouseEnabled && elapsed < orch.kbmsSubPhaseDurMs) {
+        if (now - orch.kbmsLastStepMs >= MOUSE_MOVE_STEP_MS) {
+          sendMouseMove(orch.kbmsSwipeDx, orch.kbmsSwipeDy);
+          orch.kbmsLastStepMs = now;
+        }
+      } else if (elapsed >= orch.kbmsSubPhaseDurMs) {
+        orch.kbmsSwipesRemaining--;
+        if (orch.kbmsSwipesRemaining > 0) {
+          // Inter-swipe pause: random 100-300ms gap, then new direction.
+          // Stays in KBMS_MOUSE_SWIPE — the elapsed < dur guard above
+          // naturally suppresses mouse moves during the pause window.
+          orch.kbmsSubPhaseStartMs = now;
+          orch.kbmsSubPhaseDurMs = randRange(KBMS_MOUSE_PAUSE_MIN_MS, KBMS_MOUSE_PAUSE_MAX_MS);
+          pickSwipeDirection(orch.kbmsSwipeDx, orch.kbmsSwipeDy);
+        } else {
+          // All swipes done → click (if phantom clicks enabled) or skip to typing
+          if (settings.phantomClicks) {
+            orch.kbmsSubPhase = KBMS_CLICK;
+            orch.kbmsSubPhaseStartMs = now;
+            orch.kbmsSubPhaseDurMs = 0;  // immediate
+          } else {
+            orch.kbmsSubPhase = KBMS_CLICK_PAUSE;
+            orch.kbmsSubPhaseStartMs = now;
+            orch.kbmsSubPhaseDurMs = randRange(KBMS_CLICK_PAUSE_MIN_MS, KBMS_CLICK_PAUSE_MAX_MS);
+          }
+        }
+      }
+      break;
+
+    case KBMS_CLICK:
+      // Send one mouse click to simulate clicking into a form field
+      {
+        uint8_t btn = settings.clickType == 1 ? 0x01 : 0x04;
+        sendMouseClick(btn, (uint16_t)randRange(50, 100));
+        orch.lastPhantomClickMs = now;
+      }
+      orch.kbmsSubPhase = KBMS_CLICK_PAUSE;
+      orch.kbmsSubPhaseStartMs = now;
+      orch.kbmsSubPhaseDurMs = randRange(KBMS_CLICK_PAUSE_MIN_MS, KBMS_CLICK_PAUSE_MAX_MS);
+      break;
+
+    case KBMS_CLICK_PAUSE:
+      if (elapsed >= orch.kbmsSubPhaseDurMs) {
+        // Transition to typing
+        orch.kbmsSubPhase = KBMS_TYPING;
+        orch.kbmsSubPhaseStartMs = now;
+        orch.kbmsKeysRemaining = scaleCountByPerformance((uint8_t)randRange(KBMS_KEYS_MIN, KBMS_KEYS_MAX));
+        orch.keyDown = false;
+        orch.burstKeysRemaining = orch.kbmsKeysRemaining;
+        orch.inBurstGap = false;
+        orch.nextKeyMs = now;
+      }
+      break;
+
+    case KBMS_TYPING:
+      // Reuse burst typing logic
+      if (keyEnabled && hasPopulatedSlot() && orch.burstKeysRemaining > 0) {
+        const WorkModeDef& mode = currentWorkMode();
+        const PhaseTiming& t = mode.timing[orch.autoProfile];
+
+        if (orch.keyDown) {
+          if (now - orch.keyDownMs >= orch.currentKeyHoldMs) {
+            sendKeyUp();
+            orch.keyDown = false;
+            orch.burstKeysRemaining--;
+            if (orch.burstKeysRemaining > 0) {
+              orch.nextKeyMs = now + scaleByPerformance(randRange(t.interKeyMinMs, t.interKeyMaxMs), false);
+            }
+          }
+        } else if (now >= orch.nextKeyMs && orch.burstKeysRemaining > 0) {
+          sendKeyDown(nextKeyIndex);
+          pickNextKey();
+          orch.keyDown = true;
+          orch.keyDownMs = now;
+          orch.lastSimKeystrokeMs = now;
+          const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
+          if (key.isModifier) {
+            orch.currentKeyHoldMs = (uint16_t)randRange(150, 400);
+          } else {
+            orch.currentKeyHoldMs = (uint16_t)randRange(t.keyHoldMinMs, t.keyHoldMaxMs);
+          }
+        }
+      }
+      // Check if typing burst complete
+      if (orch.burstKeysRemaining == 0 && !orch.keyDown) {
+        orch.kbmsSubPhase = KBMS_TYPING_PAUSE;
+        orch.kbmsSubPhaseStartMs = now;
+        orch.kbmsSubPhaseDurMs = randRange(KBMS_TYPING_PAUSE_MIN_MS, KBMS_TYPING_PAUSE_MAX_MS);
+      }
+      break;
+
+    case KBMS_TYPING_PAUSE:
+      if (elapsed >= orch.kbmsSubPhaseDurMs) {
+        // Cycle back to mouse swipe with fresh count
+        orch.kbmsSubPhase = KBMS_MOUSE_SWIPE;
+        orch.kbmsSwipesRemaining = (uint8_t)randRange(KBMS_SWIPE_MIN, KBMS_SWIPE_MAX);
+        pickSwipeDirection(orch.kbmsSwipeDx, orch.kbmsSwipeDy);
+        orch.kbmsSubPhaseStartMs = now;
+        orch.kbmsSubPhaseDurMs = KBMS_SWIPE_DUR_MS;
+      }
+      break;
+  }
+}
+
+// ============================================================================
+// M+K PHASE (drawing tool: hold key + mouse strokes)
+// ============================================================================
+
+static void tickMouseKb(unsigned long now) {
+  unsigned long elapsed = now - orch.mskbSubPhaseStartMs;
+
+  switch (orch.mskbSubPhase) {
+
+    case MSKB_KEY_DOWN:
+      // Press key if not already held, then brief setup delay
+      if (!orch.keyDown && keyEnabled && hasPopulatedSlot()) {
+        sendKeyDown(nextKeyIndex);
+        pickNextKey();
+        orch.keyDown = true;
+        orch.keyDownMs = now;
+        orch.lastSimKeystrokeMs = now;
+      }
+      // Only advance to drawing if key was actually pressed — drawing
+      // without a held key is pointless and leaves keyDownMs stale
+      if (elapsed >= orch.mskbSubPhaseDurMs && orch.keyDown) {
+        orch.mskbSubPhase = MSKB_MOUSE_DRAW;
+        orch.mskbSubPhaseStartMs = now;
+        orch.mskbSubPhaseDurMs = MSKB_STROKE_DUR_MS;
+        pickSwipeDirection(orch.mskbStrokeDx, orch.mskbStrokeDy);
+      }
+      break;
+
+    case MSKB_MOUSE_DRAW:
+      // Send mouse deltas while key is held
+      if (mouseEnabled) {
+        if (now - orch.mskbLastStepMs >= MOUSE_MOVE_STEP_MS) {
+          sendMouseMove(orch.mskbStrokeDx, orch.mskbStrokeDy);
+          orch.mskbLastStepMs = now;
+        }
+      }
+
+      if (elapsed >= orch.mskbSubPhaseDurMs) {
+        orch.mskbStrokesRemaining--;
+        // Check if key hold target reached or strokes exhausted
+        unsigned long keyHeldMs = now - orch.keyDownMs;
+        if (orch.mskbStrokesRemaining == 0 || keyHeldMs >= orch.mskbKeyHoldTarget) {
+          // Release key and pause
+          if (orch.keyDown) {
+            sendKeyUp();
+            orch.keyDown = false;
+          }
+          orch.mskbSubPhase = MSKB_KEY_UP_PAUSE;
+          orch.mskbSubPhaseStartMs = now;
+          orch.mskbSubPhaseDurMs = randRange(MSKB_PAUSE_MIN_MS, MSKB_PAUSE_MAX_MS);
+        } else {
+          // Next stroke: new direction, reset timer
+          pickSwipeDirection(orch.mskbStrokeDx, orch.mskbStrokeDy);
+          orch.mskbSubPhaseStartMs = now;
+          orch.mskbSubPhaseDurMs = MSKB_STROKE_DUR_MS;
+        }
+      }
+      break;
+
+    case MSKB_KEY_UP_PAUSE:
+      if (elapsed >= orch.mskbSubPhaseDurMs) {
+        // Start new cycle: press new key, draw again
+        orch.mskbSubPhase = MSKB_KEY_DOWN;
+        orch.mskbSubPhaseStartMs = now;
+        orch.mskbSubPhaseDurMs = MSKB_SETUP_DELAY_MS;
+        orch.mskbStrokesRemaining = (uint8_t)randRange(MSKB_STROKES_MIN, MSKB_STROKES_MAX);
+        orch.mskbKeyHoldTarget = randRange(MSKB_KEY_HOLD_MIN_MS, MSKB_KEY_HOLD_MAX_MS);
+      }
+      break;
   }
 }
 
@@ -487,12 +720,18 @@ void tickOrchestrator(unsigned long now) {
     case PHASE_SWITCHING:
       tickSwitchPhase(now);
       break;
+    case PHASE_KB_MOUSE:
+      tickKbMouse(now);
+      break;
+    case PHASE_MOUSE_KB:
+      tickMouseKb(now);
+      break;
     default:
       break;
   }
 
   // 6. Keystroke keepalive — ensure non-zero keyboard in every 2-min window
-  if (keyEnabled && hasPopulatedSlot() && orch.phase != PHASE_TYPING) {
+  if (keyEnabled && hasPopulatedSlot() && !phaseHasKeystrokes(orch.phase)) {
     if (orch.keepaliveBurstRemaining > 0 && now >= orch.keepaliveNextKeyMs) {
       // Continue sending keepalive burst (silent — no buzzer during non-typing phases)
       sendKeyDown(nextKeyIndex, true);

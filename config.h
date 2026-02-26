@@ -140,6 +140,30 @@
 
 // Simulation mode
 #define JOB_SIM_COUNT       3       // Staff, Developer, Designer
+
+// K+M (form filling) sub-phase timing
+#define KBMS_SWIPE_DUR_MS       500       // each mouse swipe duration
+#define KBMS_SWIPE_MIN          1         // min swipes per cycle
+#define KBMS_SWIPE_MAX          3         // max swipes per cycle
+#define KBMS_MOUSE_PAUSE_MIN_MS 100       // pause between swipes
+#define KBMS_MOUSE_PAUSE_MAX_MS 300
+#define KBMS_KEYS_MIN           3         // keys per typing burst
+#define KBMS_KEYS_MAX           10
+#define KBMS_TYPING_PAUSE_MIN_MS 200      // pause after typing before next swipe cycle
+#define KBMS_TYPING_PAUSE_MAX_MS 800
+#define KBMS_CLICK_PAUSE_MIN_MS 100       // pause after click (field focus)
+#define KBMS_CLICK_PAUSE_MAX_MS 300
+
+// M+K (drawing tool) sub-phase timing
+#define MSKB_KEY_HOLD_MIN_MS    3000      // min key hold duration
+#define MSKB_KEY_HOLD_MAX_MS    5000      // max key hold duration
+#define MSKB_STROKE_DUR_MS      250       // each mouse stroke duration
+#define MSKB_STROKES_MIN        3         // min strokes per hold
+#define MSKB_STROKES_MAX        5         // max strokes per hold
+#define MSKB_PAUSE_MIN_MS       300       // pause between hold cycles
+#define MSKB_PAUSE_MAX_MS       1000
+#define MSKB_SETUP_DELAY_MS     100       // brief delay after key down before drawing
+
 #define LUNCH_OFFSET_MIN        240       // 4 hours after job start
 #define LUNCH_MIN_DURATION_MIN  60        // minimum 1 hour
 #define LUNCH_DURATION_JITTER   10        // ±10% on duration (60-66 min)
@@ -163,7 +187,7 @@ enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
 enum FooterMode { FOOTER_CLOCK, FOOTER_UPTIME, FOOTER_VERSION, FOOTER_DIETEMP, FOOTER_MODE_COUNT };
 
 // Simulation mode enums
-enum ActivityPhase { PHASE_TYPING, PHASE_MOUSING, PHASE_IDLE, PHASE_SWITCHING, PHASE_COUNT };
+enum ActivityPhase { PHASE_TYPING, PHASE_MOUSING, PHASE_IDLE, PHASE_SWITCHING, PHASE_KB_MOUSE, PHASE_MOUSE_KB, PHASE_COUNT };
 enum WorkModeId {
   WMODE_EMAIL_COMPOSE, WMODE_EMAIL_READ, WMODE_PROGRAMMING, WMODE_BROWSING,
   WMODE_CHAT_SLACK, WMODE_VIDEO_CONF, WMODE_DOC_EDITING, WMODE_COFFEE_BREAK,

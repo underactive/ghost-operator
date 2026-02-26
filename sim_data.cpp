@@ -8,7 +8,7 @@ const char* OP_MODE_NAMES[]     = { "Simple", "Simulation", "Volume" };
 const char* JOB_SIM_NAMES[]     = { "Staff", "Developer", "Designer" };
 const char* HEADER_DISP_NAMES[] = { "Job", "Device" };
 const char* CLICK_TYPE_NAMES[] = { "Middle", "Left" };
-const char* PHASE_NAMES[]       = { "TYPE", "MOUSE", "IDLE", "SWITCH" };
+const char* PHASE_NAMES[]       = { "TYPE", "MOUSE", "IDLE", "SWITCH", "K+M", "M+K" };
 
 // ============================================================================
 // WORK MODE DEFINITIONS (11 micro-modes)

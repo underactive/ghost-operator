@@ -170,7 +170,7 @@ export const OP_MODE_NAMES = ['Simple', 'Simulation']
 export const JOB_SIM_NAMES = ['Staff', 'Developer', 'Designer']
 
 /** Simulation phase index to name mapping (matches firmware PHASE_NAMES[]) */
-export const PHASE_NAMES = ['TYPE', 'MOUSE', 'IDLE', 'SWITCH']
+export const PHASE_NAMES = ['TYPE', 'MOUSE', 'IDLE', 'SWITCH', 'K+M', 'M+K']
 
 /** Click type index to name mapping (matches firmware CLICK_TYPE_NAMES[]) */
 export const CLICK_TYPE_NAMES = ['Middle', 'Left']

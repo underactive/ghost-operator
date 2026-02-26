@@ -804,10 +804,12 @@ static void drawSimulationNormal() {
     const char* actLabel;
 
     switch (orch.phase) {
-      case PHASE_TYPING:  actLabel = "KBD"; break;
-      case PHASE_MOUSING: actLabel = "MSE"; break;
-      case PHASE_IDLE:    actLabel = "IDL"; break;
-      default:            actLabel = "SWT"; break;
+      case PHASE_TYPING:    actLabel = "KBD"; break;
+      case PHASE_MOUSING:   actLabel = "MSE"; break;
+      case PHASE_IDLE:      actLabel = "IDL"; break;
+      case PHASE_KB_MOUSE:  actLabel = "K+M"; break;
+      case PHASE_MOUSE_KB:  actLabel = "M+K"; break;
+      default:              actLabel = "SWT"; break;
     }
 
     display.setCursor(0, 40);
@@ -866,7 +868,10 @@ static void drawSimulationNormal() {
         mIcon = iconMouseScroll;
       } else {
         mIcon = iconMouseNormal;
-        if (orch.phase == PHASE_MOUSING && mouseState == MOUSE_JIGGLING) {
+        bool mouseMoving = (orch.phase == PHASE_MOUSING && mouseState == MOUSE_JIGGLING) ||
+                           (orch.phase == PHASE_KB_MOUSE && orch.kbmsSubPhase == KBMS_MOUSE_SWIPE) ||
+                           (orch.phase == PHASE_MOUSE_KB && orch.mskbSubPhase == MSKB_MOUSE_DRAW);
+        if (mouseMoving) {
           static const int8_t nudge[] = {0, 1, 0, -1};
           mx += nudge[(millis() / 150) % 4];
         }
@@ -959,9 +964,14 @@ static void drawSimulationScreensaver() {
     } else {
       mIcon = iconMouseNormal;
       // Nudge: ±3px, slowed to ~2Hz for screensaver
-      if (orch.phase == PHASE_MOUSING && mouseState == MOUSE_JIGGLING) {
-        static const int8_t nudge[] = {0, 1, 0, -1};
-        mx += nudge[(now / 500) % 4] * (int8_t)scale;
+      {
+        bool mouseMoving = (orch.phase == PHASE_MOUSING && mouseState == MOUSE_JIGGLING) ||
+                           (orch.phase == PHASE_KB_MOUSE && orch.kbmsSubPhase == KBMS_MOUSE_SWIPE) ||
+                           (orch.phase == PHASE_MOUSE_KB && orch.mskbSubPhase == MSKB_MOUSE_DRAW);
+        if (mouseMoving) {
+          static const int8_t nudge[] = {0, 1, 0, -1};
+          mx += nudge[(now / 500) % 4] * (int8_t)scale;
+        }
       }
     }
 

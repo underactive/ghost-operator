@@ -189,7 +189,7 @@ void handleSerialCommands() {
           Serial.print("Performance: "); Serial.println(settings.jobPerformance);
           Serial.print("Block: "); Serial.print(orch.blockIdx); Serial.print(" ("); Serial.print(currentBlockName()); Serial.println(")");
           Serial.print("Mode: "); Serial.print((int)orch.modeId); Serial.print(" ("); Serial.print(currentModeName()); Serial.println(")");
-          Serial.print("Phase: "); Serial.println(PHASE_NAMES[orch.phase]);
+          Serial.print("Phase: "); Serial.println((orch.phase < PHASE_COUNT) ? PHASE_NAMES[orch.phase] : "???");
           Serial.print("Auto-profile: "); Serial.println(PROFILE_NAMES[orch.autoProfile]);
           Serial.print("Phantom clicks: "); Serial.println(settings.phantomClicks ? "On" : "Off");
           Serial.print("Window switch: "); Serial.println(settings.windowSwitching ? "On" : "Off");
