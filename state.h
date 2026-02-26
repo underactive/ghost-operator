@@ -2,6 +2,7 @@
 #define GHOST_STATE_H
 
 #include "config.h"
+#include "sim_data.h"
 #include <bluefruit.h>
 #include <Adafruit_TinyUSB.h>
 #include <Wire.h>
@@ -28,6 +29,9 @@ extern Adafruit_USBD_HID usb_hid;
 
 // Settings
 extern Settings settings;
+
+// Mutable work mode array (initialized from const WORK_MODES[] + flash overrides)
+extern WorkModeDef workModes[WMODE_COUNT];
 
 // Profile
 extern Profile currentProfile;

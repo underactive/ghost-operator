@@ -23,8 +23,8 @@ static const TimeBlock& currentBlock() {
 }
 
 static const WorkModeDef& currentWorkMode() {
-  if (orch.modeId < WMODE_COUNT) return WORK_MODES[orch.modeId];
-  return WORK_MODES[0];
+  if (orch.modeId < WMODE_COUNT) return workModes[orch.modeId];
+  return workModes[0];
 }
 
 // Random in range [lo, hi] (inclusive)

@@ -30,6 +30,8 @@ static void cmdDefaults();
 static void cmdReboot();
 static void cmdDfu();
 static void cmdSerialDfu();
+static void cmdQueryWorkMode(uint8_t idx);
+static void cmdQuerySimBlocks(uint8_t jobIdx);
 
 // ----------------------------------------------------------------------------
 // BLE UART RX callback — called from SoftDevice context
@@ -124,6 +126,14 @@ void processCommand(const char* line, ResponseWriter writer) {
       cmdQueryKeys();
     } else if (strcmp(cmd, "decoys") == 0) {
       cmdQueryDecoys();
+    } else if (strncmp(cmd, "wmode:", 6) == 0) {
+      uint8_t idx = (uint8_t)atoi(cmd + 6);
+      if (idx < WMODE_COUNT) cmdQueryWorkMode(idx);
+      else currentWriter("-err:invalid mode index");
+    } else if (strncmp(cmd, "simblocks:", 10) == 0) {
+      uint8_t idx = (uint8_t)atoi(cmd + 10);
+      if (idx < JOB_SIM_COUNT) cmdQuerySimBlocks(idx);
+      else currentWriter("-err:invalid job index");
     } else {
       currentWriter("-err:unknown query");
     }
@@ -143,6 +153,12 @@ void processCommand(const char* line, ResponseWriter writer) {
       cmdDfu();
     } else if (strcmp(cmd, "serialdfu") == 0) {
       cmdSerialDfu();
+    } else if (strcmp(cmd, "savesim") == 0) {
+      saveSimData();
+      currentWriter("+ok");
+    } else if (strcmp(cmd, "resetsim") == 0) {
+      resetSimDataDefaults();
+      currentWriter("+ok");
     } else {
       currentWriter("-err:unknown action");
     }
@@ -443,6 +459,69 @@ static void cmdSetValue(const char* body) {
     for (; slot < NUM_SLOTS; slot++) {
       settings.keySlots[slot] = NUM_KEYS - 1;
     }
+  } else if (strcmp(key, "wmode") == 0) {
+    // Format: N:field:value  (e.g., "0:kb:50" or "0:t0:5,15,180,300,8000,30000,120,280,8000,20000,3000,12000")
+    // valStr points to "N:field:value"
+    const char* p1 = strchr(valStr, ':');
+    if (!p1) { currentWriter("-err:wmode format"); return; }
+    uint8_t modeIdx = (uint8_t)atoi(valStr);
+    if (modeIdx >= WMODE_COUNT) { currentWriter("-err:invalid mode index"); return; }
+    const char* p2 = strchr(p1 + 1, ':');
+    if (!p2) { currentWriter("-err:wmode format"); return; }
+    char field[8];
+    int fLen = p2 - (p1 + 1);
+    if (fLen >= (int)sizeof(field)) fLen = sizeof(field) - 1;
+    strncpy(field, p1 + 1, fLen);
+    field[fLen] = '\0';
+    const char* fVal = p2 + 1;
+    WorkModeDef& mode = workModes[modeIdx];
+    if (strcmp(field, "kb") == 0) {
+      uint8_t v = (uint8_t)atoi(fVal);
+      mode.kbPercent = (v > 100) ? 100 : v;
+    } else if (strcmp(field, "wL") == 0) {
+      int v = atoi(fVal); mode.profileWeights.lazyPct = (uint8_t)max(0, min(100, v));
+    } else if (strcmp(field, "wN") == 0) {
+      int v = atoi(fVal); mode.profileWeights.normalPct = (uint8_t)max(0, min(100, v));
+    } else if (strcmp(field, "wB") == 0) {
+      int v = atoi(fVal); mode.profileWeights.busyPct = (uint8_t)max(0, min(100, v));
+    } else if (strcmp(field, "dMin") == 0) {
+      mode.modeDurMinSec = (uint16_t)max(10, atoi(fVal));
+    } else if (strcmp(field, "dMax") == 0) {
+      mode.modeDurMaxSec = (uint16_t)max(10, atoi(fVal));
+    } else if (strcmp(field, "pMin") == 0) {
+      mode.profileStintMinSec = (uint16_t)max(5, atoi(fVal));
+    } else if (strcmp(field, "pMax") == 0) {
+      mode.profileStintMaxSec = (uint16_t)max(5, atoi(fVal));
+    } else if (field[0] == 't' && field[1] >= '0' && field[1] <= '2' && field[2] == '\0') {
+      // t0, t1, t2 = profile timing (12 CSV values)
+      uint8_t pIdx = field[1] - '0';
+      PhaseTiming& t = mode.timing[pIdx];
+      // Parse 12 comma-separated values
+      const char* pp = fVal;
+      uint32_t vals[12];
+      for (int i = 0; i < 12; i++) {
+        vals[i] = (uint32_t)atol(pp);
+        while (*pp && *pp != ',') pp++;
+        if (*pp == ',') pp++;
+      }
+      t.burstKeysMin = (uint8_t)vals[0];
+      t.burstKeysMax = (uint8_t)vals[1];
+      t.interKeyMinMs = (uint16_t)vals[2];
+      t.interKeyMaxMs = (uint16_t)vals[3];
+      t.burstGapMinMs = vals[4];
+      t.burstGapMaxMs = vals[5];
+      t.keyHoldMinMs = (uint16_t)vals[6];
+      t.keyHoldMaxMs = (uint16_t)vals[7];
+      t.mouseDurMinMs = vals[8];
+      t.mouseDurMaxMs = vals[9];
+      t.idleDurMinMs = vals[10];
+      t.idleDurMaxMs = vals[11];
+    } else {
+      currentWriter("-err:unknown wmode field");
+      return;
+    }
+    currentWriter("+ok");
+    return;
   } else {
     currentWriter("-err:unknown key");
     return;
@@ -472,6 +551,7 @@ static void cmdDefaults() {
   scheduleNextMouseState();
   pickNextKey();
   currentProfile = PROFILE_NORMAL;
+  resetSimDataDefaults();
   currentWriter("+ok");
 }
 
@@ -483,6 +563,61 @@ static void cmdReboot() {
   Serial.flush();
   delay(100);  // Let the response transmit
   NVIC_SystemReset();
+}
+
+// ----------------------------------------------------------------------------
+// ?wmode:N — query a single work mode's parameters
+// ----------------------------------------------------------------------------
+static void cmdQueryWorkMode(uint8_t idx) {
+  const WorkModeDef& m = workModes[idx];
+  char buf[640];
+  int len = snprintf(buf, sizeof(buf),
+    "!wmode|idx=%d|name=%s|kb=%d|wL=%d|wN=%d|wB=%d",
+    idx, m.shortName, m.kbPercent,
+    m.profileWeights.lazyPct, m.profileWeights.normalPct, m.profileWeights.busyPct);
+  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
+
+  // Per-profile timing (t0=LAZY, t1=NORMAL, t2=BUSY)
+  for (int p = 0; p < PROFILE_COUNT; p++) {
+    const PhaseTiming& t = m.timing[p];
+    len += snprintf(buf + len, sizeof(buf) - len,
+      "|t%d=%d,%d,%d,%d,%lu,%lu,%d,%d,%lu,%lu,%lu,%lu",
+      p, t.burstKeysMin, t.burstKeysMax,
+      t.interKeyMinMs, t.interKeyMaxMs,
+      (unsigned long)t.burstGapMinMs, (unsigned long)t.burstGapMaxMs,
+      t.keyHoldMinMs, t.keyHoldMaxMs,
+      (unsigned long)t.mouseDurMinMs, (unsigned long)t.mouseDurMaxMs,
+      (unsigned long)t.idleDurMinMs, (unsigned long)t.idleDurMaxMs);
+    if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
+  }
+
+  len += snprintf(buf + len, sizeof(buf) - len,
+    "|dMin=%d|dMax=%d|pMin=%d|pMax=%d",
+    m.modeDurMinSec, m.modeDurMaxSec,
+    m.profileStintMinSec, m.profileStintMaxSec);
+
+  currentWriter(buf);
+}
+
+// ----------------------------------------------------------------------------
+// ?simblocks:N — query day template blocks for a job type (read-only)
+// ----------------------------------------------------------------------------
+static void cmdQuerySimBlocks(uint8_t jobIdx) {
+  const DayTemplate& tmpl = DAY_TEMPLATES[jobIdx];
+  char buf[512];
+  int len = snprintf(buf, sizeof(buf), "!simblocks|job=%d", jobIdx);
+
+  for (int b = 0; b < tmpl.numBlocks; b++) {
+    const TimeBlock& block = tmpl.blocks[b];
+    len += snprintf(buf + len, sizeof(buf) - len,
+      "|b%d=%s,%d,%d", b, block.name, block.startMinutes, block.durationMinutes);
+    for (int m = 0; m < block.numModes; m++) {
+      len += snprintf(buf + len, sizeof(buf) - len,
+        ",%d:%d", block.modes[m].modeId, block.modes[m].weight);
+    }
+  }
+
+  currentWriter(buf);
 }
 
 // ----------------------------------------------------------------------------

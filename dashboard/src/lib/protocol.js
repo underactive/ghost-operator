@@ -149,6 +149,9 @@ export function parseStatus(data) {
 /** Profile index to name mapping (matches firmware PROFILE_NAMES[]) */
 export const PROFILE_NAMES = ['LAZY', 'NORMAL', 'BUSY']
 
+/** Profile index to label mapping for UI display */
+export const PROFILE_LABEL_NAMES = ['Lazy', 'Normal', 'Busy']
+
 /** Mode index to name mapping (matches firmware MODE_NAMES[]) */
 export const MODE_NAMES = ['NORMAL', 'MENU', 'SLOTS', 'NAME', 'DECOY', 'SCHED', 'MODE', 'CLOCK']
 
@@ -194,6 +197,60 @@ export const WORK_MODE_NAMES = [
   'Meeting', 'Docs', 'Coffee', 'Lunch', 'IRL Mtg', 'Files'
 ]
 
+/**
+ * Parse a ?wmode:N response into a structured object.
+ * Response: !wmode|idx=N|name=Email|kb=65|wL=25|wN=15|wB=60|t0=5,15,...|t1=...|t2=...|dMin=60|dMax=300|pMin=15|pMax=60
+ */
+export function parseWorkMode(data) {
+  const parseTiming = (csv) => {
+    const v = (csv || '').split(',').map(Number)
+    return {
+      burstKeysMin: v[0] || 0, burstKeysMax: v[1] || 0,
+      interKeyMinMs: v[2] || 0, interKeyMaxMs: v[3] || 0,
+      burstGapMinMs: v[4] || 0, burstGapMaxMs: v[5] || 0,
+      keyHoldMinMs: v[6] || 0, keyHoldMaxMs: v[7] || 0,
+      mouseDurMinMs: v[8] || 0, mouseDurMaxMs: v[9] || 0,
+      idleDurMinMs: v[10] || 0, idleDurMaxMs: v[11] || 0,
+    }
+  }
+  return {
+    idx: parseInt(data.idx) || 0,
+    name: data.name || '???',
+    kb: parseInt(data.kb) || 0,
+    wL: parseInt(data.wL) || 0,
+    wN: parseInt(data.wN) || 0,
+    wB: parseInt(data.wB) || 0,
+    timing: [parseTiming(data.t0), parseTiming(data.t1), parseTiming(data.t2)],
+    dMin: parseInt(data.dMin) || 0,
+    dMax: parseInt(data.dMax) || 0,
+    pMin: parseInt(data.pMin) || 0,
+    pMax: parseInt(data.pMax) || 0,
+  }
+}
+
+/**
+ * Parse a ?simblocks:N response into an array of block objects.
+ * Response: !simblocks|job=N|b0=AM Email,0,30,0:40,1:40,4:20|b1=...
+ */
+export function parseSimBlocks(data) {
+  const blocks = []
+  for (let i = 0; i < 12; i++) {
+    const raw = data[`b${i}`]
+    if (!raw) break
+    const parts = raw.split(',')
+    const name = parts[0]
+    const startMin = parseInt(parts[1]) || 0
+    const durMin = parseInt(parts[2]) || 0
+    const modes = []
+    for (let j = 3; j < parts.length; j++) {
+      const [modeId, weight] = parts[j].split(':').map(Number)
+      modes.push({ modeId, weight })
+    }
+    blocks.push({ name, startMin, durMin, modes })
+  }
+  return blocks
+}
+
 /** Format a 5-minute slot index (0-287) as H:MM */
 export function formatTime5(slot) {
   const totalMinutes = slot * 5
@@ -207,4 +264,11 @@ export function formatShiftDuration(minutes) {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
+/** Format milliseconds as human-readable (e.g., "1.5s", "30s", "2m") */
+export function formatMs(ms) {
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  return `${(ms / 60000).toFixed(1)}m`
 }

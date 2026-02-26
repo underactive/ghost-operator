@@ -8,6 +8,7 @@ import KeySlotEditor from './components/KeySlotEditor.vue'
 import MouseSection from './components/MouseSection.vue'
 import ProfileSection from './components/ProfileSection.vue'
 import SimulationSection from './components/SimulationSection.vue'
+import SimTuningSection from './components/SimTuningSection.vue'
 import ScheduleSection from './components/ScheduleSection.vue'
 import DisplaySection from './components/DisplaySection.vue'
 import SoundSection from './components/SoundSection.vue'
@@ -32,6 +33,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
         <template v-if="connectionState.connected">
           <!-- Simulation mode only -->
           <SimulationSection v-if="settings.opMode === 1" />
+          <SimTuningSection v-if="settings.opMode === 1" />
           <!-- Simple mode only -->
           <TimingSection v-if="settings.opMode === 0" />
           <MouseSection v-if="settings.opMode === 0" />

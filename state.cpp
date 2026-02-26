@@ -21,6 +21,9 @@ Adafruit_USBD_HID usb_hid;
 // Settings
 Settings settings;
 
+// Mutable work modes (see initWorkModes() in sim_data.cpp)
+WorkModeDef workModes[WMODE_COUNT];
+
 // Profile
 Profile currentProfile = PROFILE_NORMAL;
 unsigned long profileDisplayStart = 0;

@@ -7,7 +7,7 @@ import * as serialTransport from './serial.js'
 import * as bleTransport from './ble.js'
 import * as dfuSerial from './dfu/serial.js'
 import { performDfu } from './dfu/dfu.js'
-import { parseResponse, parseSettings, parseStatus, buildQuery, buildSet, buildAction } from './protocol.js'
+import { parseResponse, parseSettings, parseStatus, parseWorkMode, parseSimBlocks, buildQuery, buildSet, buildAction } from './protocol.js'
 
 // --- Reactive state ---
 
@@ -89,6 +89,12 @@ export const statusMessage = ref('')
 export const dfuActive = ref(false)
 export const transportType = ref(null) // 'usb' | 'ble' | null
 
+// Simulation tuning state
+export const simModes = reactive([])      // Array of 11 parsed work mode objects
+export const simBlocks = reactive([])     // Array of block arrays per job (3 jobs)
+export const simDataDirty = ref(false)
+export const simDataLoading = ref(false)
+
 // Active transport module (serial or ble)
 let activeTransport = null
 
@@ -168,6 +174,12 @@ function handleLine(line) {
     availableKeys.value = parsed.data
   } else if (parsed.type === 'decoys') {
     decoyNames.value = parsed.data
+  } else if (parsed.type === 'wmode') {
+    const mode = parseWorkMode(parsed.data)
+    simModes[mode.idx] = mode
+  } else if (parsed.type === 'simblocks') {
+    const jobIdx = parseInt(parsed.data.job) || 0
+    simBlocks[jobIdx] = parseSimBlocks(parsed.data)
   } else if (parsed.type === 'ok' || parsed.type === 'error') {
     if (pendingResolve) {
       pendingResolve(parsed)
@@ -233,6 +245,10 @@ async function connectWithTransport(transport, type) {
     await transport.send(buildQuery('settings'))
     await sleep(longDelay)
     await transport.send(buildQuery('status'))
+
+    // Fetch sim tuning data for simulation mode
+    await sleep(longDelay)
+    await fetchSimData()
 
     startPolling()
   } catch (err) {
@@ -410,6 +426,75 @@ async function syncTimeToDevice() {
   const now = new Date()
   const daySeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
   await activeTransport.send(buildSet('time', daySeconds))
+}
+
+/**
+ * Fetch all sim tuning data (work modes + day blocks).
+ */
+export async function fetchSimData() {
+  if (!activeTransport || !activeTransport.isConnected()) return
+  simDataLoading.value = true
+  const delay = transportType.value === 'ble' ? 150 : 50
+  for (let i = 0; i < 11; i++) {
+    await activeTransport.send(buildQuery(`wmode:${i}`))
+    await sleep(delay)
+  }
+  for (let j = 0; j < 3; j++) {
+    await activeTransport.send(buildQuery(`simblocks:${j}`))
+    await sleep(delay)
+  }
+  simDataLoading.value = false
+  simDataDirty.value = false
+}
+
+/**
+ * Set a single work mode parameter.
+ */
+export async function setWorkModeParam(modeIdx, field, value) {
+  await activeTransport.send(buildSet('wmode', `${modeIdx}:${field}:${value}`))
+  // Re-fetch that mode to update local state
+  await sleep(50)
+  await activeTransport.send(buildQuery(`wmode:${modeIdx}`))
+  simDataDirty.value = true
+}
+
+/**
+ * Set a full profile timing (12 values) for a work mode.
+ */
+export async function setWorkModeTiming(modeIdx, profileIdx, timing) {
+  const csv = [
+    timing.burstKeysMin, timing.burstKeysMax,
+    timing.interKeyMinMs, timing.interKeyMaxMs,
+    timing.burstGapMinMs, timing.burstGapMaxMs,
+    timing.keyHoldMinMs, timing.keyHoldMaxMs,
+    timing.mouseDurMinMs, timing.mouseDurMaxMs,
+    timing.idleDurMinMs, timing.idleDurMaxMs,
+  ].join(',')
+  await activeTransport.send(buildSet('wmode', `${modeIdx}:t${profileIdx}:${csv}`))
+  await sleep(50)
+  await activeTransport.send(buildQuery(`wmode:${modeIdx}`))
+  simDataDirty.value = true
+}
+
+/**
+ * Save sim data to flash on device.
+ */
+export async function saveSimDataToFlash() {
+  await sendAndWait(buildAction('savesim'))
+  simDataDirty.value = false
+  statusMessage.value = 'Sim data saved'
+  setTimeout(() => { if (statusMessage.value === 'Sim data saved') statusMessage.value = '' }, 2000)
+}
+
+/**
+ * Reset all work modes to factory defaults.
+ */
+export async function resetSimDataToDefaults() {
+  await sendAndWait(buildAction('resetsim'))
+  await sleep(100)
+  await fetchSimData()
+  statusMessage.value = 'Sim data reset to defaults'
+  setTimeout(() => { if (statusMessage.value === 'Sim data reset to defaults') statusMessage.value = '' }, 2000)
 }
 
 // --- Internal helpers ---

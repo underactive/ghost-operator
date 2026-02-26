@@ -340,6 +340,9 @@ void setup() {
   scheduleNextMouseState();
   pickNextKey();
 
+  // Initialize mutable work modes from const defaults + flash overrides
+  initWorkModes();
+
   // Initialize simulation orchestrator (uses settings + RNG, so must follow loadSettings + randomSeed)
   if (settings.operationMode == 1) {
     initOrchestrator();

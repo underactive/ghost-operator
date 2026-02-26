@@ -69,4 +69,35 @@ extern const uint8_t CLICK_BUTTON_CODES[];
 extern const int8_t CLICK_SCROLL_DIRS[];
 extern const char* WMODE_SHORT_NAMES[];
 
+// ============================================================================
+// MUTABLE WORK MODE SUPPORT (flash persistence)
+// ============================================================================
+
+#define SIM_DATA_FILE "/sim_data.dat"
+#define SIM_DATA_MAGIC 0x53494D31  // "SIM1"
+
+// Pointer-free struct for flash storage (numeric fields only)
+struct WorkModeFlat {
+  uint8_t kbPercent;
+  ProfileWeights profileWeights;
+  PhaseTiming timing[PROFILE_COUNT];
+  uint16_t modeDurMinSec, modeDurMaxSec;
+  uint16_t profileStintMinSec, profileStintMaxSec;
+};
+
+struct SimDataFile {
+  uint32_t magic;
+  WorkModeFlat modes[WMODE_COUNT];
+  uint8_t checksum;
+};
+
+// Initialize mutable workModes[] from const WORK_MODES[] + flash overrides
+void initWorkModes();
+
+// Persist current workModes[] numeric fields to flash
+void saveSimData();
+
+// Reset workModes[] to factory defaults (const WORK_MODES[]) and delete flash file
+void resetSimDataDefaults();
+
 #endif // GHOST_SIM_DATA_H
