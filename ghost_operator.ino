@@ -167,8 +167,10 @@ void setupDisplay() {
   display.setTextSize(1);
 
   display.clearDisplay();
-  // Select splash bitmap based on operation mode (Breakout uses default splash)
-  const uint8_t *splash = (settings.operationMode == 2) ? splashVolumeBitmap : splashBitmap;
+  // Select splash bitmap based on operation mode
+  const uint8_t *splash = (settings.operationMode == 2) ? splashVolumeBitmap
+                        : (settings.operationMode == 3 || settings.operationMode == 4) ? splashGameBitmap
+                        : splashBitmap;
   display.drawBitmap(0, 0, splash, 128, 64, SSD1306_WHITE);
   // Version in lower-right corner (black text on white background)
   display.setTextColor(SSD1306_BLACK);
