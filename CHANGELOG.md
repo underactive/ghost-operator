@@ -5,6 +5,20 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] - 2026-02-26
+
+### Added
+
+- **Simulation tuning dashboard**: Per-mode parameter editing UI with sliders for profile weights, phase timing, and durations across all 11 work modes
+- **Sim tuning backup/restore**: Settings export now includes sim tuning data (version 2 format); import restores all work mode parameters; backward compatible with version 1 files
+- **Compressed job performance curve**: Level 11 now caps at 1.4× max (was higher), creating a more usable scaling range
+
+### Fixed
+
+- **Sim tuning sliders respond on input**: Sliders now fire on `input` instead of `change` for immediate feedback while dragging
+- **Stack overflow on sim data save**: Made File object static in `saveSimData()` to prevent stack overflow from large stack allocation
+- **Unified save flow**: `!save` command now persists both settings and sim data in a single operation
+
 ## [2.3.0] - 2026-02-26
 
 ### Added

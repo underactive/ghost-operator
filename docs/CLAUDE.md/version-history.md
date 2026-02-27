@@ -2,6 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
+| 2.3.1 | Simulation tuning dashboard (per-mode sliders for profile weights, phase timing, durations), sim tuning backup/restore in settings export (version 2 format), compressed job performance curve (level 11 → 1.4× max), slider responsiveness fix, stack overflow fix on sim data save, unified save flow |
 | 2.3.0 | 7-slot click action system (7 configurable phantom click slots with Wheel Up/Down), expanded function keys (F1–F20), redesigned pixel art icons, clearer menu labels, Snake game mode, game-specific boot splashes, configurable shift/lunch duration (dashboard-only), dashboard settings export/import (JSON backup/restore), work mode timer fix, K+M/M+K phase bug fixes, Breakout mode hardening |
 | 2.2.2 | Configurable Volume Control buttons (D2/D7 actions via menu + protocol), lunch enforcement at 4h mark with force-jump, keystroke keepalive floor (2-min gap), unified D3 function button, carousel callback flash→RAM fix, orchestrator time sync fix, keepalive sound suppression + HID hold time, D7 click state reset on screensaver/sleep |
 | 2.2.1 | Carousel settings page (9 named-option settings as full-screen carousels), system sounds (BLE connect/disconnect alerts), dashboard Bluetooth transport, carousel snap-on-open, volatile ISR state fix, sleep timeout safety, heap fragmentation elimination (ResponseWriter zero-alloc, String removal in protocol handlers), array bounds hardening |
