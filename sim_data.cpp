@@ -295,10 +295,14 @@ void saveSimData() {
   }
   sd.checksum = calcSimChecksum(sd);
 
+  // Use static File to avoid ~272 bytes on stack (LFS_NAME_MAX+1 inline buffer).
+  // Pattern matches saveSettings(): remove first, then create fresh.
   using namespace Adafruit_LittleFS_Namespace;
-  File f(InternalFS);
+  if (InternalFS.exists(SIM_DATA_FILE)) {
+    InternalFS.remove(SIM_DATA_FILE);
+  }
+  static File f(InternalFS);
   if (f.open(SIM_DATA_FILE, FILE_O_WRITE)) {
-    f.truncate(0);
     f.write((const uint8_t*)&sd, sizeof(sd));
     f.close();
     Serial.println("[SIM] Saved work mode overrides to flash");
