@@ -287,7 +287,7 @@ void initWorkModes() {
 }
 
 void saveSimData() {
-  SimDataFile sd;
+  static SimDataFile sd;       // static: ~1.3KB too large for 1KB FreeRTOS stack
   memset(&sd, 0, sizeof(sd));  // zero padding bytes for deterministic checksum
   sd.magic = SIM_DATA_MAGIC;
   for (uint8_t i = 0; i < WMODE_COUNT; i++) {
