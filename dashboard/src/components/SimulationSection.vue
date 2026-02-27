@@ -92,7 +92,7 @@ function onClickSlotChange(slotIndex, event) {
         :value="settings.jobPerf"
         @input="setSetting('jobPerf', Number($event.target.value))"
       />
-      <p class="help-text">Activity intensity (0 = near-idle, 5 = baseline, 11 = maximum). Also adjustable via encoder on OLED.</p>
+      <p class="help-text">Activity intensity (0 = near-idle, 8 ≈ baseline, 11 = maximum). Also adjustable via encoder on OLED.</p>
     </div>
 
     <div class="field">

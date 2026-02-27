@@ -40,26 +40,24 @@ static unsigned long jitter(unsigned long base) {
   return (unsigned long)max(1L, (long)base + random(-variation, variation + 1));
 }
 
-// Scale a duration by job performance level.
+// Scale a duration by job performance level (compressed curve).
 // scaleUp=true:  active durations (typing, mousing) — higher level = longer activity
 // scaleUp=false: idle durations (gaps, delays) — higher level = shorter idle
-// Level 5 = baseline (1.0x), level 0 = near-idle, level 11 = 2.2x active
+// level 8 ≈ 1x, level 11 → 1.4x active / 0.71x idle
 static unsigned long scaleByPerformance(unsigned long value, bool scaleUp) {
   uint8_t level = settings.jobPerformance;
-  if (level == 5) return value;  // baseline — no change
   if (scaleUp) {
-    return value * level / 5;    // level 0→0, level 11→2.2x
+    return value * level * 7 / 55;  // level 0→0, level 11→1.4x
   }
   if (level == 0) return value * 10;  // 10x idle at zero performance
-  return value * 5 / level;     // level 1→5x idle, level 11→0.45x idle
+  return value * 55 / (level * 7);   // level 1→7.86x idle, level 11→0.71x idle
 }
 
-// Scale a burst count by job performance level.
-// Level 5 = baseline, level 0 = 0 keys, level 11 = 2.2x keys
+// Scale a burst count by job performance level (compressed curve).
+// level 8 ≈ 1x, level 0 = 0 keys, level 11 = 1.4x keys
 static uint8_t scaleCountByPerformance(uint8_t value) {
   uint8_t level = settings.jobPerformance;
-  if (level == 5) return value;
-  uint16_t result = (uint16_t)value * level / 5;
+  uint16_t result = (uint16_t)value * level * 7 / 55;
   if (result > 255) return 255;
   if (result == 0 && level > 0) return 1;  // clamp to 1 if level>0
   return (uint8_t)result;
