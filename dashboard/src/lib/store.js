@@ -572,12 +572,35 @@ export function exportSettings() {
     }
   }
 
+  // Build sim tuning array from reactive simModes
+  const simTuning = []
+  for (let i = 0; i < simModes.length; i++) {
+    const m = simModes[i]
+    if (!m) continue
+    simTuning.push({
+      idx: m.idx,
+      kb: m.kb,
+      wL: m.wL, wN: m.wN, wB: m.wB,
+      dMin: m.dMin, dMax: m.dMax,
+      pMin: m.pMin, pMax: m.pMax,
+      timing: m.timing.map(t => [
+        t.burstKeysMin, t.burstKeysMax,
+        t.interKeyMinMs, t.interKeyMaxMs,
+        t.burstGapMinMs, t.burstGapMaxMs,
+        t.keyHoldMinMs, t.keyHoldMaxMs,
+        t.mouseDurMinMs, t.mouseDurMaxMs,
+        t.idleDurMinMs, t.idleDurMaxMs,
+      ]),
+    })
+  }
+
   const payload = {
     ghost_operator: {
-      version: 1,
+      version: 2,
       device_name: settings.name || 'GhostOperator',
       exported_at: new Date().toISOString(),
       settings: exported,
+      sim_tuning: simTuning,
     },
   }
 
@@ -587,7 +610,7 @@ export function exportSettings() {
   const date = new Date().toISOString().slice(0, 10)
   const name = (settings.name || 'GhostOperator').replace(/[^a-zA-Z0-9_-]/g, '_')
   a.href = url
-  a.download = `${name}_settings_${date}.json`
+  a.download = `${name}_backup_${date}.json`
   a.click()
   URL.revokeObjectURL(url)
 
@@ -643,6 +666,49 @@ export async function importSettings(file) {
     if (!EXPORTABLE_KEYS.includes(key)) {
       result.skipped.push(`${key} (unknown)`)
     }
+  }
+
+  // Import sim tuning data if present (version 2+)
+  const simTuning = data.ghost_operator.sim_tuning
+  if (Array.isArray(simTuning) && simTuning.length > 0) {
+    const scalarFields = ['kb', 'wL', 'wN', 'wB', 'dMin', 'dMax', 'pMin', 'pMax']
+    for (const mode of simTuning) {
+      const idx = mode.idx
+      if (typeof idx !== 'number' || idx < 0 || idx > 10) {
+        result.errors.push(`sim mode idx ${idx}: out of range`)
+        continue
+      }
+
+      // Send scalar fields
+      for (const field of scalarFields) {
+        if (field in mode) {
+          try {
+            await activeTransport.send(buildSet('wmode', `${idx}:${field}:${mode[field]}`))
+            await sleep(50)
+          } catch (err) {
+            result.errors.push(`sim mode ${idx} ${field}: ${err.message}`)
+          }
+        }
+      }
+
+      // Send timing arrays (3 profiles)
+      if (Array.isArray(mode.timing)) {
+        for (let p = 0; p < mode.timing.length && p < 3; p++) {
+          const t = mode.timing[p]
+          if (Array.isArray(t) && t.length === 12) {
+            try {
+              await activeTransport.send(buildSet('wmode', `${idx}:t${p}:${t.join(',')}`))
+              await sleep(50)
+            } catch (err) {
+              result.errors.push(`sim mode ${idx} t${p}: ${err.message}`)
+            }
+          }
+        }
+      }
+    }
+
+    // Refresh reactive state
+    await fetchSimData()
   }
 
   // Save to flash
