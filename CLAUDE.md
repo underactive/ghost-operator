@@ -47,7 +47,7 @@
 
 ---
 
-## Firmware Architecture
+## Architecture
 
 ### Core Files
 Modular architecture — 20 `.h/.cpp` module pairs + lean `.ino` entry point:
@@ -318,17 +318,100 @@ WEB → DEVICE                    DEVICE → WEB
 - 4 transitions per detent (divide by 4 for clicks)
 - **IMPORTANT:** Do NOT use `analogRead()` on A0 or A1 — these share P0.02/P0.03 with encoder CLK/DT. `analogRead()` disconnects the digital input buffer, breaking encoder reads.
 
----
-
-## Display Layout
+### Display Layout
 
 See [docs/CLAUDE.md/display-layout.md](docs/CLAUDE.md/display-layout.md) for ASCII mockups of all UI modes (Normal, Menu, Slots, Name, Screensaver).
 
----
-
-## Version History
+### Version History
 
 See [docs/CLAUDE.md/version-history.md](docs/CLAUDE.md/version-history.md) for full changelog (v1.0.0 through v2.3.1).
+
+---
+
+## Build Configuration
+
+### Arduino CLI Configuration
+- **FQBN:** `Seeeduino:nrf52:xiaonRF52840`
+- **Board URL:** `https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json`
+- **Warnings:** `--warnings more` locally; `--warnings default` in CI (less strict to avoid spurious failures on minor warnings)
+- **Sketch directory naming:** Arduino CLI requires the `.ino` filename to match the parent directory name. CI checks out into `ghost_operator/` to satisfy this; git worktrees need a symlink (see Build Instructions).
+- **Library directory:** `~/Arduino` instead of `~/Documents/Arduino` — macOS sandboxes `~/Documents/`, preventing arduino-cli from managing libraries there
+- **Settings magic number:** `SETTINGS_MAGIC` in `config.h` encodes the settings struct schema version. Bump it when the `Settings` struct layout changes to trigger a safe `loadDefaults()` reset instead of reading corrupt data from flash.
+- **DFU ZIP generation:** The Seeed nRF52 toolchain automatically generates a `.zip` DFU package alongside the `.hex` during compilation (via `adafruit-nrfutil`). No extra build step required.
+- **CI mirror:** Release workflow mirrors DFU artifacts from the private `ghost-operator-v2` repo to the public `ghost-operator` repo for distribution.
+
+### Environment Variables
+
+No environment variables are used in local builds. Configuration is sourced entirely from `config.h` preprocessor defines and git tags.
+
+**CI/CD (GitHub Actions) secrets:**
+
+| Secret | Purpose |
+|--------|---------|
+| `GITHUB_TOKEN` | Default token for v2 repo access and release creation |
+| `V1_REPO_PAT` | Personal access token for mirroring releases to the public `ghost-operator` repo |
+
+---
+
+## Code Style
+
+No formal linting or formatting tools are configured (no `.clang-format`, `.editorconfig`, `.eslintrc`, or `.prettierrc`). Style is maintained by following patterns in existing code.
+
+**Cross-language conventions (C++ firmware and JS/Vue dashboard):**
+
+| Aspect | Convention |
+|--------|-----------|
+| Indentation | 2 spaces (no tabs) |
+| Runtime values/functions | `camelCase` |
+| Constants/enums | `UPPER_SNAKE_CASE` |
+| Struct/type names | `PascalCase` |
+| Brace style | Opening brace on same line (K&R) |
+| Line length | Soft limit ~100 chars |
+| Comments | Pragmatic — explain *why*, not *what* |
+
+**C++ firmware specifics:**
+- Header guards: `#ifndef GHOST_[FILENAME]_H` / `#define GHOST_[FILENAME]_H` / `#endif`
+- Include ordering: project headers first (quoted), then standard library, then third-party
+- Prefer `uint8_t`/`uint16_t`/`uint32_t` over `int` for sized data
+- `volatile` for ISR-accessed variables; `const` for immutable data
+- Struct-based data (C idiom), not C++ classes
+- `extern` declarations in headers; definitions in `.cpp`
+
+**Vue/JS dashboard specifics:**
+- Vue 3 Composition API with `<script setup>` syntax
+- Named exports preferred
+- Scoped styles with `<style scoped>`
+- CSS custom properties at `:root` for theming
+
+For new contributions, follow the patterns in the largest modules (`display.cpp`, `settings.cpp`, `keys.cpp`, `App.vue`, `store.js`).
+
+---
+
+## External Integrations
+
+### Web Bluetooth API (Dashboard)
+- **What:** BLE connection to the nRF52840 via Nordic UART Service (NUS)
+- **Loaded via:** Browser `navigator.bluetooth` API in `dashboard/src/lib/ble.js`
+- **Lifecycle:** User-initiated device picker → GATT connection → characteristic notifications for receive, chunked writes for send
+- **Gotchas:** NUS UUID not in BLE advertising packet (would overflow 31 bytes) — must be listed in `optionalServices` during `requestDevice()`. Chrome blocklists legacy DFU UUID, so Web Bluetooth cannot be used for OTA DFU.
+
+### Web Serial API (Dashboard)
+- **What:** USB CDC serial connection for configuration and DFU firmware updates
+- **Loaded via:** Browser `navigator.serial` API in `dashboard/src/lib/serial.js` and `dashboard/src/lib/dfu/serial.js`
+- **Lifecycle:** User-initiated port picker → 115200 baud connection → async read loop with line buffering
+- **Gotchas:** DTR toggle is required after opening serial port for DFU mode — without it, the bootloader's USB CDC serial processing isn't initialized and larger packets will crash. Same USB port path is reused between app mode and bootloader mode.
+
+### WebUSB (Firmware)
+- **What:** Auto-launches the web dashboard when the device is plugged in via USB
+- **Loaded via:** `Adafruit_USBD_WebUSB` class in `ghost_operator.ino`
+- **Lifecycle:** Registered before USB stack init; Chrome navigates to landing URL on device connect
+- **Environment gating:** Only active when `dashboardEnabled` setting is on. Smart default: auto-disables after 3 boots if user never interacts with it; any explicit toggle pins it permanently.
+- **Landing URL:** `tarsindustrial.tech/ghost-operator/dashboard?welcome`
+
+### fflate (NPM)
+- **What:** ZIP decompression for parsing DFU firmware packages (`.zip` → `manifest.json` + `.dat` + `.bin`)
+- **Loaded via:** `import { unzipSync } from 'fflate'` in `dashboard/src/lib/dfu/zip.js`
+- **Gotchas:** Only production dependency besides Vue. Chosen for small bundle size and synchronous API.
 
 ---
 
@@ -371,6 +454,111 @@ Always use `snprintf(buf, sizeof(buf), ...)` instead of `sprintf(buf, ...)`, eve
 
 ### 8. Report errors, don't silently truncate
 Command buffers track an overflow flag (`uartBufOverflow`, `serialBufOverflow`). When a line exceeds the buffer, respond with `-err:cmd too long` instead of silently truncating and processing a partial command. Apply the same principle to any new protocol handler: always give the client actionable error feedback.
+
+---
+
+## Plan Pre-Implementation
+
+Before planning, check `docs/CLAUDE.md/plans/` for prior plans that touched the same areas. Scan the **Files changed** lists in both `implementation.md` and `audit.md` files to find relevant plans without reading every file — then read the full `plan.md` only for matches. This keeps context window usage low while preserving access to project history.
+
+When a plan is finalized and about to be implemented, write the full plan to `docs/CLAUDE.md/plans/{epoch}-{plan_name}/plan.md`, where `{epoch}` is the Unix timestamp at the time of writing and `{plan_name}` is a short kebab-case description of the plan (e.g., `1709142000-add-user-auth/plan.md`).
+
+The epoch prefix ensures chronological ordering — newer plans visibly supersede earlier ones at a glance based on directory name ordering.
+
+The plan document should include:
+- **Objective** — what is being implemented and why
+- **Changes** — files to modify/create, with descriptions of each change
+- **Dependencies** — any prerequisites or ordering constraints between changes
+- **Risks / open questions** — anything flagged during planning that needs attention
+
+---
+
+## Plan Post-Implementation
+
+After a plan has been fully implemented, write the completed implementation record to `docs/CLAUDE.md/plans/{epoch}-{plan_name}/implementation.md`, using the same directory as the corresponding `plan.md`.
+
+The implementation document **must** include:
+- **Files changed** — list of all files created, modified, or deleted. This section is **required** — it serves as a lightweight index for future planning, allowing prior plans to be found by scanning file lists without reading full plan contents.
+- **Summary** — what was actually implemented (noting any deviations from the plan)
+- **Verification** — steps taken to verify the implementation is correct (tests run, manual checks, build confirmation)
+- **Follow-ups** — any remaining work, known limitations, or future improvements identified during implementation
+
+If the implementation added or changed user-facing behavior (new settings, UI modes, protocol commands, or display changes), add corresponding `- [ ]` test items to `docs/CLAUDE.md/testing-checklist.md`. Each item should describe the expected observable behavior, not the implementation detail.
+
+---
+
+## Post-Implementation Audit
+
+After finishing implementation of a plan, run the following subagents **in parallel** to audit all changed files.
+
+> **Scope directive for all subagents:** Only flag issues in the changed code and its immediate dependents. Do not audit the entire codebase.
+
+> **Output directive:** After all subagents complete, write a single consolidated audit report to `docs/CLAUDE.md/plans/{epoch}-{plan_name}/audit.md`, using the same directory as the corresponding `plan.md`. The audit report **must** include a **Files changed** section listing all files where findings were flagged. This section is **required** — it serves as a lightweight index for future planning, covering files affected by audit findings (including immediate dependents not in the original implementation).
+
+### 1. QA Audit (subagent)
+Review changes for:
+- **Functional correctness**: broken workflows, missing error/loading states, unreachable code paths, logic that doesn't match spec
+- **Edge cases**: empty/null/undefined inputs, zero-length collections, off-by-one errors, race conditions, boundary values (min/max/overflow)
+- **Infinite loops**: unbounded `while`/recursive calls, callbacks triggering themselves, retry logic without max attempts or backoff
+- **Performance**: unnecessary computation in hot paths, O(n²) or worse in loops over growing data, unthrottled event handlers, expensive operations blocking main thread or interrupt context
+
+### 2. Security Audit (subagent)
+Review changes for:
+- **Injection / input trust**: unsanitized external input used in commands, queries, or output rendering; format string vulnerabilities; untrusted data used in control flow
+- **Overflows**: unbounded buffer writes, unguarded index access, integer overflow/underflow in arithmetic, unchecked size parameters
+- **Memory leaks**: allocated resources not freed on all exit paths, event/interrupt handlers not deregistered on cleanup, growing caches or buffers without eviction or bounds
+- **Hard crashes**: null/undefined dereferences without guards, unhandled exceptions in async or interrupt context, uncaught error propagation across module boundaries
+
+### 3. Interface Contract Audit (subagent)
+Review changes for:
+- **Data shape mismatches**: caller assumptions that diverge from actual API/protocol schema, missing fields treated as present, incorrect type coercion or endianness
+- **Error handling**: no distinction between recoverable and fatal errors, swallowed failures, missing retry/backoff on transient faults, no timeout or watchdog configuration
+- **Auth / privilege flows**: credential or token lifecycle issues, missing permission checks, race conditions during handshake or session refresh
+- **Data consistency**: optimistic state updates without rollback on failure, stale cache served after mutation, sequence counters or cursors not invalidated after writes
+
+### 4. State Management Audit (subagent)
+Review changes for:
+- **Mutation discipline**: shared state modified outside designated update paths, state transitions that skip validation, side effects hidden inside getters or read operations
+- **Reactivity / observation pitfalls**: mutable updates that bypass change detection or notification mechanisms, deeply nested state triggering unnecessary cascading updates
+- **Data flow**: excessive pass-through of context across layers where a shared store or service belongs, sibling modules communicating via parent state mutation, event/signal spaghetti without cleanup
+- **Sync issues**: local copies shadowing canonical state, multiple sources of truth for the same entity, concurrent writers without arbitration (locks, atomics, or message ordering)
+
+### 5. Resource & Concurrency Audit (subagent)
+Review changes for:
+- **Concurrency**: data races on shared memory, missing locks/mutexes/atomics around critical sections, deadlock potential from lock ordering, priority inversion in RTOS or threaded contexts
+- **Resource lifecycle**: file handles, sockets, DMA channels, or peripherals not released on error paths; double-free or use-after-free; resource exhaustion under sustained load
+- **Timing**: assumptions about execution order without synchronization, spin-waits without yield or timeout, interrupt latency not accounted for in real-time constraints
+- **Power & hardware**: peripherals left in active state after use, missing clock gating or sleep transitions, watchdog not fed on long operations, register access without volatile or memory barriers
+
+### 6. Testing Coverage Audit (subagent)
+Review changes for:
+- **Missing tests**: new public functions/modules without corresponding unit tests, modified branching logic without updated assertions, deleted tests not replaced
+- **Test quality**: assertions on implementation details instead of behavior, tests coupled to internal structure, mocked so heavily the test proves nothing
+- **Integration gaps**: cross-module flows tested only with mocks and never with integration or contract tests, initialization/shutdown sequences untested, error injection paths uncovered
+- **Flakiness risks**: tests dependent on timing or sleep, shared mutable state between test cases, non-deterministic data (random IDs, timestamps), hardware-dependent tests without abstraction layer
+
+### 7. DX & Maintainability Audit (subagent)
+Review changes for:
+- **Readability**: functions exceeding ~50 lines, boolean parameters without named constants, magic numbers/strings without explanation, nested ternaries or conditionals deeper than one level
+- **Dead code**: unused includes/imports, unreachable branches behind stale feature flags, commented-out blocks with no context, exported symbols with zero consumers
+- **Naming & structure**: inconsistent naming conventions, business/domain logic buried in UI or driver layers, utility functions duplicated across modules
+- **Documentation**: public API changes without updated doc comments, non-obvious workarounds missing a `// WHY:` comment, breaking changes without migration notes
+
+---
+
+## Audit Post-Implementation
+
+After audit findings have been addressed, update the `implementation.md` file in the corresponding `docs/CLAUDE.md/plans/{epoch}-{plan_name}/` directory:
+
+1. **Flag fixed items** — In the audit report (`docs/CLAUDE.md/plans/{epoch}-{plan_name}/audit.md`), mark each finding that was fixed with a `[FIXED]` prefix so it is visually distinct from unresolved items.
+
+2. **Append a fixes summary** — Add an `## Audit Fixes` section at the end of `implementation.md` containing:
+   - **Fixes applied** — a numbered list of each fix, referencing the audit finding it addresses (e.g., "Fixed unchecked index access flagged by Security Audit §2")
+   - **Verification checklist** — a `- [ ]` checkbox list of specific tests or manual checks to confirm each fix is correct (e.g., "Verify bounds check on `configIndex` with out-of-range input returns fallback")
+
+3. **Leave unresolved items as-is** — Any audit findings intentionally deferred or accepted as-is should remain unmarked in the audit report. Add a brief note in the fixes summary explaining why they were not addressed.
+
+4. **Update testing checklist** — If any audit fixes changed user-facing behavior, add corresponding `- [ ]` test items to `docs/CLAUDE.md/testing-checklist.md`. Each item should describe the expected observable behavior, not the implementation detail.
 
 ---
 
@@ -460,6 +648,7 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `CHANGELOG.md` | Version history (semver) |
 | `CLAUDE.md` | This file |
 | `docs/CLAUDE.md/` | Reference docs (display-layout, testing-checklist, future-improvements, version-history) |
+| `docs/CLAUDE.md/plans/` | Plan, implementation, and audit records (epoch-prefixed directories for chronological ordering) |
 | `docs/images/` | OLED screenshot PNGs for README |
 | `build.sh` | Build automation: compile, setup, release (DFU ZIP), flash |
 | `Makefile` | Convenience targets wrapping build.sh |
@@ -499,7 +688,7 @@ ln -sfn "$(pwd)" /tmp/ghost_operator && arduino-cli compile --fqbn Seeeduino:nrf
 
 ---
 
-## Testing Checklist
+## Testing
 
 See [docs/CLAUDE.md/testing-checklist.md](docs/CLAUDE.md/testing-checklist.md) for the full QA testing checklist (~100 items covering all UI modes, settings, BLE, display, and serial commands).
 
@@ -526,6 +715,42 @@ At 115200 baud:
 | e | Easter egg (trigger animation immediately) |
 | f | Enter OTA DFU bootloader mode (writes 0xA8 to GPREGRET, resets) |
 | u | Enter Serial DFU bootloader mode (writes 0x4E to GPREGRET, resets — USB CDC) |
+
+---
+
+## Maintaining This File
+
+### When to update CLAUDE.md
+- **Adding a new subsystem or module** — add it to Architecture and File Inventory
+- **Adding a new setting or config field** — update the Settings section and Common Modifications
+- **Discovering a new bug class** — add a Development Rule to prevent recurrence
+- **Changing the build process** — update Build Instructions and/or Build Configuration
+- **Changing linting or style rules** — update Code Style
+- **Integrating a new third-party service or SDK** — add to External Integrations
+- **Bumping the version** — update the version in Project Overview
+- **Adding/removing files** — update File Inventory
+- **Finding a new limitation** — add to Known Issues
+
+### Supplementary docs
+For sections that grow large (display layouts, testing checklists, changelogs), move them to separate files under `docs/CLAUDE.md/` and link from here. This keeps the main CLAUDE.md scannable while preserving detail.
+
+### Future improvements tracking
+When a new feature is added and related enhancements or follow-up ideas are suggested but declined, add them as `- [ ]` items to `docs/CLAUDE.md/future-improvements.md`. This preserves good ideas for later without cluttering the current task.
+
+### Version history maintenance
+When making changes that are committed to the repository, add a row to the version history table in `docs/CLAUDE.md/version-history.md`. Each entry should include:
+
+- **Ver** — A semantic version identifier (e.g., `v2.4.0`). Follow semver: MAJOR.MINOR.PATCH. Use the most recent entry in the table to determine the next version number.
+- **Changes** — A brief summary of what changed.
+
+Append new rows to the bottom of the table. Do not remove or rewrite existing entries.
+
+### Testing checklist maintenance
+When adding or modifying user-facing behavior (new settings, UI modes, protocol commands, or display changes), add corresponding `- [ ]` test items to `docs/CLAUDE.md/testing-checklist.md`. Each item should describe the expected observable behavior, not the implementation detail.
+
+### What belongs here vs. in code comments
+- **Here:** Architecture decisions, cross-cutting concerns, "how things fit together," gotchas, recipes
+- **In code:** Implementation details, function-level docs, inline explanations of tricky logic
 
 ---
 
