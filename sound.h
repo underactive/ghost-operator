@@ -12,6 +12,7 @@ enum KeyboardSound {
 };
 
 void initSound();
+bool canPlayGameSound();
 void playKeySound();
 void playConnectSound();
 void playDisconnectSound();

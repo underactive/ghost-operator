@@ -72,6 +72,10 @@ static void playOnce(uint8_t type) {
   }
 }
 
+bool canPlayGameSound() {
+  return settings.soundEnabled || settings.systemSoundEnabled;
+}
+
 void playKeySound() {
   if (!settings.soundEnabled) return;
   if (!deviceConnected && !usbConnected) return;

@@ -121,6 +121,7 @@ async function readLoop() {
         if (done) break
 
         rxBuffer += decoder.decode(value, { stream: true })
+        if (rxBuffer.length > 8192) { rxBuffer = '' }
 
         // Process complete lines
         let newlineIdx

@@ -83,36 +83,51 @@ export function parseSettings(data) {
     mouseJig: parseInt(data.mouseJig) || 15000,
     mouseIdle: parseInt(data.mouseIdle) || 30000,
     mouseAmp: parseInt(data.mouseAmp) || 1,
-    mouseStyle: parseInt(data.mouseStyle) || 0,
-    lazyPct: parseInt(data.lazyPct) || 0,
-    busyPct: parseInt(data.busyPct) || 0,
+    mouseStyle: parseInt(data.mouseStyle) ?? 0,
+    lazyPct: parseInt(data.lazyPct) ?? 0,
+    busyPct: parseInt(data.busyPct) ?? 0,
     dispBright: parseInt(data.dispBright) || 80,
     saverBright: parseInt(data.saverBright) || 20,
     saverTimeout: parseInt(data.saverTimeout ?? '5'),
     animStyle: parseInt(data.animStyle ?? '2'),
     name: data.name || 'GhostOperator',
-    btWhileUsb: parseInt(data.btWhileUsb) || 0,
-    scroll: parseInt(data.scroll) || 0,
-    dashboard: parseInt(data.dashboard) || 0,
-    invertDial: parseInt(data.invertDial) || 0,
-    decoy: parseInt(data.decoy) || 0,
-    schedMode: parseInt(data.schedMode) || 0,
+    btWhileUsb: parseInt(data.btWhileUsb) ?? 0,
+    scroll: parseInt(data.scroll) ?? 0,
+    dashboard: parseInt(data.dashboard) ?? 0,
+    invertDial: parseInt(data.invertDial) ?? 0,
+    decoy: parseInt(data.decoy) ?? 0,
+    schedMode: parseInt(data.schedMode) ?? 0,
     schedStart: parseInt(data.schedStart ?? '108'),
     schedEnd: parseInt(data.schedEnd ?? '204'),
     slots: (data.slots || '2,28,28,28,28,28,28,28').split(',').map(Number),
     // Simulation mode settings
-    opMode: parseInt(data.opMode) || 0,
-    jobSim: parseInt(data.jobSim) || 0,
+    opMode: parseInt(data.opMode) ?? 0,
+    jobSim: parseInt(data.jobSim) ?? 0,
     jobPerf: parseInt(data.jobPerf ?? '5'),
     jobStart: parseInt(data.jobStart ?? '96'),
-    phantom: parseInt(data.phantom) || 0,
+    phantom: parseInt(data.phantom) ?? 0,
     clickSlots: (data.clickSlots || '1,7,7,7,7,7,7').split(',').map(Number),
-    winSwitch: parseInt(data.winSwitch) || 0,
-    switchKeys: parseInt(data.switchKeys) || 0,
-    headerDisp: parseInt(data.headerDisp) || 0,
+    winSwitch: parseInt(data.winSwitch) ?? 0,
+    switchKeys: parseInt(data.switchKeys) ?? 0,
+    headerDisp: parseInt(data.headerDisp) ?? 0,
     // Sound settings
-    sound: parseInt(data.sound) || 0,
-    soundType: parseInt(data.soundType) || 0,
+    sound: parseInt(data.sound) ?? 0,
+    soundType: parseInt(data.soundType) ?? 0,
+    sysSounds: parseInt(data.sysSounds) ?? 0,
+    // Volume control settings
+    volumeTheme: parseInt(data.volumeTheme) ?? 0,
+    encButton: parseInt(data.encButton) ?? 0,
+    sideButton: parseInt(data.sideButton) ?? 0,
+    // Game settings
+    ballSpeed: parseInt(data.ballSpeed) ?? 0,
+    paddleSize: parseInt(data.paddleSize) ?? 0,
+    startLives: parseInt(data.startLives) ?? 0,
+    highScore: parseInt(data.highScore) ?? 0,
+    snakeSpeed: parseInt(data.snakeSpeed) ?? 0,
+    snakeWalls: parseInt(data.snakeWalls) ?? 0,
+    snakeHiScore: parseInt(data.snakeHiScore) ?? 0,
+    racerSpeed: parseInt(data.racerSpeed) ?? 0,
+    racerHiScore: parseInt(data.racerHiScore) ?? 0,
     // Shift/lunch settings
     shiftDur: parseInt(data.shiftDur ?? '480'),
     lunchDur: parseInt(data.lunchDur ?? '30'),
@@ -153,7 +168,7 @@ export const PROFILE_NAMES = ['LAZY', 'NORMAL', 'BUSY']
 export const PROFILE_LABEL_NAMES = ['Lazy', 'Normal', 'Busy']
 
 /** Mode index to name mapping (matches firmware MODE_NAMES[]) */
-export const MODE_NAMES = ['NORMAL', 'MENU', 'SLOTS', 'NAME', 'DECOY', 'SCHED', 'MODE', 'CLOCK']
+export const MODE_NAMES = ['NORMAL', 'MENU', 'SLOTS', 'NAME', 'DECOY', 'SCHED', 'MODE', 'CLOCK', 'CRSL', 'CSLOT']
 
 /** Mouse state index to name mapping */
 export const MOUSE_STATE_NAMES = ['IDLE', 'MOVING', 'RETURNING']
@@ -171,7 +186,7 @@ export const SAVER_NAMES = ['Never', '1 min', '5 min', '10 min', '15 min', '30 m
 export const SCHEDULE_MODE_NAMES = ['Off', 'Sleep', 'Full auto']
 
 /** Operation mode index to name mapping (matches firmware OP_MODE_NAMES[]) */
-export const OP_MODE_NAMES = ['Simple', 'Simulation']
+export const OP_MODE_NAMES = ['Simple', 'Simulation', 'Volume', 'Breakout', 'Snake', 'Racer']
 
 /** Job simulation index to name mapping (matches firmware JOB_SIM_NAMES[]) */
 export const JOB_SIM_NAMES = ['Staff', 'Developer', 'Designer']

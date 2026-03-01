@@ -304,7 +304,7 @@ void saveSimData() {
   static File f(InternalFS);
   if (f.open(SIM_DATA_FILE, FILE_O_WRITE)) {
     f.write((const uint8_t*)&sd, sizeof(sd));
-    f.close();
+    f.close();  // LittleFS File::close() returns void — cannot detect close failure
     Serial.println("[SIM] Saved work mode overrides to flash");
   } else {
     Serial.println("[SIM] Failed to open sim_data.dat for write");

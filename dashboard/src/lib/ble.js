@@ -144,6 +144,7 @@ export function isConnected() {
 function handleTxNotification(event) {
   const value = new TextDecoder().decode(event.target.value)
   rxBuffer += value
+  if (rxBuffer.length > 8192) { rxBuffer = '' }
 
   // Process complete lines
   let newlineIdx

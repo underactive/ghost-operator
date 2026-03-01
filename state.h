@@ -44,9 +44,9 @@ extern volatile uint8_t encoderPrevState;
 extern volatile int8_t lastEncoderDir;
 
 // Connection & enables
-extern bool deviceConnected;
+extern volatile bool deviceConnected;
 extern bool usbConnected;
-extern uint16_t bleConnHandle;
+extern volatile uint16_t bleConnHandle;
 extern bool bleDisabledForUsb;
 extern bool keyEnabled;
 extern bool mouseEnabled;
@@ -99,7 +99,7 @@ extern FooterMode footerMode;
 extern int8_t   menuCursor;
 extern int8_t   menuScrollOffset;
 extern bool     menuEditing;
-extern int16_t  helpScrollPos;
+extern int8_t   helpScrollPos;
 extern int8_t   helpScrollDir;
 extern unsigned long helpScrollTimer;
 
@@ -285,9 +285,13 @@ union GameState {
   RacerGameState rcr;
 };
 extern GameState gameState;
-#define brk (gameState.brk)
-#define snk (gameState.snk)
-#define rcr (gameState.rcr)
+#define gBrk (gameState.brk)
+#define gSnk (gameState.snk)
+#define gRcr (gameState.rcr)
+
+// Deferred sound playback (set in BLE callbacks, consumed in loop())
+extern volatile bool connectSoundPending;
+extern volatile bool disconnectSoundPending;
 
 // Deferred settings save (avoids flash wear on rapid game-over)
 extern bool settingsDirty;

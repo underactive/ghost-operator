@@ -190,23 +190,23 @@ static void cmdQueryStatus() {
   }
 
   // Mode-specific status
-  if (settings.operationMode == 5) {
+  if (settings.operationMode == OP_RACER) {
     len += snprintf(buf + len, sizeof(buf) - len,
       "|rcrState=%d|rcrScore=%d",
-      (int)rcr.state, rcr.score);
-  } else if (settings.operationMode == 4) {
+      (int)gRcr.state, gRcr.score);
+  } else if (settings.operationMode == OP_SNAKE) {
     len += snprintf(buf + len, sizeof(buf) - len,
       "|snkState=%d|snkScore=%d|snkLen=%d",
-      (int)snk.state, snk.score, snk.length);
-  } else if (settings.operationMode == 3) {
+      (int)gSnk.state, gSnk.score, gSnk.length);
+  } else if (settings.operationMode == OP_BREAKOUT) {
     len += snprintf(buf + len, sizeof(buf) - len,
       "|brkState=%d|brkLevel=%d|brkScore=%d|brkLives=%d",
-      (int)brk.state, brk.level, brk.score, brk.lives);
-  } else if (settings.operationMode == 2) {
+      (int)gBrk.state, gBrk.level, gBrk.score, gBrk.lives);
+  } else if (settings.operationMode == OP_VOLUME) {
     len += snprintf(buf + len, sizeof(buf) - len,
       "|volMuted=%d|volPlaying=%d",
       volMuted ? 1 : 0, volPlaying ? 1 : 0);
-  } else if (settings.operationMode == 1) {
+  } else if (settings.operationMode == OP_SIMULATION) {
     len += snprintf(buf + len, sizeof(buf) - len,
       "|simBlock=%d|simMode=%d|simPhase=%d|simProfile=%d",
       orch.blockIdx, (int)orch.modeId, (int)orch.phase, (int)orch.autoProfile);
@@ -219,7 +219,7 @@ static void cmdQueryStatus() {
 // ?settings — all persistent settings
 // ----------------------------------------------------------------------------
 static void cmdQuerySettings() {
-  char buf[640];
+  char buf[768];
   int len = snprintf(buf, sizeof(buf),
     "!settings|keyMin=%lu|keyMax=%lu|mouseJig=%lu|mouseIdle=%lu"
     "|mouseAmp=%d|mouseStyle=%d|lazyPct=%d|busyPct=%d"
@@ -357,7 +357,13 @@ static void cmdSetValue(const char* body) {
   } else if (strcmp(key, "invertDial") == 0) {
     setSettingValue(SET_INVERT_DIAL, (uint32_t)atol(valStr));
   } else if (strcmp(key, "name") == 0) {
-    // Device name — up to 14 chars
+    // Device name — up to 14 printable ASCII chars
+    for (const char* p = valStr; *p; p++) {
+      if (*p < 0x20 || *p > 0x7E) {
+        currentWriter("-err:invalid name chars");
+        return;
+      }
+    }
     strncpy(settings.deviceName, valStr, NAME_MAX_LEN);
     settings.deviceName[NAME_MAX_LEN] = '\0';
   } else if (strcmp(key, "decoy") == 0) {
@@ -485,9 +491,9 @@ static void cmdSetValue(const char* body) {
     } else if (strcmp(field, "wB") == 0) {
       int v = atoi(fVal); mode.profileWeights.busyPct = (uint8_t)max(0, min(100, v));
     } else if (strcmp(field, "dMin") == 0) {
-      mode.modeDurMinSec = (uint16_t)max(10, atoi(fVal));
+      mode.modeDurMinSec = (uint16_t)min(65535, max(10, atoi(fVal)));
     } else if (strcmp(field, "dMax") == 0) {
-      mode.modeDurMaxSec = (uint16_t)max(10, atoi(fVal));
+      mode.modeDurMaxSec = (uint16_t)min(65535, max(10, atoi(fVal)));
     } else if (strcmp(field, "pMin") == 0) {
       mode.profileStintMinSec = (uint16_t)max(5, atoi(fVal));
     } else if (strcmp(field, "pMax") == 0) {
@@ -499,10 +505,13 @@ static void cmdSetValue(const char* body) {
       // Parse 12 comma-separated values
       const char* pp = fVal;
       uint32_t vals[12];
+      int csvCount = 0;
       for (int i = 0; i < 12; i++) {
         vals[i] = (uint32_t)atol(pp);
+        csvCount++;
         while (*pp && *pp != ',') pp++;
         if (*pp == ',') pp++;
+        else if (i < 11) { currentWriter("-err:wmode timing needs 12 values"); return; }
       }
       t.burstKeysMin = (uint8_t)vals[0];
       t.burstKeysMax = (uint8_t)vals[1];

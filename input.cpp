@@ -216,11 +216,11 @@ bool isMenuItemHidden(int8_t idx) {
   if (idx < 0 || idx >= MENU_ITEM_COUNT) return true;
   const MenuItem& item = MENU_ITEMS[idx];
 
-  bool isSim = (settings.operationMode == 1);
-  bool isVol = (settings.operationMode == 2);
-  bool isBrk = (settings.operationMode == 3);
-  bool isSnk = (settings.operationMode == 4);
-  bool isRcr = (settings.operationMode == 5);
+  bool isSim = (settings.operationMode == OP_SIMULATION);
+  bool isVol = (settings.operationMode == OP_VOLUME);
+  bool isBrk = (settings.operationMode == OP_BREAKOUT);
+  bool isSnk = (settings.operationMode == OP_SNAKE);
+  bool isRcr = (settings.operationMode == OP_RACER);
 
   // Orphan heading auto-hide: headings with all children hidden.
   // Must run BEFORE settingId checks — headings have settingId=0 which
@@ -434,12 +434,13 @@ void moveCursor(int direction) {
 // ============================================================================
 
 void handleEncoder() {
-  int change = encoderPos - lastEncoderPos;
+  int pos = encoderPos;  // Read once — volatile, may change mid-expression
+  int change = pos - lastEncoderPos;
 
   if (abs(change) >= 4) {  // Full detent
     int direction = (change > 0) ? 1 : -1;
     if (settings.invertDial) direction = -direction;
-    lastEncoderPos = encoderPos;
+    lastEncoderPos = pos;
     lastModeActivity = millis();
     markDisplayDirty();
 
@@ -454,16 +455,16 @@ void handleEncoder() {
 
     switch (currentMode) {
       case MODE_NORMAL:
-        if (settings.operationMode == 5) {
+        if (settings.operationMode == OP_RACER) {
           // Racer: encoder steers left/right
           racerEncoderInput(direction);
-        } else if (settings.operationMode == 4) {
+        } else if (settings.operationMode == OP_SNAKE) {
           // Snake: encoder turns snake left/right (relative)
           snakeEncoderInput(direction);
-        } else if (settings.operationMode == 3) {
+        } else if (settings.operationMode == OP_BREAKOUT) {
           // Breakout: encoder moves paddle
           breakoutEncoderInput(direction);
-        } else if (settings.operationMode == 2) {
+        } else if (settings.operationMode == OP_VOLUME) {
           // Volume Control: encoder sends volume up/down
           uint16_t key = (direction > 0)
             ? HID_USAGE_CONSUMER_VOLUME_INCREMENT
@@ -474,7 +475,7 @@ void handleEncoder() {
           volFeedbackDir = (int8_t)direction;
           volFeedbackStart = millis();
           pushSerialStatus();
-        } else if (settings.operationMode == 1) {
+        } else if (settings.operationMode == OP_SIMULATION) {
           // Simulation mode: adjust job performance (0–11)
           int val = (int)settings.jobPerformance + direction;
           if (val < 0) val = 0;
@@ -662,7 +663,7 @@ void handleButtons() {
 
   // D7 deferred single-click for Volume Control (next track)
   // Only applies when sideButtonAction == 0 (Next mode)
-  if (settings.operationMode == 2 && currentMode == MODE_NORMAL
+  if (settings.operationMode == OP_VOLUME && currentMode == MODE_NORMAL
       && settings.sideButtonAction == 0
       && volD7ClickCount == 1
       && (now - volD7LastPress >= VOL_DOUBLECLICK_MS)) {
@@ -675,7 +676,7 @@ void handleButtons() {
   }
 
   // Breakout / Snake / Volume Control D2: mode-specific action
-  if ((settings.operationMode >= 3 && settings.operationMode <= 5) && currentMode == MODE_NORMAL) {
+  if ((settings.operationMode >= OP_BREAKOUT && settings.operationMode <= OP_RACER) && currentMode == MODE_NORMAL) {
     // Breakout: D2 does nothing (game uses D7 for action)
     if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
       lastEncPress = now;
@@ -686,7 +687,7 @@ void handleButtons() {
       // No game action on D2 in Breakout mode
     }
     lastEncBtn = encBtn;
-  } else if (settings.operationMode == 2 && currentMode == MODE_NORMAL) {
+  } else if (settings.operationMode == OP_VOLUME && currentMode == MODE_NORMAL) {
     if (encBtn == LOW && lastEncBtn == HIGH && (now - lastEncPress > DEBOUNCE)) {
       lastEncPress = now;
       lastModeActivity = now;
@@ -728,7 +729,7 @@ void handleButtons() {
 
       switch (currentMode) {
         case MODE_NORMAL:
-          if (settings.operationMode == 1) {
+          if (settings.operationMode == OP_SIMULATION) {
             // Simulation mode: skip to next work mode
             skipWorkMode();
           } else {
@@ -1000,7 +1001,7 @@ void handleButtons() {
         if (screensaverActive) { screensaverActive = false; funcBtnWasPressed = false; return; }
 
         // Reset D7 pending click state when entering menu
-        if (settings.operationMode >= 2 && settings.operationMode <= 5) volD7ClickCount = 0;
+        if (settings.operationMode >= OP_VOLUME && settings.operationMode <= OP_RACER) volD7ClickCount = 0;
 
         switch (currentMode) {
           case MODE_NORMAL:
@@ -1137,16 +1138,16 @@ void handleButtons() {
     if (screensaverActive) { screensaverActive = false; lastMuteBtn = muteBtn; return; }
     if (currentMode != MODE_NORMAL) { lastMuteBtn = muteBtn; return; }
 
-    if (settings.operationMode == 5) {
+    if (settings.operationMode == OP_RACER) {
       // Racer: D7 = game action (start/pause/resume/new game)
       racerButtonPress();
-    } else if (settings.operationMode == 4) {
+    } else if (settings.operationMode == OP_SNAKE) {
       // Snake: D7 = game action (start/pause/resume/new game)
       snakeButtonPress();
-    } else if (settings.operationMode == 3) {
+    } else if (settings.operationMode == OP_BREAKOUT) {
       // Breakout: D7 = game action (launch/pause/resume/next/new game)
       breakoutButtonPress();
-    } else if (settings.operationMode == 2) {
+    } else if (settings.operationMode == OP_VOLUME) {
       // Volume Control: D7 action depends on sideButtonAction setting
       if (settings.sideButtonAction == 0) {
         // Next mode: deferred single-click / double-click for prev

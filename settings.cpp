@@ -54,7 +54,7 @@ void loadDefaults() {
   settings.scheduleEnd = 204;    // 17:00 (204 * 5min = 1020min = 17h)
   settings.invertDial = 0;
   // Simulation mode defaults
-  settings.operationMode = 0;     // Simple
+  settings.operationMode = OP_SIMPLE;
   settings.jobSimulation = 0;     // Staff
   settings.jobPerformance = 5;    // Baseline (50%)
   settings.jobStartTime = 96;    // 8:00 (96 * 5min = 480min = 8h)
@@ -179,7 +179,7 @@ void loadSettings() {
         if (settings.scheduleEnd >= SCHEDULE_SLOTS) settings.scheduleEnd = 204;
         if (settings.invertDial > 1) settings.invertDial = 0;
         // Simulation mode bounds
-        if (settings.operationMode > 5) settings.operationMode = 0;
+        if (settings.operationMode >= OP_MODE_COUNT) settings.operationMode = OP_SIMPLE;
         if (settings.jobSimulation >= JOB_SIM_COUNT) settings.jobSimulation = 0;
         if (settings.jobPerformance > 11) settings.jobPerformance = 5;
         if (settings.jobStartTime >= SCHEDULE_SLOTS) settings.jobStartTime = 96;
@@ -334,7 +334,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
       break;
     case SET_SCHEDULE_START: settings.scheduleStart = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
     case SET_SCHEDULE_END:   settings.scheduleEnd = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
-    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, 5); break;
+    case SET_OP_MODE:        settings.operationMode = (uint8_t)clampVal(value, 0, OP_MODE_COUNT - 1); break;
     case SET_JOB_SIM:        settings.jobSimulation = (uint8_t)clampVal(value, 0, JOB_SIM_COUNT - 1); break;
     case SET_JOB_PERFORMANCE: settings.jobPerformance = (uint8_t)clampVal(value, 0, 11); break;
     case SET_JOB_START_TIME: settings.jobStartTime = (uint16_t)clampVal(value, 0, SCHEDULE_SLOTS - 1); break;
@@ -394,7 +394,7 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
       return;
     }
     case FMT_VERSION:       snprintf(buf, bufSize, "v%s", VERSION); return;
-    case FMT_OP_MODE:       snprintf(buf, bufSize, "%s", (val < 6) ? OP_MODE_NAMES[val] : "???"); return;
+    case FMT_OP_MODE:       snprintf(buf, bufSize, "%s", (val < OP_MODE_COUNT) ? OP_MODE_NAMES[val] : "???"); return;
     case FMT_JOB_SIM:       snprintf(buf, bufSize, "%s", (val < JOB_SIM_COUNT) ? JOB_SIM_NAMES[val] : "???"); return;
     case FMT_SWITCH_KEYS:   snprintf(buf, bufSize, "%s", (val < SWITCH_KEYS_COUNT) ? SWITCH_KEYS_NAMES[val] : "???"); return;
     case FMT_HEADER_DISP:   snprintf(buf, bufSize, "%s", (val < 2) ? HEADER_DISP_NAMES[val] : "???"); return;

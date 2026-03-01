@@ -35,9 +35,9 @@ volatile uint8_t encoderPrevState = 0;
 volatile int8_t  lastEncoderDir  = 0;
 
 // Connection & enables
-bool deviceConnected = false;
+volatile bool deviceConnected = false;
 bool usbConnected = false;
-uint16_t bleConnHandle = BLE_CONN_HANDLE_INVALID;
+volatile uint16_t bleConnHandle = BLE_CONN_HANDLE_INVALID;
 bool bleDisabledForUsb = false;
 bool keyEnabled = true;
 bool mouseEnabled = true;
@@ -90,7 +90,7 @@ FooterMode footerMode = FOOTER_UPTIME;
 int8_t   menuCursor = -1;
 int8_t   menuScrollOffset = 0;
 bool     menuEditing = false;
-int16_t  helpScrollPos = 0;
+int8_t   helpScrollPos = 0;
 int8_t   helpScrollDir = 1;
 unsigned long helpScrollTimer = 0;
 
@@ -194,6 +194,10 @@ OrchestratorState orch = {};
 
 // Game state (union — breakout, snake, and racer are mutually exclusive)
 GameState gameState = {};
+
+// Deferred sound playback (set in BLE callbacks, consumed in loop())
+volatile bool connectSoundPending = false;
+volatile bool disconnectSoundPending = false;
 
 // Deferred settings save
 bool settingsDirty = false;

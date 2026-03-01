@@ -47,29 +47,29 @@ void printStatus() {
   Serial.print("Mouse state: ");
   Serial.println(mouseState == MOUSE_IDLE ? "IDLE" : mouseState == MOUSE_JIGGLING ? "JIG" : "RTN");
   Serial.print("Battery: "); Serial.print(batteryPercent); Serial.println("%");
-  if (settings.operationMode == 4) {
+  if (settings.operationMode == OP_SNAKE) {
     Serial.println("--- Snake ---");
     Serial.print("State: ");
     static const char* SNK_STATE_NAMES[] = { "IDLE", "PLAYING", "PAUSED", "GAMEOVER" };
-    Serial.println(snk.state < 4 ? SNK_STATE_NAMES[snk.state] : "???");
-    Serial.print("Score: "); Serial.println(snk.score);
-    Serial.print("Length: "); Serial.println(snk.length);
+    Serial.println(gSnk.state < 4 ? SNK_STATE_NAMES[gSnk.state] : "???");
+    Serial.print("Score: "); Serial.println(gSnk.score);
+    Serial.print("Length: "); Serial.println(gSnk.length);
     Serial.print("High score: "); Serial.println(settings.snakeHighScore);
-  } else if (settings.operationMode == 3) {
+  } else if (settings.operationMode == OP_BREAKOUT) {
     Serial.println("--- Breakout ---");
     Serial.print("State: ");
     static const char* BRK_STATE_NAMES[] = { "IDLE", "PLAYING", "PAUSED", "CLEAR", "GAMEOVER" };
-    Serial.println(brk.state < 5 ? BRK_STATE_NAMES[brk.state] : "???");
-    Serial.print("Level: "); Serial.println(brk.level);
-    Serial.print("Score: "); Serial.println(brk.score);
-    Serial.print("Lives: "); Serial.println(brk.lives);
+    Serial.println(gBrk.state < 5 ? BRK_STATE_NAMES[gBrk.state] : "???");
+    Serial.print("Level: "); Serial.println(gBrk.level);
+    Serial.print("Score: "); Serial.println(gBrk.score);
+    Serial.print("Lives: "); Serial.println(gBrk.lives);
     Serial.print("High score: "); Serial.println(settings.highScore);
-  } else if (settings.operationMode == 5) {
+  } else if (settings.operationMode == OP_RACER) {
     Serial.println("--- Racer ---");
     Serial.print("State: ");
     static const char* RCR_STATE_NAMES[] = { "IDLE", "PLAYING", "PAUSED", "GAMEOVER" };
-    Serial.println(rcr.state < 4 ? RCR_STATE_NAMES[rcr.state] : "???");
-    Serial.print("Score: "); Serial.println(rcr.score);
+    Serial.println(gRcr.state < 4 ? RCR_STATE_NAMES[gRcr.state] : "???");
+    Serial.print("Score: "); Serial.println(gRcr.score);
     Serial.print("High score: "); Serial.println(settings.racerHighScore);
   }
 }
@@ -152,16 +152,16 @@ void handleSerialCommands() {
           Serial.print(AVAILABLE_KEYS[settings.keySlots[i]].name);
         }
         Serial.println();
-        Serial.print("Profile: "); Serial.println(PROFILE_NAMES[currentProfile]);
+        Serial.print("Profile: "); Serial.println((currentProfile < PROFILE_COUNT) ? PROFILE_NAMES[currentProfile] : "???");
         Serial.print("Lazy %: "); Serial.println(settings.lazyPercent);
         Serial.print("Busy %: "); Serial.println(settings.busyPercent);
         Serial.print("Effective KB: "); Serial.print(effectiveKeyMin()); Serial.print("-"); Serial.println(effectiveKeyMax());
         Serial.print("Effective Mouse: "); Serial.print(effectiveMouseJiggle()); Serial.print("/"); Serial.println(effectiveMouseIdle());
         Serial.print("Mouse amplitude: "); Serial.print(settings.mouseAmplitude); Serial.println("px");
-        Serial.print("Mouse style: "); Serial.println(MOUSE_STYLE_NAMES[settings.mouseStyle]);
+        Serial.print("Mouse style: "); Serial.println((settings.mouseStyle < MOUSE_STYLE_COUNT) ? MOUSE_STYLE_NAMES[settings.mouseStyle] : "???");
         Serial.print("Scroll: "); Serial.println(settings.scrollEnabled ? "On" : "Off");
         Serial.print("Display brightness: "); Serial.print(settings.displayBrightness); Serial.println("%");
-        Serial.print("Screensaver: "); Serial.print(SAVER_NAMES[settings.saverTimeout]);
+        Serial.print("Screensaver: "); Serial.print((settings.saverTimeout < SAVER_TIMEOUT_COUNT) ? SAVER_NAMES[settings.saverTimeout] : "???");
         Serial.print(", brightness: "); Serial.print(settings.saverBrightness); Serial.print("%");
         Serial.print(" (active: "); Serial.print(screensaverActive ? "YES" : "NO"); Serial.println(")");
         Serial.print("Device name: "); Serial.println(settings.deviceName);
@@ -181,8 +181,8 @@ void handleSerialCommands() {
         Serial.println(")");
         Serial.print("Invert dial: "); Serial.println(settings.invertDial ? "On" : "Off");
         Serial.print("BLE disabled for USB: "); Serial.println(bleDisabledForUsb ? "YES" : "NO");
-        Serial.print("Animation: "); Serial.println(ANIM_NAMES[settings.animStyle]);
-        Serial.print("Schedule mode: "); Serial.println(SCHEDULE_MODE_NAMES[settings.scheduleMode]);
+        Serial.print("Animation: "); Serial.println((settings.animStyle < ANIM_STYLE_COUNT) ? ANIM_NAMES[settings.animStyle] : "???");
+        Serial.print("Schedule mode: "); Serial.println((settings.scheduleMode < SCHED_MODE_COUNT) ? SCHEDULE_MODE_NAMES[settings.scheduleMode] : "???");
         if (settings.scheduleMode != SCHED_OFF) {
           uint16_t startMin = settings.scheduleStart * 5;
           uint16_t endMin = settings.scheduleEnd * 5;
@@ -201,26 +201,26 @@ void handleSerialCommands() {
           Serial.print("Schedule sleeping: "); Serial.println(scheduleSleeping ? "YES" : "NO");
         }
         Serial.print("Mouse jiggles: "); Serial.println(mouseJiggleCount);
-        Serial.print("Operation mode: "); Serial.println((settings.operationMode < 6) ? OP_MODE_NAMES[settings.operationMode] : "???");
-        if (settings.operationMode == 2) {
+        Serial.print("Operation mode: "); Serial.println((settings.operationMode < OP_MODE_COUNT) ? OP_MODE_NAMES[settings.operationMode] : "???");
+        if (settings.operationMode == OP_VOLUME) {
           Serial.println("--- Volume Control ---");
           Serial.print("Muted: "); Serial.println(volMuted ? "YES" : "NO");
           Serial.print("Playing: "); Serial.println(volPlaying ? "YES" : "NO");
           Serial.print("Theme: "); Serial.println((settings.volumeTheme < VOLUME_THEME_COUNT) ? VOLUME_THEME_NAMES[settings.volumeTheme] : "???");
           Serial.print("Knob btn: "); Serial.println((settings.encButtonAction < ENC_BTN_ACTION_COUNT) ? ENC_BTN_ACTION_NAMES[settings.encButtonAction] : "???");
           Serial.print("Side btn: "); Serial.println((settings.sideButtonAction < SIDE_BTN_ACTION_COUNT) ? SIDE_BTN_ACTION_NAMES[settings.sideButtonAction] : "???");
-        } else if (settings.operationMode == 1) {
+        } else if (settings.operationMode == OP_SIMULATION) {
           Serial.println("--- Simulation ---");
-          Serial.print("Job: "); Serial.println(JOB_SIM_NAMES[settings.jobSimulation]);
+          Serial.print("Job: "); Serial.println((settings.jobSimulation < JOB_SIM_COUNT) ? JOB_SIM_NAMES[settings.jobSimulation] : "???");
           Serial.print("Performance: "); Serial.println(settings.jobPerformance);
           Serial.print("Block: "); Serial.print(orch.blockIdx); Serial.print(" ("); Serial.print(currentBlockName()); Serial.println(")");
           Serial.print("Mode: "); Serial.print((int)orch.modeId); Serial.print(" ("); Serial.print(currentModeName()); Serial.println(")");
           Serial.print("Phase: "); Serial.println((orch.phase < PHASE_COUNT) ? PHASE_NAMES[orch.phase] : "???");
-          Serial.print("Auto-profile: "); Serial.println(PROFILE_NAMES[orch.autoProfile]);
+          Serial.print("Auto-profile: "); Serial.println((orch.autoProfile < PROFILE_COUNT) ? PROFILE_NAMES[orch.autoProfile] : "???");
           Serial.print("Phantom clicks: "); Serial.println(settings.phantomClicks ? "On" : "Off");
           Serial.print("Window switch: "); Serial.println(settings.windowSwitching ? "On" : "Off");
-          Serial.print("Switch keys: "); Serial.println(SWITCH_KEYS_NAMES[settings.switchKeys]);
-          Serial.print("Header display: "); Serial.println(HEADER_DISP_NAMES[settings.headerDisplay]);
+          Serial.print("Switch keys: "); Serial.println((settings.switchKeys < SWITCH_KEYS_COUNT) ? SWITCH_KEYS_NAMES[settings.switchKeys] : "???");
+          Serial.print("Header display: "); Serial.println((settings.headerDisplay < 2) ? HEADER_DISP_NAMES[settings.headerDisplay] : "???");
         }
         break;
       case 'f':

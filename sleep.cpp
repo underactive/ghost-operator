@@ -32,6 +32,7 @@ void enterDeepSleep() {
   }
 
   Bluefruit.Advertising.stop();
+  // Peripheral registers, not SoftDevice-owned — safe for direct access
   NRF_UARTE0->ENABLE = 0;
   NRF_TWIM0->ENABLE = 0;
 

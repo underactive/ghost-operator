@@ -34,7 +34,7 @@ const webBluetoothOk = isWebBluetoothAvailable()
         </button>
       </div>
       <p v-if="webBluetoothOk" class="bt-hint">
-        Don't see the device in Chrome's Bluetooth device list? Go to your OS Bluetooth settings and remove (forget) the device first, and then connect here to pair with the device with Chrome. Once it's paired with Chrome, future Dashboard visits just need a disconnect (not forget) on the OS side come back here and Chrome will recongize the device again (it should say "- paired" on Chrome's device list).
+        Don't see the device in Chrome's Bluetooth device list? Go to your OS Bluetooth settings and remove (forget) the device first, and then connect here to pair with the device with Chrome. Once it's paired with Chrome, future Dashboard visits just need a disconnect (not forget) on the OS side come back here and Chrome will recognize the device again (it should say "- paired" on Chrome's device list).
       </p>
       <div v-if="connectionState.error" class="error">
         {{ connectionState.error }}

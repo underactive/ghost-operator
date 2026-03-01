@@ -488,7 +488,7 @@ static void drawNormalMode() {
   // === Key section (y=12) ===
   display.setCursor(0, 12);
   display.print("KB [");
-  display.print(AVAILABLE_KEYS[nextKeyIndex].name);
+  display.print((nextKeyIndex < NUM_KEYS) ? AVAILABLE_KEYS[nextKeyIndex].name : "???");
   display.print("] ");
   char durBuf[12];
   formatDuration(effectiveKeyMin(), durBuf, sizeof(durBuf), false);
@@ -601,7 +601,7 @@ static void drawNormalMode() {
     if (millis() - profileDisplayStart < PROFILE_DISPLAY_MS) {
       // Show profile name left-justified
       display.setCursor(0, 54);
-      display.print(PROFILE_NAMES[currentProfile]);
+      display.print((currentProfile < PROFILE_COUNT) ? PROFILE_NAMES[currentProfile] : "???");
     } else {
       display.setCursor(0, 54);
       switch (footerMode) {
@@ -666,6 +666,35 @@ static void drawNormalMode() {
 }
 
 // ============================================================================
+// GENERIC SCROLLING TEXT HELPER (bounce-scroll with 1.5s pause at ends)
+// ============================================================================
+
+static void drawScrollingText(const char* text, int y, int maxChars,
+                               int8_t& scrollPos, int8_t& scrollDir,
+                               unsigned long& scrollTimer) {
+  int textLen = strlen(text);
+  if (textLen <= maxChars) {
+    int w = textLen * 6;
+    display.setCursor((128 - w) / 2, y);
+    display.print(text);
+    return;
+  }
+  int maxScroll = textLen - maxChars;
+  unsigned long now = millis();
+  unsigned long pause = (scrollPos == 0 || scrollPos == maxScroll) ? 1500 : 300;
+  if (now - scrollTimer >= pause) {
+    scrollPos += scrollDir;
+    if (scrollPos >= maxScroll) { scrollPos = maxScroll; scrollDir = -1; }
+    if (scrollPos <= 0) { scrollPos = 0; scrollDir = 1; }
+    scrollTimer = now;
+  }
+  display.setCursor(0, y);
+  for (int i = 0; i < maxChars && (scrollPos + i) < textLen; i++) {
+    display.print(text[scrollPos + i]);
+  }
+}
+
+// ============================================================================
 // SCROLLING NAME HELPER (simulation info rows)
 // ============================================================================
 
@@ -705,7 +734,7 @@ static void drawSimulationNormal() {
   // === Header (y=0): Job name or device name + BT/USB + battery ===
   display.setCursor(0, 0);
   if (settings.headerDisplay == 0) {
-    display.print(JOB_SIM_NAMES[settings.jobSimulation]);
+    display.print((settings.jobSimulation < JOB_SIM_COUNT) ? JOB_SIM_NAMES[settings.jobSimulation] : "???");
   } else {
     display.print(settings.deviceName);
   }
@@ -776,7 +805,7 @@ static void drawSimulationNormal() {
 
   // === Profile stint row (y=29): name left | inline bar + time right ===
   {
-    drawScrollName(PROFILE_NAMES_TITLE[orch.autoProfile], 0, 29, 10, 2);
+    drawScrollName((orch.autoProfile < PROFILE_COUNT) ? PROFILE_NAMES_TITLE[orch.autoProfile] : "???", 0, 29, 10, 2);
 
     unsigned long stintElapsed = now - orch.profileStintStartMs;
     unsigned long stintRemain = (stintElapsed < orch.profileStintMs) ? (orch.profileStintMs - stintElapsed) : 0;
@@ -1094,7 +1123,7 @@ static void drawScreensaver() {
 
   // === KB label centered (y=11) ===
   char kbLabel[24];
-  snprintf(kbLabel, sizeof(kbLabel), "[%s]", AVAILABLE_KEYS[nextKeyIndex].name);
+  snprintf(kbLabel, sizeof(kbLabel), "[%s]", (nextKeyIndex < NUM_KEYS) ? AVAILABLE_KEYS[nextKeyIndex].name : "???");
   int kbWidth = strlen(kbLabel) * 6;
   display.setCursor((128 - kbWidth) / 2, 11);
   display.print(kbLabel);
@@ -1731,69 +1760,34 @@ static void drawCarouselPage() {
 
   // === Help text (scrolls if overflow) ===
   const char* desc = (carouselCursor < carouselConfig->count) ? carouselConfig->descs[carouselCursor] : "???";
-  int descLen = strlen(desc);
   const int maxChars = 21;  // 128px / 6px per char
 
-  static int crslHelpScroll = 0;
-  static int crslHelpDir = 1;
+  static int8_t crslHelpScroll = 0;
+  static int8_t crslHelpDir = 1;
   static unsigned long crslHelpTimer = 0;
   static uint8_t crslHelpLastCursor = 0xFF;
   static const CarouselConfig* crslHelpLastConfig = NULL;
-  unsigned long now = millis();
 
   // Reset scroll on cursor or config change
   if (carouselCursor != crslHelpLastCursor || carouselConfig != crslHelpLastConfig) {
     crslHelpScroll = 0;
     crslHelpDir = 1;
-    crslHelpTimer = now;
+    crslHelpTimer = millis();
     crslHelpLastCursor = carouselCursor;
     crslHelpLastConfig = carouselConfig;
   }
 
-  if (descLen <= maxChars) {
-    int descW = descLen * 6;
-    display.setCursor((128 - descW) / 2, 40);
-    display.print(desc);
-  } else {
-    int maxScroll = descLen - maxChars;
-    if (now - crslHelpTimer >= (unsigned long)(crslHelpScroll == 0 || crslHelpScroll == maxScroll ? 1500 : 300)) {
-      crslHelpScroll += crslHelpDir;
-      if (crslHelpScroll >= maxScroll) { crslHelpScroll = maxScroll; crslHelpDir = -1; }
-      if (crslHelpScroll <= 0) { crslHelpScroll = 0; crslHelpDir = 1; }
-      crslHelpTimer = now;
-    }
-    display.setCursor(0, 40);
-    for (int i = 0; i < maxChars && (crslHelpScroll + i) < descLen; i++) {
-      display.print(desc[crslHelpScroll + i]);
-    }
-  }
+  drawScrollingText(desc, 40, maxChars, crslHelpScroll, crslHelpDir, crslHelpTimer);
 
   // === Footer ===
   display.drawFastHLine(0, 53, 128, SSD1306_WHITE);
   const char* footerTxt = "Turn to browse, press to set";
-  int footerLen = strlen(footerTxt);
 
-  static int crslFootScroll = 0;
-  static int crslFootDir = 1;
+  static int8_t crslFootScroll = 0;
+  static int8_t crslFootDir = 1;
   static unsigned long crslFootTimer = 0;
 
-  if (footerLen <= maxChars) {
-    int fw = footerLen * 6;
-    display.setCursor((128 - fw) / 2, 56);
-    display.print(footerTxt);
-  } else {
-    int maxScroll = footerLen - maxChars;
-    if (now - crslFootTimer >= (unsigned long)(crslFootScroll == 0 || crslFootScroll == maxScroll ? 1500 : 300)) {
-      crslFootScroll += crslFootDir;
-      if (crslFootScroll >= maxScroll) { crslFootScroll = maxScroll; crslFootDir = -1; }
-      if (crslFootScroll <= 0) { crslFootScroll = 0; crslFootDir = 1; }
-      crslFootTimer = now;
-    }
-    display.setCursor(0, 56);
-    for (int i = 0; i < maxChars && (crslFootScroll + i) < footerLen; i++) {
-      display.print(footerTxt[crslFootScroll + i]);
-    }
-  }
+  drawScrollingText(footerTxt, 56, maxChars, crslFootScroll, crslFootDir, crslFootTimer);
 }
 
 // ============================================================================
@@ -1806,14 +1800,14 @@ static void drawBreakoutNormal() {
   // --- Header: Score, Level, Lives, Battery ---
   {
     char hdr[32];
-    snprintf(hdr, sizeof(hdr), "S:%u Lv:%u", brk.score, brk.level);
+    snprintf(hdr, sizeof(hdr), "S:%u Lv:%u", gBrk.score, gBrk.level);
     display.setCursor(0, 0);
     display.print(hdr);
 
     // Lives as hearts (right-aligned before battery)
     // Drawn manually — 5x6px heart via two circles + triangle (font-independent)
     int heartsX = 80;
-    for (uint8_t i = 0; i < brk.lives && i < 5; i++) {
+    for (uint8_t i = 0; i < gBrk.lives && i < 5; i++) {
       int hx = heartsX + i * 7;
       display.fillCircle(hx + 1, 1, 1, SSD1306_WHITE);
       display.fillCircle(hx + 3, 1, 1, SSD1306_WHITE);
@@ -1832,11 +1826,11 @@ static void drawBreakoutNormal() {
   for (uint8_t r = 0; r < BREAKOUT_BRICK_ROWS; r++) {
     int16_t by = 10 + r * (BREAKOUT_BRICK_H + 1);  // 1px gap
     for (uint8_t c = 0; c < BREAKOUT_BRICK_COLS; c++) {
-      if (!((brk.brickRows[r] >> c) & 1)) continue;
+      if (!((gBrk.brickRows[r] >> c) & 1)) continue;
       int16_t bx = c * (BREAKOUT_BRICK_W + 1);
 
       // Reinforced bricks: outline only; normal: filled
-      if ((brk.brickHits[r] >> c) & 1) {
+      if ((gBrk.brickHits[r] >> c) & 1) {
         display.drawRect(bx, by, BREAKOUT_BRICK_W, BREAKOUT_BRICK_H, SSD1306_WHITE);
       } else {
         display.fillRect(bx, by, BREAKOUT_BRICK_W, BREAKOUT_BRICK_H, SSD1306_WHITE);
@@ -1846,22 +1840,22 @@ static void drawBreakoutNormal() {
 
   // --- Ball ---
   {
-    int16_t bx = brk.ballX >> 8;
-    int16_t by = brk.ballY >> 8;
+    int16_t bx = gBrk.ballX >> 8;
+    int16_t by = gBrk.ballY >> 8;
     display.fillRect(bx, by, BREAKOUT_BALL_SIZE, BREAKOUT_BALL_SIZE, SSD1306_WHITE);
   }
 
   // --- Paddle ---
-  display.fillRect(brk.paddleX, BREAKOUT_PADDLE_Y, brk.paddleW, 2, SSD1306_WHITE);
+  display.fillRect(gBrk.paddleX, BREAKOUT_PADDLE_Y, gBrk.paddleW, 2, SSD1306_WHITE);
 
   // --- Footer / overlays ---
   display.drawFastHLine(0, 56, 128, SSD1306_WHITE);
 
-  if (brk.state == BRK_IDLE) {
+  if (gBrk.state == BRK_IDLE) {
     const char* hint = "D7=Launch  Turn=Move";
     display.setCursor(0, 57);
     display.print(hint);
-  } else if (brk.state == BRK_PAUSED) {
+  } else if (gBrk.state == BRK_PAUSED) {
     // Paused overlay
     const char* msg = "PAUSED";
     int w = strlen(msg) * 6;
@@ -1872,7 +1866,7 @@ static void drawBreakoutNormal() {
 
     display.setCursor(0, 57);
     display.print("D7=Resume");
-  } else if (brk.state == BRK_LEVEL_CLEAR) {
+  } else if (gBrk.state == BRK_LEVEL_CLEAR) {
     const char* msg = "LEVEL CLEAR!";
     int w = strlen(msg) * 6;
     display.fillRect((128 - w) / 2 - 4, 28, w + 8, 12, SSD1306_BLACK);
@@ -1882,7 +1876,7 @@ static void drawBreakoutNormal() {
 
     display.setCursor(0, 57);
     display.print("D7=Next level");
-  } else if (brk.state == BRK_GAME_OVER) {
+  } else if (gBrk.state == BRK_GAME_OVER) {
     const char* msg = "GAME OVER";
     int w = strlen(msg) * 6;
     display.fillRect((128 - w) / 2 - 6, 24, w + 12, 20, SSD1306_BLACK);
@@ -1891,7 +1885,7 @@ static void drawBreakoutNormal() {
     display.print(msg);
 
     char scoreBuf[20];
-    snprintf(scoreBuf, sizeof(scoreBuf), "Score: %u", brk.score);
+    snprintf(scoreBuf, sizeof(scoreBuf), "Score: %u", gBrk.score);
     int sw = strlen(scoreBuf) * 6;
     display.setCursor((128 - sw) / 2, 36);
     display.print(scoreBuf);
@@ -1915,7 +1909,7 @@ static void drawSnakeNormal() {
   // --- Header: Score, Hi-Score, Battery ---
   {
     char hdr[32];
-    snprintf(hdr, sizeof(hdr), "S:%u Hi:%u", snk.score, settings.snakeHighScore);
+    snprintf(hdr, sizeof(hdr), "S:%u Hi:%u", gSnk.score, settings.snakeHighScore);
     display.setCursor(0, 0);
     display.print(hdr);
 
@@ -1929,10 +1923,10 @@ static void drawSnakeNormal() {
 
   // --- Game grid (y starts at SNAKE_HEADER_H) ---
   // Draw snake body
-  for (uint8_t i = 0; i < snk.length; i++) {
-    uint8_t idx = (snk.headIdx - i) & 0xFF;
-    int16_t px = (int16_t)snk.bodyX[idx] * SNAKE_GRID_CELL;
-    int16_t py = (int16_t)snk.bodyY[idx] * SNAKE_GRID_CELL + SNAKE_HEADER_H;
+  for (uint8_t i = 0; i < gSnk.length; i++) {
+    uint8_t idx = (gSnk.headIdx - i) & 0xFF;
+    int16_t px = (int16_t)gSnk.bodyX[idx] * SNAKE_GRID_CELL;
+    int16_t py = (int16_t)gSnk.bodyY[idx] * SNAKE_GRID_CELL + SNAKE_HEADER_H;
     if (i == 0) {
       // Head: filled
       display.fillRect(px, py, SNAKE_GRID_CELL, SNAKE_GRID_CELL, SSD1306_WHITE);
@@ -1945,8 +1939,8 @@ static void drawSnakeNormal() {
   // Draw food (blinking dot)
   {
     bool blink = ((millis() / 300) & 1);
-    int16_t fx = (int16_t)snk.foodX * SNAKE_GRID_CELL;
-    int16_t fy = (int16_t)snk.foodY * SNAKE_GRID_CELL + SNAKE_HEADER_H;
+    int16_t fx = (int16_t)gSnk.foodX * SNAKE_GRID_CELL;
+    int16_t fy = (int16_t)gSnk.foodY * SNAKE_GRID_CELL + SNAKE_HEADER_H;
     if (blink) {
       display.fillRect(fx, fy, SNAKE_GRID_CELL, SNAKE_GRID_CELL, SSD1306_WHITE);
     } else {
@@ -1957,10 +1951,10 @@ static void drawSnakeNormal() {
   // --- Footer / overlays ---
   display.drawFastHLine(0, 56, 128, SSD1306_WHITE);
 
-  if (snk.state == SNAKE_IDLE) {
+  if (gSnk.state == SNAKE_IDLE) {
     display.setCursor(0, 57);
     display.print("D7=Start  Turn=Steer");
-  } else if (snk.state == SNAKE_PAUSED) {
+  } else if (gSnk.state == SNAKE_PAUSED) {
     const char* msg = "PAUSED";
     int w = strlen(msg) * 6;
     display.fillRect((128 - w) / 2 - 4, 28, w + 8, 12, SSD1306_BLACK);
@@ -1969,7 +1963,7 @@ static void drawSnakeNormal() {
     display.print(msg);
     display.setCursor(0, 57);
     display.print("D7=Resume");
-  } else if (snk.state == SNAKE_GAME_OVER) {
+  } else if (gSnk.state == SNAKE_GAME_OVER) {
     const char* msg = "GAME OVER";
     int w = strlen(msg) * 6;
     display.fillRect((128 - w) / 2 - 6, 24, w + 12, 20, SSD1306_BLACK);
@@ -1978,7 +1972,7 @@ static void drawSnakeNormal() {
     display.print(msg);
 
     char scoreBuf[20];
-    snprintf(scoreBuf, sizeof(scoreBuf), "Score: %u", snk.score);
+    snprintf(scoreBuf, sizeof(scoreBuf), "Score: %u", gSnk.score);
     int sw = strlen(scoreBuf) * 6;
     display.setCursor((128 - sw) / 2, 36);
     display.print(scoreBuf);
@@ -2003,13 +1997,13 @@ static void drawRacerNormal() {
 
   // --- Header: Score + High Score ---
   char hdr[22];
-  snprintf(hdr, sizeof(hdr), "%d  Hi:%d", rcr.score, settings.racerHighScore);
+  snprintf(hdr, sizeof(hdr), "%d  Hi:%d", gRcr.score, settings.racerHighScore);
   display.setCursor(0, 0);
   display.print(hdr);
   display.drawFastHLine(0, 9, 64, SSD1306_WHITE);
 
   // --- Road ---
-  int roadLeft = rcr.roadCenterX - RACER_ROAD_W / 2;
+  int roadLeft = gRcr.roadCenterX - RACER_ROAD_W / 2;
   int roadRight = roadLeft + RACER_ROAD_W;
 
   // Draw road edges (solid vertical lines)
@@ -2017,8 +2011,8 @@ static void drawRacerNormal() {
   display.drawFastVLine(roadRight, 10, 108, SSD1306_WHITE);
 
   // Dashed center line (animated by scrollOffset)
-  int centerX = rcr.roadCenterX;
-  for (int y = 10 - (int)rcr.scrollOffset; y < 118; y += 8) {
+  int centerX = gRcr.roadCenterX;
+  for (int y = 10 - (int)gRcr.scrollOffset; y < 118; y += 8) {
     if (y < 10) continue;
     int segEnd = y + 4;
     if (segEnd > 118) segEnd = 118;
@@ -2027,8 +2021,8 @@ static void drawRacerNormal() {
 
   // --- Enemy cars ---
   for (int i = 0; i < RACER_MAX_ENEMIES; i++) {
-    if (!rcr.enemies[i].active) continue;
-    RacerEnemy& e = rcr.enemies[i];
+    if (!gRcr.enemies[i].active) continue;
+    RacerEnemy& e = gRcr.enemies[i];
     if (e.y + RACER_ENEMY_H < 10 || e.y > 118) continue;  // off-screen
     // Draw enemy as filled rect with hollow center for visibility
     display.fillRect(e.x, e.y, RACER_ENEMY_W, RACER_ENEMY_H, SSD1306_WHITE);
@@ -2039,17 +2033,17 @@ static void drawRacerNormal() {
   }
 
   // --- Player car ---
-  display.fillRect(rcr.playerX, RACER_PLAYER_Y, RACER_CAR_W, RACER_CAR_H, SSD1306_WHITE);
+  display.fillRect(gRcr.playerX, RACER_PLAYER_Y, RACER_CAR_W, RACER_CAR_H, SSD1306_WHITE);
   // Small notch at top center for car shape
   if (RACER_CAR_W >= 3) {
-    display.drawPixel(rcr.playerX + RACER_CAR_W / 2, RACER_PLAYER_Y - 1, SSD1306_WHITE);
+    display.drawPixel(gRcr.playerX + RACER_CAR_W / 2, RACER_PLAYER_Y - 1, SSD1306_WHITE);
   }
 
   // --- Footer ---
   display.drawFastHLine(0, 119, 64, SSD1306_WHITE);
   display.setCursor(0, 121);
 
-  switch (rcr.state) {
+  switch (gRcr.state) {
     case RACER_IDLE:
       display.print("D7=Start");
       break;
@@ -2082,7 +2076,7 @@ static void drawModePickerPage() {
     display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
 
     // Show new mode name in quotes, centered
-    const char* modeName = (settings.operationMode < 6) ? OP_MODE_NAMES[settings.operationMode] : "???";
+    const char* modeName = (settings.operationMode < OP_MODE_COUNT) ? OP_MODE_NAMES[settings.operationMode] : "???";
     char nameBuf[20];
     snprintf(nameBuf, sizeof(nameBuf), "\"%s\"", modeName);
     int nameW = strlen(nameBuf) * 6;
@@ -2134,11 +2128,11 @@ static void drawModePickerPage() {
     static float modeScrollX = 0.0f;
 
     // Compute cell layout (snap handled after target computation)
-    int cellWidth[6];
-    int cellCenterX[6];
+    int cellWidth[OP_MODE_COUNT];
+    int cellCenterX[OP_MODE_COUNT];
     int runX = 0;
-    for (int i = 0; i < 6; i++) {
-      const char* nm = (i < 6) ? OP_MODE_NAMES[i] : "???";
+    for (int i = 0; i < OP_MODE_COUNT; i++) {
+      const char* nm = OP_MODE_NAMES[i];
       cellWidth[i] = (int)strlen(nm) * 6 + 16;
       cellCenterX[i] = runX + cellWidth[i] / 2;
       runX += cellWidth[i];
@@ -2164,7 +2158,7 @@ static void drawModePickerPage() {
     const int stripY = 24;
     const int stripH = 11;
     display.setTextWrap(false);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < OP_MODE_COUNT; i++) {
       const char* nm = OP_MODE_NAMES[i];
       int tw = (int)strlen(nm) * 6;
       int tx = cellCenterX[i] - scrollI - tw / 2;
@@ -2188,70 +2182,33 @@ static void drawModePickerPage() {
 
   // === Help text (scrolls if overflow) ===
   static const char* MODE_DESCS[] = { "Direct timing control", "Human work patterns", "Media controller", "Brick-breaking arcade", "Classic snake game", "Ghost Racer racing" };
-  const char* desc = (modePickerCursor < 6) ? MODE_DESCS[modePickerCursor] : "???";
-  int descLen = strlen(desc);
+  const char* desc = (modePickerCursor < OP_MODE_COUNT) ? MODE_DESCS[modePickerCursor] : "???";
   const int maxChars = 21;  // 128px / 6px per char
 
-  static int modeHelpScroll = 0;
-  static int modeHelpDir = 1;
+  static int8_t modeHelpScroll = 0;
+  static int8_t modeHelpDir = 1;
   static unsigned long modeHelpTimer = 0;
   static uint8_t modeHelpLastCursor = 0xFF;
-  unsigned long now = millis();
 
   // Reset scroll on cursor change
   if (modePickerCursor != modeHelpLastCursor) {
     modeHelpScroll = 0;
     modeHelpDir = 1;
-    modeHelpTimer = now;
+    modeHelpTimer = millis();
     modeHelpLastCursor = modePickerCursor;
   }
 
-  display.setCursor(0, 40);
-  if (descLen <= maxChars) {
-    // Center short text
-    int descW = descLen * 6;
-    display.setCursor((128 - descW) / 2, 40);
-    display.print(desc);
-  } else {
-    int maxScroll = descLen - maxChars;
-    if (now - modeHelpTimer >= (unsigned long)(modeHelpScroll == 0 || modeHelpScroll == maxScroll ? 1500 : 300)) {
-      modeHelpScroll += modeHelpDir;
-      if (modeHelpScroll >= maxScroll) { modeHelpScroll = maxScroll; modeHelpDir = -1; }
-      if (modeHelpScroll <= 0) { modeHelpScroll = 0; modeHelpDir = 1; }
-      modeHelpTimer = now;
-    }
-    display.setCursor(0, 40);
-    for (int i = 0; i < maxChars && (modeHelpScroll + i) < descLen; i++) {
-      display.print(desc[modeHelpScroll + i]);
-    }
-  }
+  drawScrollingText(desc, 40, maxChars, modeHelpScroll, modeHelpDir, modeHelpTimer);
 
   // === Footer (scrolls if overflow) ===
   display.drawFastHLine(0, 53, 128, SSD1306_WHITE);
   const char* footerTxt = "Turn dial to adjust, press to select";
-  int footerLen = strlen(footerTxt);
 
-  static int modeFootScroll = 0;
-  static int modeFootDir = 1;
+  static int8_t modeFootScroll = 0;
+  static int8_t modeFootDir = 1;
   static unsigned long modeFootTimer = 0;
 
-  if (footerLen <= maxChars) {
-    int fw = footerLen * 6;
-    display.setCursor((128 - fw) / 2, 56);
-    display.print(footerTxt);
-  } else {
-    int maxScroll = footerLen - maxChars;
-    if (now - modeFootTimer >= (unsigned long)(modeFootScroll == 0 || modeFootScroll == maxScroll ? 1500 : 300)) {
-      modeFootScroll += modeFootDir;
-      if (modeFootScroll >= maxScroll) { modeFootScroll = maxScroll; modeFootDir = -1; }
-      if (modeFootScroll <= 0) { modeFootScroll = 0; modeFootDir = 1; }
-      modeFootTimer = now;
-    }
-    display.setCursor(0, 56);
-    for (int i = 0; i < maxChars && (modeFootScroll + i) < footerLen; i++) {
-      display.print(footerTxt[modeFootScroll + i]);
-    }
-  }
+  drawScrollingText(footerTxt, 56, maxChars, modeFootScroll, modeFootDir, modeFootTimer);
 }
 
 // ============================================================================
@@ -2588,31 +2545,7 @@ static void drawHelpBar(int y) {
     text = "Press to select";
   }
 
-  int textLen = strlen(text);
-  int maxChars = 21;  // 128px / 6px per char
-
-  if (textLen <= maxChars) {
-    // Static: fits on screen
-    display.setCursor(0, y);
-    display.print(text);
-  } else {
-    // Scroll by character with 1.5s pause at ends, ~300ms per step
-    unsigned long now = millis();
-    int maxScroll = textLen - maxChars;
-
-    if (now - helpScrollTimer >= (unsigned long)(helpScrollPos == 0 || helpScrollPos == maxScroll ? 1500 : 300)) {
-      helpScrollPos += helpScrollDir;
-      if (helpScrollPos >= maxScroll) { helpScrollPos = maxScroll; helpScrollDir = -1; }
-      if (helpScrollPos <= 0) { helpScrollPos = 0; helpScrollDir = 1; }
-      helpScrollTimer = now;
-    }
-
-    display.setCursor(0, y);
-    // Print maxChars characters starting from helpScrollPos
-    for (int i = 0; i < maxChars && (helpScrollPos + i) < textLen; i++) {
-      display.print(text[helpScrollPos + i]);
-    }
-  }
+  drawScrollingText(text, y, 21, helpScrollPos, helpScrollDir, helpScrollTimer);
 }
 
 // ============================================================================
@@ -2865,7 +2798,7 @@ void updateDisplay() {
   // The raw page buffer layout is completely different between orientations, so we must
   // invalidate the shadow when transitioning to prevent artifacts.
   static bool lastFramePortrait = false;
-  bool thisFramePortrait = (settings.operationMode == 5 && currentMode == MODE_NORMAL
+  bool thisFramePortrait = (settings.operationMode == OP_RACER && currentMode == MODE_NORMAL
                             && !sleepConfirmActive && !sleepCancelActive && !scheduleSleeping);
   if (thisFramePortrait != lastFramePortrait) {
     invalidateDisplayShadow();
@@ -2879,18 +2812,18 @@ void updateDisplay() {
   } else if (sleepConfirmActive) {
     drawSleepConfirm();
   } else if (screensaverActive) {
-    if (settings.operationMode == 5) drawRacerNormal();
-    else if (settings.operationMode == 4) drawSnakeNormal();
-    else if (settings.operationMode == 3) drawBreakoutNormal();  // dim the game display
-    else if (settings.operationMode == 2) drawVolumeNormal();
-    else if (settings.operationMode == 1) drawSimulationScreensaver();
+    if (settings.operationMode == OP_RACER) drawRacerNormal();
+    else if (settings.operationMode == OP_SNAKE) drawSnakeNormal();
+    else if (settings.operationMode == OP_BREAKOUT) drawBreakoutNormal();  // dim the game display
+    else if (settings.operationMode == OP_VOLUME) drawVolumeNormal();
+    else if (settings.operationMode == OP_SIMULATION) drawSimulationScreensaver();
     else drawScreensaver();
   } else if (currentMode == MODE_NORMAL) {
-    if (settings.operationMode == 5) drawRacerNormal();
-    else if (settings.operationMode == 4) drawSnakeNormal();
-    else if (settings.operationMode == 3) drawBreakoutNormal();
-    else if (settings.operationMode == 2) drawVolumeNormal();
-    else if (settings.operationMode == 1) drawSimulationNormal();
+    if (settings.operationMode == OP_RACER) drawRacerNormal();
+    else if (settings.operationMode == OP_SNAKE) drawSnakeNormal();
+    else if (settings.operationMode == OP_BREAKOUT) drawBreakoutNormal();
+    else if (settings.operationMode == OP_VOLUME) drawVolumeNormal();
+    else if (settings.operationMode == OP_SIMULATION) drawSimulationNormal();
     else drawNormalMode();
   } else if (currentMode == MODE_MENU) {
     drawMenuMode();

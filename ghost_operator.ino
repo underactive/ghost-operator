@@ -86,7 +86,7 @@ void connect_callback(uint16_t conn_handle) {
   conn->requestConnectionParameter(BLE_INTERVAL_ACTIVE);
   lastHidActivity = millis();
   bleIdleMode = false;
-  playConnectSound();  // audible alert (ungated — system sound)
+  connectSoundPending = true;  // deferred to loop() — BLE callback context is unsafe for I2C/GPIO
   markDisplayDirty();
 }
 
@@ -99,7 +99,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   easterEggActive = false;
   bleIdleMode = false;
   resetBleUartBuffer();  // discard stale partial commands
-  playDisconnectSound();  // audible alert (ungated — system sound)
+  disconnectSoundPending = true;  // deferred to loop() — BLE callback context is unsafe for I2C/GPIO
   markDisplayDirty();
 }
 
@@ -118,7 +118,7 @@ void setupPins() {
   pinMode(PIN_VBAT_ENABLE, OUTPUT);
   digitalWrite(PIN_VBAT_ENABLE, LOW);
 
-  NRF_POWER->DCDCEN = 1;
+  NRF_POWER->DCDCEN = 1;  // NRF_POWER is not SoftDevice-owned — direct access is safe
 
   Serial.println("[OK] Pins configured");
 }
@@ -169,8 +169,8 @@ void setupDisplay() {
 
   display.clearDisplay();
   // Select splash bitmap based on operation mode
-  const uint8_t *splash = (settings.operationMode == 2) ? splashVolumeBitmap
-                        : (settings.operationMode >= 3) ? splashGameBitmap
+  const uint8_t *splash = (settings.operationMode == OP_VOLUME) ? splashVolumeBitmap
+                        : (settings.operationMode >= OP_BREAKOUT) ? splashGameBitmap
                         : splashBitmap;
   display.drawBitmap(0, 0, splash, 128, 64, SSD1306_WHITE);
   // Version in lower-right corner (black text on white background)
@@ -344,19 +344,19 @@ void setup() {
   initWorkModes();
 
   // Initialize simulation orchestrator (uses settings + RNG, so must follow loadSettings + randomSeed)
-  if (settings.operationMode == 1) {
+  if (settings.operationMode == OP_SIMULATION) {
     initOrchestrator();
   }
   // Initialize Breakout game
-  if (settings.operationMode == 3) {
+  if (settings.operationMode == OP_BREAKOUT) {
     initBreakout();
   }
   // Initialize Snake game
-  if (settings.operationMode == 4) {
+  if (settings.operationMode == OP_SNAKE) {
     initSnake();
   }
   // Initialize Racer game
-  if (settings.operationMode == 5) {
+  if (settings.operationMode == OP_RACER) {
     initRacer();
   }
 
@@ -407,6 +407,11 @@ void loop() {
   handleBleUart();
   handleEncoder();
   handleButtons();
+
+  // Deferred sound from BLE callbacks — safe to play in loop() context
+  if (connectSoundPending) { connectSoundPending = false; playConnectSound(); }
+  if (disconnectSoundPending) { disconnectSoundPending = false; playDisconnectSound(); }
+
   updateSoundPreview();
 
   // Auto-return to NORMAL mode after timeout
@@ -551,21 +556,21 @@ void loop() {
 
   // Jiggler logic runs in background regardless of UI mode
   if ((deviceConnected || usbConnected) && !scheduleSleeping) {
-    if (settings.operationMode == 5) {
+    if (settings.operationMode == OP_RACER) {
       // Racer mode — game tick only, no jiggler activity
       tickRacer();
       updateRacerSound();
-    } else if (settings.operationMode == 4) {
+    } else if (settings.operationMode == OP_SNAKE) {
       // Snake mode — game tick only, no jiggler activity
       tickSnake();
       updateSnakeSound();
-    } else if (settings.operationMode == 3) {
+    } else if (settings.operationMode == OP_BREAKOUT) {
       // Breakout mode — game tick only, no jiggler activity
       tickBreakout();
       updateGameSound();  // non-blocking sound state machine
-    } else if (settings.operationMode == 2) {
+    } else if (settings.operationMode == OP_VOLUME) {
       // Volume Control mode — no jiggler activity (user-driven HID only)
-    } else if (settings.operationMode == 1) {
+    } else if (settings.operationMode == OP_SIMULATION) {
       // Simulation mode — orchestrator drives all KB + mouse activity
       tickOrchestrator(now);
     } else {
@@ -595,10 +600,10 @@ void loop() {
                         || screensaverActive || sleepConfirmActive
                         || sleepCancelActive || easterEggActive);
       if (timeBased || displayDirty) {
+        displayDirty = false;  // Clear before render — if ISR sets it during I2C, next frame picks it up
         pollEncoder();  // Catch transitions right before I2C transfer
         updateDisplay();
         pollEncoder();  // Catch transitions right after I2C transfer
-        displayDirty = false;
       }
       lastDisplayUpdate = now;
     }

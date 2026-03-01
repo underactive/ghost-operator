@@ -236,6 +236,7 @@ enum WorkModeId {
   WMODE_CHAT_SLACK, WMODE_VIDEO_CONF, WMODE_DOC_EDITING, WMODE_COFFEE_BREAK,
   WMODE_LUNCH_BREAK, WMODE_IRL_MEETING, WMODE_FILE_MGMT, WMODE_COUNT
 };
+enum OperationMode { OP_SIMPLE, OP_SIMULATION, OP_VOLUME, OP_BREAKOUT, OP_SNAKE, OP_RACER, OP_MODE_COUNT };
 enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 
 // Breakout game states
@@ -428,6 +429,7 @@ struct RacerGameState {
   unsigned long lastTickMs;
   unsigned long lastEnemySpawnMs;
   uint16_t spawnIntervalMs;   // decreases with score for difficulty
+  unsigned long lastCurveChangeMs;  // road curve target change timer
 };
 
 // Carousel page config (generic full-screen picker for named-option settings)

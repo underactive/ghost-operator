@@ -22,7 +22,6 @@ static const uint8_t RACER_SCROLL_SPEEDS[] = { 2, 3, 4 };
 // Road curve parameters
 #define RACER_CURVE_STEP       1    // center shift per tick toward target
 #define RACER_CURVE_CHANGE_MS  2000 // ms between new curve targets
-static unsigned long lastCurveChangeMs = 0;
 
 // Portrait screen dimensions (after rotation)
 #define PORT_W 64
@@ -32,12 +31,8 @@ static unsigned long lastCurveChangeMs = 0;
 // SOUND EFFECTS (piezo, gated by soundEnabled || systemSoundEnabled)
 // ============================================================================
 
-static bool canPlaySound() {
-  return settings.soundEnabled || settings.systemSoundEnabled;
-}
-
 static void playCrashSound() {
-  if (!canPlaySound()) return;
+  if (!canPlayGameSound()) return;
   // Short low buzz (~8ms)
   for (int i = 0; i < 30; i++) {
     digitalWrite(PIN_SOUND, HIGH);
@@ -48,7 +43,7 @@ static void playCrashSound() {
 }
 
 static void playScoreSound() {
-  if (!canPlaySound()) return;
+  if (!canPlayGameSound()) return;
   // Very short blip (~2ms) — plays when passing an enemy
   for (int i = 0; i < 8; i++) {
     digitalWrite(PIN_SOUND, HIGH);
@@ -82,7 +77,7 @@ static void stopRacerSound() {
 }
 
 static void startGameOverSound() {
-  if (!canPlaySound()) return;
+  if (!canPlayGameSound()) return;
   racerSound.type = RS_GAME_OVER;
   racerSound.noteIdx = 0;
   racerSound.cycleIdx = 0;
@@ -130,42 +125,42 @@ void updateRacerSound() {
 
 static void resetEnemies() {
   for (int i = 0; i < RACER_MAX_ENEMIES; i++) {
-    rcr.enemies[i].active = false;
+    gRcr.enemies[i].active = false;
   }
 }
 
 static void updateSpawnInterval() {
-  int interval = RACER_SPAWN_INITIAL_MS - (int)rcr.score * RACER_SPAWN_SCORE_SCALE;
+  int interval = RACER_SPAWN_INITIAL_MS - (int)gRcr.score * RACER_SPAWN_SCORE_SCALE;
   if (interval < RACER_SPAWN_MIN_MS) interval = RACER_SPAWN_MIN_MS;
-  rcr.spawnIntervalMs = (uint16_t)interval;
+  gRcr.spawnIntervalMs = (uint16_t)interval;
 }
 
 void initRacer() {
-  memset(&rcr, 0, sizeof(RacerGameState));
-  rcr.playerX = (PORT_W - RACER_CAR_W) / 2;
-  rcr.roadCenterX = PORT_W / 2;
-  rcr.roadTargetX = PORT_W / 2;
-  rcr.score = 0;
-  rcr.scrollOffset = 0;
-  rcr.state = RACER_IDLE;
-  rcr.lastTickMs = millis();
-  rcr.lastEnemySpawnMs = millis();
-  rcr.spawnIntervalMs = RACER_SPAWN_INITIAL_MS;
+  memset(&gRcr, 0, sizeof(RacerGameState));
+  gRcr.playerX = (PORT_W - RACER_CAR_W) / 2;
+  gRcr.roadCenterX = PORT_W / 2;
+  gRcr.roadTargetX = PORT_W / 2;
+  gRcr.score = 0;
+  gRcr.scrollOffset = 0;
+  gRcr.state = RACER_IDLE;
+  gRcr.lastTickMs = millis();
+  gRcr.lastEnemySpawnMs = millis();
+  gRcr.spawnIntervalMs = RACER_SPAWN_INITIAL_MS;
   resetEnemies();
-  lastCurveChangeMs = millis();
+  gRcr.lastCurveChangeMs = millis();
   stopRacerSound();
   markDisplayDirty();
 }
 
 static void spawnEnemy() {
   for (int i = 0; i < RACER_MAX_ENEMIES; i++) {
-    if (!rcr.enemies[i].active) {
-      int roadLeft = rcr.roadCenterX - RACER_ROAD_W / 2;
+    if (!gRcr.enemies[i].active) {
+      int roadLeft = gRcr.roadCenterX - RACER_ROAD_W / 2;
       int spawnRange = RACER_ROAD_W - RACER_ENEMY_W;
       if (spawnRange < 1) spawnRange = 1;
-      rcr.enemies[i].x = (int8_t)(roadLeft + random(0, spawnRange));
-      rcr.enemies[i].y = -RACER_ENEMY_H;  // spawn above screen
-      rcr.enemies[i].active = true;
+      gRcr.enemies[i].x = (int8_t)(roadLeft + random(0, spawnRange));
+      gRcr.enemies[i].y = -RACER_ENEMY_H;  // spawn above screen
+      gRcr.enemies[i].active = true;
       return;
     }
   }
@@ -173,18 +168,18 @@ static void spawnEnemy() {
 
 static bool checkCollision() {
   // Road boundary check
-  int roadLeft = rcr.roadCenterX - RACER_ROAD_W / 2;
+  int roadLeft = gRcr.roadCenterX - RACER_ROAD_W / 2;
   int roadRight = roadLeft + RACER_ROAD_W;
-  if (rcr.playerX < roadLeft || (rcr.playerX + RACER_CAR_W) > roadRight) {
+  if (gRcr.playerX < roadLeft || (gRcr.playerX + RACER_CAR_W) > roadRight) {
     return true;
   }
 
   // Enemy collision (AABB)
   for (int i = 0; i < RACER_MAX_ENEMIES; i++) {
-    if (!rcr.enemies[i].active) continue;
-    RacerEnemy& e = rcr.enemies[i];
-    if (rcr.playerX < e.x + RACER_ENEMY_W &&
-        rcr.playerX + RACER_CAR_W > e.x &&
+    if (!gRcr.enemies[i].active) continue;
+    RacerEnemy& e = gRcr.enemies[i];
+    if (gRcr.playerX < e.x + RACER_ENEMY_W &&
+        gRcr.playerX + RACER_CAR_W > e.x &&
         RACER_PLAYER_Y < e.y + RACER_ENEMY_H &&
         RACER_PLAYER_Y + RACER_CAR_H > e.y) {
       return true;
@@ -194,13 +189,13 @@ static bool checkCollision() {
 }
 
 static void gameOver() {
-  rcr.state = RACER_GAME_OVER;
+  gRcr.state = RACER_GAME_OVER;
   playCrashSound();
   startGameOverSound();
 
   // Update high score
-  if (rcr.score > settings.racerHighScore) {
-    settings.racerHighScore = rcr.score;
+  if (gRcr.score > settings.racerHighScore) {
+    settings.racerHighScore = gRcr.score;
     settingsDirty = true;
     settingsDirtyMs = millis();
   }
@@ -208,47 +203,47 @@ static void gameOver() {
 }
 
 void tickRacer() {
-  if (rcr.state != RACER_PLAYING) return;
+  if (gRcr.state != RACER_PLAYING) return;
 
   unsigned long now = millis();
   uint8_t speedIdx = settings.racerSpeed;
   if (speedIdx >= RACER_SPEED_COUNT) speedIdx = 1;
   uint16_t tickMs = RACER_TICK_SPEEDS[speedIdx];
 
-  if (now - rcr.lastTickMs < tickMs) return;
-  rcr.lastTickMs = now;
+  if (now - gRcr.lastTickMs < tickMs) return;
+  gRcr.lastTickMs = now;
 
   uint8_t scrollSpeed = RACER_SCROLL_SPEEDS[speedIdx];
 
   // Animate road scroll
-  rcr.scrollOffset = (rcr.scrollOffset + scrollSpeed) % 8;
+  gRcr.scrollOffset = (gRcr.scrollOffset + scrollSpeed) % 8;
 
   // Update road curves
-  if (now - lastCurveChangeMs > RACER_CURVE_CHANGE_MS) {
-    lastCurveChangeMs = now;
+  if (now - gRcr.lastCurveChangeMs > RACER_CURVE_CHANGE_MS) {
+    gRcr.lastCurveChangeMs = now;
     // Pick new random target center, constrained so road stays on screen
     int margin = RACER_ROAD_W / 2 + 2;
-    rcr.roadTargetX = (int16_t)random(margin, PORT_W - margin);
+    gRcr.roadTargetX = (int16_t)random(margin, PORT_W - margin);
   }
 
   // Smoothly move road center toward target
-  if (rcr.roadCenterX < rcr.roadTargetX) {
-    rcr.roadCenterX += RACER_CURVE_STEP;
-    if (rcr.roadCenterX > rcr.roadTargetX) rcr.roadCenterX = rcr.roadTargetX;
-  } else if (rcr.roadCenterX > rcr.roadTargetX) {
-    rcr.roadCenterX -= RACER_CURVE_STEP;
-    if (rcr.roadCenterX < rcr.roadTargetX) rcr.roadCenterX = rcr.roadTargetX;
+  if (gRcr.roadCenterX < gRcr.roadTargetX) {
+    gRcr.roadCenterX += RACER_CURVE_STEP;
+    if (gRcr.roadCenterX > gRcr.roadTargetX) gRcr.roadCenterX = gRcr.roadTargetX;
+  } else if (gRcr.roadCenterX > gRcr.roadTargetX) {
+    gRcr.roadCenterX -= RACER_CURVE_STEP;
+    if (gRcr.roadCenterX < gRcr.roadTargetX) gRcr.roadCenterX = gRcr.roadTargetX;
   }
 
   // Move enemies downward
   bool scoredThisTick = false;
   for (int i = 0; i < RACER_MAX_ENEMIES; i++) {
-    if (!rcr.enemies[i].active) continue;
-    rcr.enemies[i].y += scrollSpeed;
+    if (!gRcr.enemies[i].active) continue;
+    gRcr.enemies[i].y += scrollSpeed;
     // Deactivate if off-screen bottom, award point
-    if (rcr.enemies[i].y > PORT_H) {
-      rcr.enemies[i].active = false;
-      rcr.score++;
+    if (gRcr.enemies[i].y > PORT_H) {
+      gRcr.enemies[i].active = false;
+      gRcr.score++;
       updateSpawnInterval();
       scoredThisTick = true;
     }
@@ -257,8 +252,8 @@ void tickRacer() {
   if (scoredThisTick) playScoreSound();
 
   // Spawn new enemies
-  if (now - rcr.lastEnemySpawnMs >= rcr.spawnIntervalMs) {
-    rcr.lastEnemySpawnMs = now;
+  if (now - gRcr.lastEnemySpawnMs >= gRcr.spawnIntervalMs) {
+    gRcr.lastEnemySpawnMs = now;
     spawnEnemy();
   }
 
@@ -276,46 +271,46 @@ void tickRacer() {
 }
 
 void racerEncoderInput(int direction) {
-  if (rcr.state == RACER_PLAYING) {
+  if (gRcr.state == RACER_PLAYING) {
     // Steer left/right
-    rcr.playerX += direction * RACER_STEER_STEP;
+    gRcr.playerX += direction * RACER_STEER_STEP;
     // Clamp to screen bounds
-    if (rcr.playerX < 0) rcr.playerX = 0;
-    if (rcr.playerX > PORT_W - RACER_CAR_W) rcr.playerX = PORT_W - RACER_CAR_W;
+    if (gRcr.playerX < 0) gRcr.playerX = 0;
+    if (gRcr.playerX > PORT_W - RACER_CAR_W) gRcr.playerX = PORT_W - RACER_CAR_W;
     markDisplayDirty();
-  } else if (rcr.state == RACER_GAME_OVER) {
+  } else if (gRcr.state == RACER_GAME_OVER) {
     // No action on encoder during game over
   }
 }
 
 void racerButtonPress() {
-  switch (rcr.state) {
+  switch (gRcr.state) {
     case RACER_IDLE:
       // Start game
       initRacer();
-      rcr.state = RACER_PLAYING;
-      rcr.lastTickMs = millis();
-      rcr.lastEnemySpawnMs = millis();
-      lastCurveChangeMs = millis();
+      gRcr.state = RACER_PLAYING;
+      gRcr.lastTickMs = millis();
+      gRcr.lastEnemySpawnMs = millis();
+      gRcr.lastCurveChangeMs = millis();
       break;
     case RACER_PLAYING:
       // Pause
-      rcr.state = RACER_PAUSED;
+      gRcr.state = RACER_PAUSED;
       break;
     case RACER_PAUSED:
       // Resume
-      rcr.state = RACER_PLAYING;
-      rcr.lastTickMs = millis();
-      rcr.lastEnemySpawnMs = millis();
+      gRcr.state = RACER_PLAYING;
+      gRcr.lastTickMs = millis();
+      gRcr.lastEnemySpawnMs = millis();
       break;
     case RACER_GAME_OVER:
       // New game
       stopRacerSound();
       initRacer();
-      rcr.state = RACER_PLAYING;
-      rcr.lastTickMs = millis();
-      rcr.lastEnemySpawnMs = millis();
-      lastCurveChangeMs = millis();
+      gRcr.state = RACER_PLAYING;
+      gRcr.lastTickMs = millis();
+      gRcr.lastEnemySpawnMs = millis();
+      gRcr.lastCurveChangeMs = millis();
       break;
   }
   markDisplayDirty();

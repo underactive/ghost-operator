@@ -58,6 +58,7 @@ void sendMouseScroll(int8_t scroll) {
 
 bool hasPopulatedSlot() {
   for (int i = 0; i < NUM_SLOTS; i++) {
+    if (settings.keySlots[i] >= NUM_KEYS) continue;
     if (AVAILABLE_KEYS[settings.keySlots[i]].keycode != 0) return true;
   }
   return false;
@@ -67,6 +68,7 @@ void pickNextKey() {
   uint8_t populated[NUM_SLOTS];
   uint8_t count = 0;
   for (int i = 0; i < NUM_SLOTS; i++) {
+    if (settings.keySlots[i] >= NUM_KEYS) continue;
     if (AVAILABLE_KEYS[settings.keySlots[i]].keycode != 0)
       populated[count++] = i;
   }
@@ -75,6 +77,7 @@ void pickNextKey() {
 }
 
 void sendKeystroke() {
+  if (nextKeyIndex >= NUM_KEYS) return;
   const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
   if (key.keycode == 0) return;
   markHidActivity();

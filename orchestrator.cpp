@@ -13,7 +13,8 @@
 // ============================================================================
 
 static const DayTemplate& currentTemplate() {
-  return DAY_TEMPLATES[settings.jobSimulation];
+  uint8_t idx = (settings.jobSimulation < JOB_SIM_COUNT) ? settings.jobSimulation : 0;
+  return DAY_TEMPLATES[idx];
 }
 
 static const TimeBlock& currentBlock() {
@@ -390,15 +391,16 @@ static void tickBurst(unsigned long now) {
 
   // Ready to press next key?
   if (now >= orch.nextKeyMs && orch.burstKeysRemaining > 0) {
-    // Press key down
-    sendKeyDown(nextKeyIndex);
+    // Press key down — save index before pickNextKey() advances it
+    uint8_t pressedKeyIdx = nextKeyIndex;
+    sendKeyDown(pressedKeyIdx);
     pickNextKey();
     orch.keyDown = true;
     orch.keyDownMs = now;
     orch.lastSimKeystrokeMs = now;
 
-    // Modifier keys get longer hold
-    const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
+    // Modifier keys get longer hold — check the PRESSED key, not the next one
+    const KeyDef& key = AVAILABLE_KEYS[pressedKeyIdx];
     if (key.isModifier) {
       orch.currentKeyHoldMs = (uint16_t)randRange(150, 400);
     } else {
@@ -525,12 +527,13 @@ static void tickKbMouse(unsigned long now) {
             }
           }
         } else if (now >= orch.nextKeyMs && orch.burstKeysRemaining > 0) {
-          sendKeyDown(nextKeyIndex);
+          uint8_t pressedKeyIdx = nextKeyIndex;
+          sendKeyDown(pressedKeyIdx);
           pickNextKey();
           orch.keyDown = true;
           orch.keyDownMs = now;
           orch.lastSimKeystrokeMs = now;
-          const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
+          const KeyDef& key = AVAILABLE_KEYS[pressedKeyIdx];
           if (key.isModifier) {
             orch.currentKeyHoldMs = (uint16_t)randRange(150, 400);
           } else {

@@ -76,6 +76,21 @@ export const settings = reactive({
   // Sound
   sound: 0,
   soundType: 0,
+  sysSounds: 0,
+  // Volume control
+  volumeTheme: 0,
+  encButton: 0,
+  sideButton: 0,
+  // Game settings
+  ballSpeed: 0,
+  paddleSize: 0,
+  startLives: 0,
+  highScore: 0,
+  snakeSpeed: 0,
+  snakeWalls: 0,
+  snakeHiScore: 0,
+  racerSpeed: 0,
+  racerHiScore: 0,
   // Shift/lunch
   shiftDur: 480,
   lunchDur: 30,
@@ -109,8 +124,8 @@ let savedSnapshot = ''
 // Status polling interval
 let pollInterval = null
 
-// Pending response handler
-let pendingResolve = null
+// Pending response queue (FIFO — supports concurrent sendAndWait calls)
+const pendingQueue = []
 
 // --- Battery history persistence ---
 
@@ -181,9 +196,9 @@ function handleLine(line) {
     const jobIdx = parseInt(parsed.data.job) || 0
     simBlocks[jobIdx] = parseSimBlocks(parsed.data)
   } else if (parsed.type === 'ok' || parsed.type === 'error') {
-    if (pendingResolve) {
-      pendingResolve(parsed)
-      pendingResolve = null
+    if (pendingQueue.length > 0) {
+      const { resolve } = pendingQueue.shift()
+      resolve(parsed)
     }
   }
 }
@@ -209,6 +224,11 @@ async function connectWithTransport(transport, type) {
       transportType.value = null
       activeTransport = null
       stopPolling()
+      // Drain pending queue with error responses
+      while (pendingQueue.length > 0) {
+        const { resolve } = pendingQueue.shift()
+        resolve({ type: 'error', data: { message: 'disconnected' } })
+      }
       statusMessage.value = 'Disconnected'
     })
 
@@ -270,9 +290,6 @@ export function connectUSB() {
 export function connectBLE() {
   return connectWithTransport(bleTransport, 'ble')
 }
-
-/** @deprecated Use connectUSB() or connectBLE(). Kept for backwards compat. */
-export const connectDevice = connectUSB
 
 /**
  * Disconnect from the device.
@@ -504,12 +521,14 @@ export async function resetSimDataToDefaults() {
 
 function sendAndWait(cmd) {
   return new Promise((resolve) => {
-    pendingResolve = resolve
+    const entry = { resolve }
+    pendingQueue.push(entry)
     activeTransport.send(cmd)
     // Timeout fallback
     setTimeout(() => {
-      if (pendingResolve === resolve) {
-        pendingResolve = null
+      const idx = pendingQueue.indexOf(entry)
+      if (idx !== -1) {
+        pendingQueue.splice(idx, 1)
         resolve({ type: 'error', data: { message: 'timeout' } })
       }
     }, 3000)
@@ -554,7 +573,11 @@ const EXPORTABLE_KEYS = [
   'schedMode', 'schedStart', 'schedEnd',
   'opMode', 'jobSim', 'jobPerf', 'jobStart',
   'phantom', 'clickSlots', 'winSwitch', 'switchKeys', 'headerDisp',
-  'sound', 'soundType',
+  'sound', 'soundType', 'sysSounds',
+  'volumeTheme', 'encButton', 'sideButton',
+  'ballSpeed', 'paddleSize', 'startLives',
+  'snakeSpeed', 'snakeWalls',
+  'racerSpeed',
   'shiftDur', 'lunchDur',
   'slots',
 ]
@@ -567,6 +590,8 @@ export function exportSettings() {
   for (const key of EXPORTABLE_KEYS) {
     if (key === 'slots') {
       exported.slots = settings.slots.join(',')
+    } else if (key === 'clickSlots') {
+      exported.clickSlots = settings.clickSlots.join(',')
     } else {
       exported[key] = settings[key]
     }
@@ -667,6 +692,9 @@ export async function importSettings(file) {
       result.skipped.push(`${key} (unknown)`)
     }
   }
+
+  // Skip save if nothing was applied
+  if (result.applied === 0 && !data.ghost_operator.sim_tuning?.length) return result
 
   // Import sim tuning data if present (version 2+)
   const simTuning = data.ghost_operator.sim_tuning

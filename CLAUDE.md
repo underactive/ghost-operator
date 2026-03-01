@@ -50,7 +50,7 @@
 ## Architecture
 
 ### Core Files
-Modular architecture — 20 `.h/.cpp` module pairs + lean `.ino` entry point:
+Modular architecture — 23 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 - `ghost_operator.ino` - Entry point: setup(), loop(), BLE + USB HID setup/callbacks
 - `config.h` - All `#define` constants, enums, structs (header-only)
@@ -67,12 +67,15 @@ Modular architecture — 20 `.h/.cpp` module pairs + lean `.ino` entry point:
 - `screenshot.h/.cpp` - PNG encoder + base64 serial output
 - `serial_cmd.h/.cpp` - Serial debug commands + status
 - `input.h/.cpp` - Encoder dispatch, buttons, name editor
-- `display.h/.cpp` - All rendering (dirty flag, shadow buffer page redraw, ~800 lines, largest module)
+- `display.h/.cpp` - All rendering (dirty flag, shadow buffer page redraw, ~2900 lines, largest module)
 - `ble_uart.h/.cpp` - BLE UART (NUS) + transport-agnostic config protocol
-- `sound.h/.cpp` - Piezo buzzer keyboard sound profiles (5 types) with live preview
+- `sound.h/.cpp` - Piezo buzzer keyboard sound profiles (5 types) with live preview; `canPlayGameSound()` shared by game modules
 - `orchestrator.h/.cpp` - Simulation activity orchestrator (phase cycling, mutual exclusion, job performance scaling)
 - `sim_data.h/.cpp` - Simulation data tables (job templates, work modes, phase timing)
 - `schedule.h/.cpp` - Timed schedule (auto-sleep/full auto, light/deep sleep, time sync)
+- `breakout.h/.cpp` - Breakout arcade game (ball physics, paddle, bricks)
+- `snake.h/.cpp` - Classic snake game (grid-based, configurable walls)
+- `racer.h/.cpp` - Ghost Racer side-scrolling racing game
 
 ### Dependencies
 - Adafruit Bluefruit (built into Seeed nRF52 core)
@@ -95,7 +98,12 @@ Modular architecture — 20 `.h/.cpp` module pairs + lean `.ino` entry point:
 
 #### 2. UI Modes
 ```cpp
-enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CLICK_SLOTS, MODE_COUNT };
+enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_CLICK_SLOTS, MODE_COUNT };
+```
+
+#### 2b. Operation Modes
+```cpp
+enum OperationMode { OP_SIMPLE, OP_SIMULATION, OP_VOLUME, OP_BREAKOUT, OP_SNAKE, OP_RACER, OP_MODE_COUNT };
 ```
 - **NORMAL**: Live status; encoder switches profile (Simple), adjusts job performance (Simulation), or sends volume up/down (Volume Control); button cycles KB/MS combos (Simple/Simulation); D2 configurable (Play/Pause or Mute), D7 configurable (Next/Mute/Play) in Volume Control
 - **MENU**: Scrollable settings menu; encoder navigates/edits, button selects/confirms
@@ -110,7 +118,7 @@ enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SC
 - 30-second timeout returns to NORMAL from MENU, SLOTS, CLICK_SLOTS, or NAME
 
 #### 2a. Menu System
-Data-driven architecture using `MenuItem` struct array (49 entries: 10 headings + 39 items):
+Data-driven architecture using `MenuItem` struct array (62 entries):
 ```cpp
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
 enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION };
@@ -126,7 +134,7 @@ enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_
 #define NUM_SLOTS 8
 
 struct Settings {
-  uint32_t magic;              // 0x50524F60 (bumped: clickType → clickSlots[7])
+  uint32_t magic;              // 0x50524F61 (bumped: added racer settings)
   uint32_t keyIntervalMin;     // ms
   uint32_t keyIntervalMax;     // ms
   uint32_t mouseJiggleDuration; // ms
@@ -151,7 +159,7 @@ struct Settings {
   uint16_t scheduleEnd;        // 0-287 (5-min slots), default 204 (17:00)
   uint8_t invertDial;          // 0=Off (default), 1=On — reverse encoder rotation
   // Simulation mode settings
-  uint8_t operationMode;       // 0=Simple (default), 1=Simulation, 2=Volume Control
+  uint8_t operationMode;       // OP_SIMPLE=0 (default), OP_SIMULATION=1, OP_VOLUME=2, OP_BREAKOUT=3, OP_SNAKE=4, OP_RACER=5
   uint8_t jobSimulation;       // 0=Staff, 1=Developer, 2=Designer (default: 0)
   uint8_t jobPerformance;      // 0-11, default 5 (level*10 = percentage, 5=baseline)
   uint16_t jobStartTime;       // 0-287 (5-min slots), default 96 (8:00)
@@ -162,6 +170,7 @@ struct Settings {
   uint8_t headerDisplay;       // 0=Job sim name (default), 1=Device name
   uint8_t soundEnabled;        // 0=Off (default), 1=On
   uint8_t soundType;           // 0=MX Blue, 1=MX Brown, 2=Membrane, 3=Buckling, 4=Thock
+  uint8_t systemSoundEnabled;  // 0=Off (default), 1=On — BLE connect/disconnect alert tones
   // Volume control settings
   uint8_t volumeTheme;         // 0=Basic (default), 1=Retro, 2=Futuristic
   uint8_t encButtonAction;     // 0=Play/Pause (default), 1=Mute
@@ -376,6 +385,7 @@ No formal linting or formatting tools are configured (no `.clang-format`, `.edit
 - `volatile` for ISR-accessed variables; `const` for immutable data
 - Struct-based data (C idiom), not C++ classes
 - `extern` declarations in headers; definitions in `.cpp`
+- Game state macros: `gBrk` (breakout), `gSnk` (snake), `gRcr` (racer) — defined in `state.h` as `#define gBrk (gameState.brk)` etc., accessing the shared `GameState` union
 
 **Vue/JS dashboard specifics:**
 - Vue 3 Composition API with `<script setup>` syntax
@@ -632,12 +642,15 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `screenshot.h/.cpp` | PNG encoder + base64 serial output |
 | `serial_cmd.h/.cpp` | Serial debug commands + status |
 | `input.h/.cpp` | Encoder dispatch, buttons, name editor |
-| `display.h/.cpp` | All rendering (~800 lines, largest module) |
+| `display.h/.cpp` | All rendering (~2900 lines, largest module) |
 | `ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
 | `sound.h/.cpp` | Piezo buzzer keyboard sound profiles (5 types) |
 | `orchestrator.h/.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
 | `sim_data.h/.cpp` | Simulation data tables (job templates, work modes, phase timing) |
 | `schedule.h/.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |
+| `breakout.h/.cpp` | Breakout arcade game (ball physics, paddle, bricks) |
+| `snake.h/.cpp` | Classic snake game (grid-based, configurable walls) |
+| `racer.h/.cpp` | Ghost Racer side-scrolling racing game |
 | `dashboard/` | Vue 3 web dashboard (Vite + Web Serial config + Web Serial DFU) |
 | `dashboard/src/lib/serial.js` | Web Serial config transport (same API as `ble.js`) |
 | `dashboard/src/lib/dfu/` | Web Serial DFU library (SLIP, CRC16, serial transport, protocol, ZIP parser) |

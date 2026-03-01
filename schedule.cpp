@@ -24,7 +24,7 @@ void syncTime(uint32_t daySeconds) {
   Serial.println(timeBuf);
 
   // Sync orchestrator to correct work block for this time of day
-  if (settings.operationMode == 1) {
+  if (settings.operationMode == OP_SIMULATION) {
     syncOrchestratorTime(daySeconds);
   }
 }
@@ -34,6 +34,8 @@ uint32_t currentDaySeconds() {
   unsigned long elapsed = millis() - wallClockSyncMs;
   uint32_t elapsedSecs = elapsed / 1000;
   // Re-anchor every 24h to prevent millis() wrap drift
+  // NOTE: Re-anchoring mutates wallClockDaySecs/wallClockSyncMs as a side effect —
+  // callers should not assume this function is pure/const.
   if (elapsedSecs >= 86400) {
     wallClockDaySecs = (wallClockDaySecs + elapsedSecs) % 86400;
     wallClockSyncMs = millis();

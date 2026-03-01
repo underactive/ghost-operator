@@ -75,12 +75,17 @@ export async function readFrame(timeoutMs = 5000) {
   const buffer = []
   let started = false
   let timedOut = false
+  let released = false
+
+  const releaseLockOnce = () => {
+    if (!released) { released = true; try { localReader.releaseLock() } catch {} }
+  }
 
   const timeoutId = setTimeout(() => {
     timedOut = true
     // releaseLock() causes the pending read() to reject with TypeError,
     // which we catch below. The stream stays open for future readers.
-    try { localReader.releaseLock() } catch {}
+    releaseLockOnce()
   }, timeoutMs)
 
   try {
@@ -102,7 +107,7 @@ export async function readFrame(timeoutMs = 5000) {
             // End of frame — return collected bytes
             buffer.push(SLIP_END)
             clearTimeout(timeoutId)
-            try { localReader.releaseLock() } catch {}
+            releaseLockOnce()
             return new Uint8Array(buffer)
           }
           // Start of frame
@@ -116,7 +121,7 @@ export async function readFrame(timeoutMs = 5000) {
     }
   } finally {
     clearTimeout(timeoutId)
-    try { localReader.releaseLock() } catch {}
+    releaseLockOnce()
   }
 
   throw new Error('Serial read timeout')
