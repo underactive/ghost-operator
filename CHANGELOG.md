@@ -5,6 +5,31 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.2] - 2026-03-08
+
+### Fixed
+
+- **ISR safety**: Defer BLE callback sound to main loop via volatile flags; add `volatile` to `deviceConnected`/`bleConnHandle` for correct ISR visibility
+- **Display race condition**: Clear-before-render pattern for `displayDirty` flag prevents missed updates
+- **Modifier key bug**: Save `nextKeyIndex` before `pickNextKey()` to prevent modifier release targeting wrong key
+- **Encoder TOCTOU**: Use local snapshot of pin register to eliminate double-read race
+- **Settings buffer overflow**: Increase `cmdQuerySettings` buffer from 640 to 768 bytes
+- **BLE name validation**: Reject non-printable ASCII in device name protocol command
+- **Dashboard parse gaps**: Add 13 missing settings fields to `parseSettings`; fix `||0` → `??0` for fields where 0 is valid
+- **Dashboard mode arrays**: Fix `OP_MODE_NAMES`/`MODE_NAMES` array completeness for all operation modes
+- **Serial/BLE rx overflow**: Add receive buffer overflow guard in both `serial.js` and `ble.js`
+- **DFU lock release**: Add `releaseLockOnce` guard to prevent double-release in DFU serial transport
+- **Export/import completeness**: Fix `clickSlots` handling and `EXPORTABLE_KEYS` list for settings backup
+
+### Changed
+
+- **OperationMode enum**: Replace ~50 magic number comparisons with named `OP_SIMPLE`/`OP_SIMULATION`/etc. constants across firmware
+- **Game state macros**: Rename `brk`/`snk`/`rcr` → `gBrk`/`gSnk`/`gRcr` to avoid reserved identifier conflicts (~248 sites)
+- **Display refactor**: Extract `drawScrollingText()` helper replacing 5 duplicated text-scrolling patterns
+- **Serial command queue**: Replace single `pendingResolve` with FIFO queue for concurrent protocol commands
+- **Shared game sound**: Extract `canPlayGameSound()` to `sound.h/.cpp`, shared by Breakout, Snake, and Racer modules
+- **Bounds hardening**: Add guards on 11+ array-indexed lookups across display, settings, and orchestrator
+
 ## [2.3.1] - 2026-02-26
 
 ### Added
