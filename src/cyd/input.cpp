@@ -310,11 +310,36 @@ static void handleMenuTouch(const TouchEvent& evt) {
       case SET_REBOOT:
         ESP.restart();
         return;
+      case SET_OP_MODE: {
+        // Cycle between Simple (0) and Simulation (1) — skip other modes on CYD
+        uint8_t newMode = (settings.operationMode == OP_SIMPLE) ? OP_SIMULATION : OP_SIMPLE;
+        setSettingValue(SET_OP_MODE, newMode);
+        saveSettings();
+        delay(200);
+        ESP.restart();
+        return;
+      }
+      case SET_BLE_IDENTITY: {
+        // Cycle through: Custom(0) -> preset 1 -> ... -> preset 10 -> back to Custom(0)
+        uint8_t newIdx = (settings.decoyIndex + 1) % (DECOY_COUNT + 1);
+        settings.decoyIndex = newIdx;
+        saveSettings();
+        delay(200);
+        ESP.restart();
+        return;
+      }
+      case SET_SCHEDULE_MODE: {
+        uint8_t newMode = (settings.scheduleMode + 1) % SCHED_MODE_COUNT;
+        setSettingValue(SET_SCHEDULE_MODE, newMode);
+        saveSettings();
+        markDisplayDirty();
+        return;
+      }
       case SET_SET_CLOCK:
-      case SET_SCHEDULE_MODE:
-      case SET_OP_MODE:
-      case SET_BLE_IDENTITY:
-        return;  // sub-page actions not yet implemented
+        // On CYD, time sync happens via serial =time:SECONDS command
+        // Just show a message via serial for now
+        Serial.println("[Clock] Use serial: =time:SECONDS to sync");
+        return;
     }
   }
 

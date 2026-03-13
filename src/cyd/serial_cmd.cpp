@@ -15,9 +15,6 @@
 // common in a future refactor.
 // ============================================================================
 
-// Response writer for serial output
-typedef void (*ResponseWriter)(const char* msg);
-
 static ResponseWriter currentWriter = nullptr;
 
 static void serialWrite(const char* msg) {
@@ -41,7 +38,7 @@ static void cmdQuerySettings();
 static void cmdQueryKeys();
 static void cmdSetValue(const char* body);
 
-static void processCommand(const char* line, ResponseWriter writer) {
+void processCommand(const char* line, ResponseWriter writer) {
   currentWriter = writer;
 
   if (line[0] == '?') {

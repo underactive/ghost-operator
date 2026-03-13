@@ -54,6 +54,42 @@ static bool lastEditorState = false;
 #define MENU_ROW_H    40
 #define HEADING_ROW_H 30
 
+// Activity icons (10px wide 1-bit bitmaps from nRF52, drawn at 2x on CYD)
+// Keycap normal (10x10)
+static const uint8_t iconKeycapNormal[] = {
+  0x7F, 0x80, 0x80, 0x40, 0x9E, 0x40, 0xA1, 0x40, 0xA1, 0x40,
+  0xBF, 0x40, 0xA1, 0x40, 0xA1, 0x40, 0x80, 0x40, 0x7F, 0x80
+};
+// Keycap pressed (10x8)
+static const uint8_t iconKeycapPressed[] = {
+  0x7F, 0x80, 0x80, 0x40, 0x9E, 0x40, 0xA1, 0x40,
+  0xBF, 0x40, 0xA1, 0x40, 0x80, 0x40, 0x7F, 0x80
+};
+// Mouse normal (10x10)
+static const uint8_t iconMouseNormal[] = {
+  0x0C, 0x00, 0x06, 0x00, 0x0C, 0x00, 0x7F, 0x80, 0x40, 0x80,
+  0x5E, 0x80, 0x40, 0x80, 0x7F, 0x80, 0x7F, 0x80, 0x7F, 0x80
+};
+// Mouse click (10x10)
+static const uint8_t iconMouseClick[] = {
+  0x0C, 0x00, 0x06, 0x00, 0x0C, 0x00, 0x7F, 0x80, 0x40, 0x80,
+  0x40, 0x80, 0x40, 0x80, 0x7F, 0x80, 0x7F, 0x80, 0x7F, 0x80
+};
+
+// Draw a 1-bit bitmap at 2x scale
+static void drawBitmap2x(int16_t x, int16_t y, const uint8_t* bmp,
+                         int16_t w, int16_t h, uint16_t color) {
+  for (int16_t row = 0; row < h; row++) {
+    for (int16_t col = 0; col < w; col++) {
+      int16_t byteIdx = row * ((w + 7) / 8) + (col / 8);
+      bool pixel = bmp[byteIdx] & (0x80 >> (col % 8));
+      if (pixel) {
+        tft.fillRect(x + col * 2, y + row * 2, 2, 2, color);
+      }
+    }
+  }
+}
+
 // Card layout (home screen)
 #define CARD_W     145
 #define CARD_H     120
@@ -176,22 +212,83 @@ void updateDisplay() {
 // Header bar
 // ============================================================================
 
+// Pre-rendered gradient header stored as scanline colors (320 values)
+static uint16_t headerGradient[SCREEN_WIDTH];
+static bool headerGradientReady = false;
+
+static void initHeaderGradient() {
+  for (int16_t x = 0; x < SCREEN_WIDTH; x++) {
+    uint8_t frac = 255 - (uint8_t)((uint32_t)x * 255 / SCREEN_WIDTH);
+    uint8_t r = (uint8_t)((uint16_t)0x80 * frac / 255);
+    uint8_t b = (uint8_t)((uint16_t)0xC0 * frac / 255);
+    headerGradient[x] = ((r >> 3) << 11) | (b >> 3);
+  }
+  headerGradientReady = true;
+}
+
+// Draw gradient header (full redraw — call only on mode change)
+static void drawHeaderGradient() {
+  if (!headerGradientReady) initHeaderGradient();
+  for (int16_t x = 0; x < SCREEN_WIDTH; x++) {
+    tft.drawFastVLine(x, 0, HEADER_H, headerGradient[x]);
+  }
+}
+
+// Get the gradient color at a given x position (for text background erase)
+static uint16_t headerColorAt(int16_t x) {
+  if (x < 0) x = 0;
+  if (x >= SCREEN_WIDTH) x = SCREEN_WIDTH - 1;
+  return headerGradient[x];
+}
+
+// Erase a rect in the header by redrawing gradient lines over it
+static void eraseHeaderRect(int16_t x, int16_t y, int16_t w, int16_t h) {
+  if (!headerGradientReady) initHeaderGradient();
+  int16_t x2 = x + w;
+  if (x2 > SCREEN_WIDTH) x2 = SCREEN_WIDTH;
+  for (int16_t px = x; px < x2; px++) {
+    tft.drawFastVLine(px, y, h, headerGradient[px]);
+  }
+}
+
 static void drawHeaderBar() {
-  tft.fillRect(0, 0, SCREEN_WIDTH, HEADER_H, COL_HEADER_BG);
+  // Only draw full gradient on first call (mode change triggers full redraw)
+  // Subsequent calls just update the dynamic text regions
+  static bool headerDrawn = false;
+  static UIMode lastHeaderMode = MODE_COUNT;
+  static bool lastHeaderConnected = false;
+
+  bool needFullRedraw = (!headerDrawn || lastHeaderMode != currentMode);
+  headerDrawn = true;
+  lastHeaderMode = currentMode;
+
+  if (needFullRedraw) {
+    drawHeaderGradient();
+  }
+
   tft.setTextFont(2);
+  int16_t textY = (HEADER_H - 16) / 2;
 
-  // BLE status dot
-  uint16_t dotColor = deviceConnected ? COL_ACCENT : COL_DISCONNECT;
-  tft.fillCircle(16, HEADER_H / 2, 5, dotColor);
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COL_TEXT, COL_HEADER_BG);
-  tft.drawString("BLE", 26, (HEADER_H - 16) / 2);
+  // BLE status dot — only redraw if connection state changed
+  if (needFullRedraw || lastHeaderConnected != deviceConnected) {
+    lastHeaderConnected = deviceConnected;
+    eraseHeaderRect(10, 0, 55, HEADER_H);
+    uint16_t dotColor = deviceConnected ? COL_ACCENT : COL_DISCONNECT;
+    tft.fillCircle(16, HEADER_H / 2, 5, dotColor);
+    tft.setTextDatum(TL_DATUM);
+    tft.setTextColor(COL_TEXT);
+    tft.drawString("BLE", 26, textY);
+  }
 
-  // Device name (center)
-  tft.setTextDatum(TC_DATUM);
-  tft.drawString(settings.deviceName, SCREEN_WIDTH / 2, (HEADER_H - 16) / 2);
+  // Device name — static, only on full redraw
+  if (needFullRedraw) {
+    tft.setTextDatum(TC_DATUM);
+    tft.setTextColor(COL_TEXT);
+    tft.drawString(settings.deviceName, SCREEN_WIDTH / 2, textY);
+  }
 
-  // Uptime or clock (right)
+  // Uptime or clock — changes every frame, erase and redraw
+  eraseHeaderRect(SCREEN_WIDTH - 80, 0, 80, HEADER_H);
   char timeBuf[16];
   if (timeSynced) {
     formatCurrentTime(timeBuf, sizeof(timeBuf));
@@ -199,8 +296,8 @@ static void drawHeaderBar() {
     formatUptime(millis() - startTime, timeBuf, sizeof(timeBuf));
   }
   tft.setTextDatum(TR_DATUM);
-  tft.setTextColor(COL_TEXT_DIM, COL_HEADER_BG);
-  tft.drawString(timeBuf, SCREEN_WIDTH - 8, (HEADER_H - 16) / 2);
+  tft.setTextColor(COL_TEXT_DIM);
+  tft.drawString(timeBuf, SCREEN_WIDTH - 8, textY);
 }
 
 // ============================================================================
@@ -209,12 +306,16 @@ static void drawHeaderBar() {
 
 static void drawProgressBar(int16_t x, int16_t y, int16_t w, int16_t h,
                             uint8_t percent, uint16_t fgColor) {
-  tft.fillRect(x, y, w, h, COL_PROGRESS_BG);
   if (percent > 100) percent = 100;
-  int16_t fillW = (int16_t)((uint32_t)w * percent / 100);
-  if (fillW > 0) {
-    tft.fillRect(x, y, fillW, h, fgColor);
-  }
+  // Outline in the fill color
+  tft.drawRect(x, y, w, h, fgColor);
+  // Fill interior (inset 1px for outline)
+  int16_t ix = x + 1, iy = y + 1, iw = w - 2, ih = h - 2;
+  if (iw < 1 || ih < 1) return;
+  int16_t fillW = (int16_t)((uint32_t)iw * percent / 100);
+  // Draw fill and empty in one pass — no flicker
+  if (fillW > 0) tft.fillRect(ix, iy, fillW, ih, fgColor);
+  if (fillW < iw) tft.fillRect(ix + fillW, iy, iw - fillW, ih, COL_PROGRESS_BG);
 }
 
 static void drawButton(int16_t x, int16_t y, int16_t w, int16_t h,
@@ -330,61 +431,178 @@ static void drawHomeData() {
 // Simulation home — layout + data split
 // ============================================================================
 
+// Compact sim info row: name left | inline bar | countdown right
+// Matches nRF52 layout — 3 small rows then 1 big activity row
+static void drawSimCompactRow(int16_t y, const char* name,
+                              uint8_t progress, unsigned long remainMs,
+                              uint16_t barColor, uint16_t bg) {
+  int16_t lx = 20, rx = SCREEN_WIDTH - 20;
+
+  // Name (left)
+  tft.setTextFont(2);
+  tft.setTextDatum(TL_DATUM);
+  tft.fillRect(lx, y, 120, 18, bg);
+  tft.setTextColor(COL_TEXT, bg);
+  tft.drawString(name, lx, y);
+
+  // Inline progress bar (middle)
+  int16_t barX = 145, barW = 100, barH = 10;
+  int16_t barY = y + 3;
+  drawProgressBar(barX, barY, barW, barH, progress, barColor);
+
+  // Countdown timer (right)
+  char timeBuf[12];
+  formatMinSec(remainMs, timeBuf, sizeof(timeBuf));
+  tft.setTextDatum(TR_DATUM);
+  tft.fillRect(rx - 55, y, 55, 18, bg);
+  tft.setTextColor(COL_TEXT_DIM, bg);
+  tft.drawString(timeBuf, rx, y);
+}
+
 static void drawSimLayout() {
   drawHeaderBar();
-  drawCard(10, CONTENT_Y + 8, SCREEN_WIDTH - 20, CONTENT_H - 16);
 
+  // Info card (top area for 3 compact rows + big phase bar)
+  drawCard(10, CONTENT_Y + 2, SCREEN_WIDTH - 20, CONTENT_H - 6);
+
+  // Footer buttons
   int16_t footerY = SCREEN_HEIGHT - FOOTER_H;
   drawButton(10, footerY + 8, 80, 32, "Settings");
   drawButton(SCREEN_WIDTH - 90, footerY + 8, 80, 32, "Sleep");
+
+  // Static labels for compact rows (offset down by 20 for info line at top)
+  tft.setTextFont(2);
+  tft.setTextDatum(TL_DATUM);
+  tft.setTextColor(COL_TEXT_DIM, COL_BG_CARD);
+  int16_t y0 = CONTENT_Y + 28;
+  tft.drawString("Block", 20, y0);
+  tft.drawString("Mode", 20, y0 + 22);
+  tft.drawString("Profile", 20, y0 + 44);
 }
 
 static void drawSimData() {
   drawHeaderBar();
 
-  int16_t y = CONTENT_Y + 8;
   unsigned long now = millis();
-  int16_t cardX = 10, cardW = SCREEN_WIDTH - 20;
 
+  // === Info line at top: Job type + Performance level ===
+  int16_t infoY = CONTENT_Y + 8;
   tft.setTextFont(2);
   tft.setTextDatum(TL_DATUM);
-
-  // Block
-  tft.fillRect(cardX + 70, y + 6, cardW - 80, 18, COL_BG_CARD);
+  tft.fillRect(20, infoY, SCREEN_WIDTH - 40, 18, COL_BG_CARD);
+  const char* jobName = (settings.jobSimulation < JOB_SIM_COUNT) ? JOB_SIM_NAMES[settings.jobSimulation] : "???";
   tft.setTextColor(COL_TEXT_DIM, COL_BG_CARD);
-  tft.drawString("Block:", cardX + 10, y + 8);
-  tft.setTextColor(COL_TEXT, COL_BG_CARD);
-  tft.drawString(currentBlockName(), cardX + 70, y + 8);
-  drawProgressBar(cardX + 10, y + 28, cardW - 20, 6, blockProgress(now), COL_PROGRESS_FG);
-
-  // Mode
-  tft.fillRect(cardX + 70, y + 38, cardW - 80, 18, COL_BG_CARD);
-  tft.setTextColor(COL_TEXT_DIM, COL_BG_CARD);
-  tft.drawString("Mode:", cardX + 10, y + 40);
-  tft.setTextColor(COL_TEXT, COL_BG_CARD);
-  tft.drawString(currentModeName(), cardX + 70, y + 40);
-  drawProgressBar(cardX + 10, y + 60, cardW - 20, 6, modeProgress(now), COL_ACCENT);
-
-  // Phase
-  tft.fillRect(cardX + 70, y + 70, 100, 18, COL_BG_CARD);
-  tft.setTextColor(COL_TEXT_DIM, COL_BG_CARD);
-  tft.drawString("Phase:", cardX + 10, y + 72);
-  const char* phaseName = (orch.phase < PHASE_COUNT) ? PHASE_NAMES[orch.phase] : "???";
-  tft.setTextColor(COL_WARNING, COL_BG_CARD);
-  tft.drawString(phaseName, cardX + 70, y + 72);
-
-  // Profile + Performance
-  tft.fillRect(cardX + 80, y + 90, cardW - 90, 18, COL_BG_CARD);
-  tft.setTextColor(COL_TEXT_DIM, COL_BG_CARD);
-  tft.drawString("Profile:", cardX + 10, y + 92);
-  const char* profName = (orch.autoProfile < PROFILE_COUNT) ? PROFILE_NAMES[orch.autoProfile] : "???";
-  tft.setTextColor(COL_TEXT, COL_BG_CARD);
-  tft.drawString(profName, cardX + 80, y + 92);
-
+  tft.drawString(jobName, 20, infoY);
   char perfBuf[16];
-  snprintf(perfBuf, sizeof(perfBuf), "Perf: %d%%", settings.jobPerformance * 10);
+  snprintf(perfBuf, sizeof(perfBuf), "Perf: %d", settings.jobPerformance);
+  tft.setTextDatum(TR_DATUM);
   tft.setTextColor(COL_TEXT_DIM, COL_BG_CARD);
-  tft.drawString(perfBuf, cardX + 160, y + 92);
+  tft.drawString(perfBuf, SCREEN_WIDTH - 20, infoY);
+
+  // Divider between info line and compact rows
+  tft.drawFastHLine(20, infoY + 19, SCREEN_WIDTH - 40, COL_HEADING_BG);
+
+  // === 3 compact rows (block, mode, profile) with inline bars ===
+  int16_t y0 = CONTENT_Y + 28;
+  unsigned long blockElapsed = now - orch.blockStartMs;
+  unsigned long blockRemain = (blockElapsed < orch.blockDurationMs) ? (orch.blockDurationMs - blockElapsed) : 0;
+  drawSimCompactRow(y0, currentBlockName(), 100 - blockProgress(now), blockRemain, 0x52AA, COL_BG_CARD);  // light blue
+
+  unsigned long modeElapsed = now - orch.modeStartMs;
+  unsigned long modeRemain = (modeElapsed < orch.modeDurationMs) ? (orch.modeDurationMs - modeElapsed) : 0;
+  drawSimCompactRow(y0 + 22, currentModeName(), 100 - modeProgress(now), modeRemain, 0x52AA, COL_BG_CARD);  // light blue
+
+  unsigned long stintElapsed = now - orch.profileStintStartMs;
+  unsigned long stintRemain = (stintElapsed < orch.profileStintMs) ? (orch.profileStintMs - stintElapsed) : 0;
+  uint8_t stintPct = (orch.profileStintMs > 0) ? (uint8_t)((stintRemain * 100) / orch.profileStintMs) : 0;
+  const char* profName = (orch.autoProfile < PROFILE_COUNT) ? PROFILE_NAMES_TITLE[orch.autoProfile] : "???";
+  // Profile bar color: red=Lazy, yellow=Normal, green=Busy
+  uint16_t profColor;
+  switch (orch.autoProfile) {
+    case PROFILE_LAZY:   profColor = 0xF800; break;  // red
+    case PROFILE_BUSY:   profColor = COL_ACCENT; break;  // green
+    default:             profColor = 0xFFE0; break;  // yellow (NORMAL)
+  }
+  drawSimCompactRow(y0 + 44, profName, stintPct, stintRemain, profColor, COL_BG_CARD);
+
+  // === Separator line ===
+  int16_t sepY = y0 + 66;
+  tft.drawFastHLine(20, sepY, SCREEN_WIDTH - 40, COL_HEADING_BG);
+
+  // === Big activity phase row ===
+  int16_t phaseY = sepY + 4;
+  unsigned long phaseElapsed = now - orch.phaseStartMs;
+  unsigned long phaseRemain = (phaseElapsed < orch.phaseDurationMs) ? (orch.phaseDurationMs - phaseElapsed) : 0;
+  uint8_t phasePct = (orch.phaseDurationMs > 0) ? (uint8_t)((phaseRemain * 100) / orch.phaseDurationMs) : 0;
+
+  // Phase label (large — clear 120px wide to cover longest name "SWITCH")
+  const char* phaseName = (orch.phase < PHASE_COUNT) ? PHASE_NAMES[orch.phase] : "???";
+  tft.setTextFont(4);
+  tft.setTextDatum(TL_DATUM);
+  tft.fillRect(20, phaseY, 120, 26, COL_BG_CARD);
+  tft.setTextColor(COL_TEXT, COL_BG_CARD);
+  tft.drawString(phaseName, 20, phaseY);
+
+  // Phase countdown (large, right)
+  char durBuf[12];
+  formatDuration(phaseRemain, durBuf, sizeof(durBuf));
+  tft.setTextDatum(TR_DATUM);
+  tft.fillRect(SCREEN_WIDTH - 100, phaseY, 80, 26, COL_BG_CARD);
+  tft.setTextColor(COL_TEXT, COL_BG_CARD);
+  tft.drawString(durBuf, SCREEN_WIDTH - 20, phaseY);
+
+  // Big progress bar
+  drawProgressBar(20, phaseY + 30, SCREEN_WIDTH - 40, 12, phasePct, COL_TEXT);  // white
+
+  // === Activity icons (2x scaled bitmaps, in footer alongside buttons) ===
+  // Only redraw when state changes to avoid flicker
+  int16_t footerY = SCREEN_HEIGHT - FOOTER_H;
+  int16_t iconY = footerY + 12;
+
+  static bool lastKeyDown = false;
+  static bool lastClicking = false;
+  static int8_t lastNudgeIdx = 0;
+  static bool iconsFirstDraw = true;
+
+  // Keycap icon
+  if (keyEnabled) {
+    bool keyChanged = iconsFirstDraw || (orch.keyDown != lastKeyDown);
+    if (keyChanged) {
+      lastKeyDown = orch.keyDown;
+      int16_t kx = SCREEN_WIDTH / 2 - 30;
+      // Clear keycap area
+      tft.fillRect(kx, footerY, 22, FOOTER_H, COL_BG);
+      uint16_t kbCol = orch.keyDown ? COL_ACCENT : COL_TEXT_DIM;
+      if (orch.keyDown) {
+        drawBitmap2x(kx, iconY + 4, iconKeycapPressed, 10, 8, kbCol);
+      } else {
+        drawBitmap2x(kx, iconY, iconKeycapNormal, 10, 10, kbCol);
+      }
+    }
+  }
+
+  // Mouse icon
+  if (mouseEnabled) {
+    bool clicking = (now - orch.lastPhantomClickMs < 200);
+    bool mouseMoving = (orch.phase == PHASE_MOUSING && mouseState == MOUSE_JIGGLING) ||
+                       (orch.phase == PHASE_KB_MOUSE) || (orch.phase == PHASE_MOUSE_KB);
+    int8_t nudgeIdx = mouseMoving ? (int8_t)((now / 150) % 4) : 0;
+    bool mouseChanged = iconsFirstDraw || (clicking != lastClicking) || (nudgeIdx != lastNudgeIdx);
+    if (mouseChanged) {
+      lastClicking = clicking;
+      lastNudgeIdx = nudgeIdx;
+      // Clear mouse area (wider to cover nudge range)
+      tft.fillRect(SCREEN_WIDTH / 2 + 8, footerY, 26, FOOTER_H, COL_BG);
+      int16_t mx = SCREEN_WIDTH / 2 + 10;
+      static const int8_t nudge[] = {0, 1, 0, -1};
+      if (mouseMoving) mx += nudge[nudgeIdx];
+      const uint8_t* mIcon = clicking ? iconMouseClick : iconMouseNormal;
+      uint16_t msCol = clicking ? COL_ACCENT : COL_TEXT_DIM;
+      drawBitmap2x(mx, iconY, mIcon, 10, 10, msCol);
+    }
+  }
+
+  iconsFirstDraw = false;
 }
 
 // ============================================================================

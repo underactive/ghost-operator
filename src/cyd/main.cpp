@@ -14,6 +14,7 @@
 #include "touch.h"
 #include "input.h"
 #include "ble.h"
+#include "sleep.h"
 
 // ============================================================================
 // CYD (ESP32-2432S028R) Entry Point
@@ -22,6 +23,35 @@
 // Display refresh timing
 #define DISPLAY_UPDATE_CYD_MS 50  // 20 Hz
 
+// RGB LED status (active LOW on CYD)
+static unsigned long lastLedUpdate = 0;
+#define LED_UPDATE_MS 500
+
+static void updateRgbLed() {
+  unsigned long now = millis();
+  if (now - lastLedUpdate < LED_UPDATE_MS) return;
+  lastLedUpdate = now;
+
+  if (scheduleSleeping) {
+    // All off during sleep
+    digitalWrite(PIN_RGB_R, HIGH);
+    digitalWrite(PIN_RGB_G, HIGH);
+    digitalWrite(PIN_RGB_B, HIGH);
+  } else if (deviceConnected) {
+    // Solid green when connected
+    digitalWrite(PIN_RGB_R, HIGH);
+    digitalWrite(PIN_RGB_G, LOW);
+    digitalWrite(PIN_RGB_B, HIGH);
+  } else {
+    // Blink blue when advertising (toggle every 500ms)
+    static bool blinkState = false;
+    blinkState = !blinkState;
+    digitalWrite(PIN_RGB_R, HIGH);
+    digitalWrite(PIN_RGB_G, HIGH);
+    digitalWrite(PIN_RGB_B, blinkState ? LOW : HIGH);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
@@ -29,7 +59,7 @@ void setup() {
   Serial.print("[Version] ");
   Serial.println(VERSION);
 
-  // Backlight on early so splash screen is visible
+  // Backlight on for splash screen (simple GPIO, before TFT init)
   pinMode(PIN_TFT_BACKLIGHT, OUTPUT);
   digitalWrite(PIN_TFT_BACKLIGHT, HIGH);
 
@@ -86,8 +116,16 @@ void loop() {
   // Handle serial commands (config protocol + debug)
   handleSerialCommands();
 
-  // Handle touch input
-  handleTouchInput();
+  // Touch-to-wake from light sleep, or normal touch dispatch
+  if (scheduleSleeping) {
+    TouchEvent wakeEvt = pollTouch();
+    if (wakeEvt.gesture != GESTURE_NONE) {
+      exitLightSleep();
+    }
+    // Skip normal input processing while sleeping
+  } else {
+    handleTouchInput();
+  }
 
   // Mode timeout — return to NORMAL after 30s of no touch input
   // Re-read millis() after touch handling (touch updates lastModeActivity)
@@ -97,6 +135,28 @@ void loop() {
     markDisplayDirty();
   }
 
+  // Screen dim after screensaver timeout (reuse saverTimeout setting)
+  if (!scheduleSleeping && currentMode == MODE_NORMAL && !isEditorVisible()) {
+    unsigned long saverMs = saverTimeoutMs();
+    if (saverMs > 0 && (nowAfterTouch - lastModeActivity >= saverMs)) {
+      if (!screensaverActive) {
+        screensaverActive = true;
+        setBacklightBrightness(settings.saverBrightness);
+        markDisplayDirty();
+      }
+    } else if (screensaverActive) {
+      screensaverActive = false;
+      setBacklightBrightness(settings.displayBrightness);
+      markDisplayDirty();
+    }
+  }
+
+  // Handle sleep button press
+  if (sleepPending) {
+    sleepPending = false;
+    enterLightSleep(false);  // manual light sleep
+  }
+
   // Update display at 20 Hz
   if (now - lastDisplayUpdate >= DISPLAY_UPDATE_CYD_MS) {
     lastDisplayUpdate = now;
@@ -104,6 +164,9 @@ void loop() {
     if (currentMode == MODE_NORMAL) markDisplayDirty();
     updateDisplay();
   }
+
+  // RGB LED status indicator
+  updateRgbLed();
 
   // Schedule check (auto-sleep / full-auto)
   checkSchedule();

@@ -1,4 +1,5 @@
 #include "ble.h"
+#include "ble_uart.h"
 #include "state.h"
 #include "keys.h"
 #include "platform_hal.h"
@@ -88,6 +89,7 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     (void)pSvr;
     deviceConnected = false;
     Serial.println("[BLE] Disconnected");
+    resetBleUartBuffer();
     markDisplayDirty();
     NimBLEDevice::startAdvertising();
   }
@@ -151,6 +153,9 @@ void setupBLE() {
 
   // Start all services
   hid->startServices();
+
+  // BLE UART (Nordic UART Service) — config protocol over BLE
+  setupBleUart();
 
   // Advertising
   startAdvertising();

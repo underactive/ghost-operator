@@ -3,26 +3,42 @@
 #include "settings.h"
 #include "timing.h"
 #include "platform_hal.h"
+#include <NimBLEDevice.h>
 
 // ============================================================================
-// CYD sleep — screen dim/off only (no deep sleep, USB-powered)
+// CYD sleep — backlight PWM + BLE control (no deep sleep, USB-powered)
 // ============================================================================
+
+void setupBacklight() {
+  pinMode(PIN_TFT_BACKLIGHT, OUTPUT);
+  digitalWrite(PIN_TFT_BACKLIGHT, HIGH);
+}
+
+void setBacklightBrightness(uint8_t percent) {
+  // Simple on/off — CYD backlight doesn't reliably support PWM dimming
+  digitalWrite(PIN_TFT_BACKLIGHT, (percent > 0) ? HIGH : LOW);
+}
 
 void enterDeepSleep() {
-  // CYD has no battery — "deep sleep" = screen off + stop BLE
-  Serial.println("[Sleep] Screen off (CYD has no deep sleep)");
+  Serial.println("[Sleep] Screen off (CYD — no true deep sleep)");
   digitalWrite(PIN_TFT_BACKLIGHT, LOW);
-  // TODO: Phase 4 — stop NimBLE advertising
+  NimBLEDevice::stopAdvertising();
+  if (deviceConnected) {
+    NimBLEDevice::getServer()->disconnect(0);
+  }
 }
 
 void enterLightSleep(bool scheduled) {
   scheduleSleeping = true;
   manualLightSleep = !scheduled;
 
-  // Turn off backlight
   digitalWrite(PIN_TFT_BACKLIGHT, LOW);
 
-  // TODO: Phase 4 — stop NimBLE advertising + disconnect
+  NimBLEDevice::stopAdvertising();
+  if (deviceConnected) {
+    NimBLEDevice::getServer()->disconnect(0);
+  }
+
   Serial.println(scheduled ? "[Schedule] Light sleep entered" : "[Manual] Light sleep entered");
 }
 
@@ -31,12 +47,10 @@ void exitLightSleep() {
   manualLightSleep = false;
   scheduleManualWake = true;
 
-  // Turn backlight back on
   digitalWrite(PIN_TFT_BACKLIGHT, HIGH);
 
-  // TODO: Phase 4 — restart NimBLE advertising
+  NimBLEDevice::startAdvertising();
 
-  // Reset timers
   unsigned long now = millis();
   lastKeyTime = now;
   lastMouseStateChange = now;
