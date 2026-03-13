@@ -1,18 +1,12 @@
-# Arduino IDE
-build/
-*.ino.cpp
-*.ino.eep
-*.ino.elf
-*.ino.hex
-*.ino.with_bootloader.bin
-*.ino.with_bootloader.hex
-
 # PlatformIO
 .pio/
 .pioenvs/
 .piolibdeps/
-.vscode/.browse.cxx.db*
+.vscode/
 .clangd/
+
+# Legacy Arduino IDE (in case of local experiments)
+build/
 
 # DFU packages
 ghost_operator_dfu-*.zip

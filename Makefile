@@ -1,4 +1,4 @@
-.PHONY: build release flash setup clean help
+.PHONY: build release flash setup clean monitor help
 
 build:        ## Compile firmware, report sizes
 	./build.sh
@@ -9,11 +9,14 @@ release:      ## Compile + create versioned DFU zip in releases/
 flash:        ## Compile + flash via USB serial
 	./build.sh --flash
 
-setup:        ## Install arduino-cli, board package, libraries
+setup:        ## Install PlatformIO + adafruit-nrfutil
 	./build.sh --setup
 
 clean:        ## Remove build artifacts
-	rm -rf build/
+	rm -rf .pio/
 
-help:          ## Show available targets
+monitor:      ## Open serial monitor at 115200 baud
+	pio device monitor
+
+help:         ## Show available targets
 	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*## /\t/' | column -t -s '	'

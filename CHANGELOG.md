@@ -5,6 +5,21 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-03-12
+
+### Changed
+
+- **Build system: Arduino CLI → PlatformIO** — Declarative `platformio.ini` replaces `arduino-cli` wrapper scripts. Eliminates sketch directory naming constraint (no more worktree symlinks or CI checkout path hacks). Dependencies auto-installed on first build.
+- **Firmware sources moved to `src/`** — All 48 firmware files (`.ino`, `.h`, `.cpp`, assets) moved from project root to `src/` directory per PlatformIO convention
+- **Custom board definition** — `boards/seeed_xiao_nrf52840.json` with Seeed-specific SoftDevice S140 v7.3.0 (FWID `0x0123`), variant files committed to repo for self-contained builds
+- **CI simplified** — GitHub Actions release workflow no longer needs `path: ghost_operator` checkout hack or `working-directory` override; uses PlatformIO cache for faster builds
+- **`build.sh` rewritten** — Uses `pio run` for compilation; adds 1200bps touch for automatic DFU mode entry during `--flash`
+- **`Makefile` updated** — Added `monitor` and `clean` targets
+
+### Fixed
+
+- **Display warning** — Bounds-check `carouselCursor` index into `cellCenterX[]` array to silence `-Wmaybe-uninitialized` warning
+
 ## [2.3.2] - 2026-03-08
 
 ### Fixed

@@ -1,0 +1,57 @@
+{
+  "build": {
+    "arduino": {
+      "ldscript": "nrf52840_s140_v7.ld"
+    },
+    "bootloader": {
+      "settings_addr": "0xFF000"
+    },
+    "board": "Seeed_XIAO_nRF52840",
+    "bsp": {
+      "name": "adafruit"
+    },
+    "core": "nRF5",
+    "cpu": "cortex-m4",
+    "extra_flags": "-DNRF52840_XXAA -DARDUINO_Seeed_XIAO_nRF52840 -DUSE_TINYUSB",
+    "f_cpu": "64000000L",
+    "hwids": [
+      ["0x2886", "0x8044"],
+      ["0x2886", "0x0044"]
+    ],
+    "mcu": "nrf52840",
+    "pid": "0x8044",
+    "usb_manufacturer": "Seeed",
+    "usb_product": "XIAO nRF52840",
+    "vid": "0x2886",
+    "softdevice": {
+      "sd_flags": "-DS140",
+      "sd_name": "s140",
+      "sd_version": "7.3.0",
+      "sd_fwid": "0x0123"
+    },
+    "variant": "Seeed_XIAO_nRF52840"
+  },
+  "debug": {
+    "jlink_device": "nRF52840_xxAA",
+    "svd_path": "nrf52840.svd"
+  },
+  "frameworks": [
+    "arduino"
+  ],
+  "name": "Seeed XIAO nRF52840",
+  "upload": {
+    "maximum_ram_size": 237568,
+    "maximum_size": 811008,
+    "protocol": "nrfutil",
+    "speed": 115200,
+    "protocols": [
+      "nrfutil",
+      "jlink",
+      "cmsis-dap"
+    ],
+    "use_1200bps_touch": true,
+    "wait_for_upload_port": true
+  },
+  "url": "https://wiki.seeedstudio.com/XIAO_BLE/",
+  "vendor": "Seeed"
+}

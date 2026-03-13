@@ -1,32 +1,30 @@
 #!/usr/bin/env bash
-# build.sh — Ghost Operator build & release automation
+# build.sh — Ghost Operator build & release automation (PlatformIO)
 # Usage:
 #   ./build.sh            Compile firmware, report sizes
 #   ./build.sh --release  Compile + create versioned DFU zip in releases/
-#   ./build.sh --flash    Compile + flash via USB serial (adafruit-nrfutil)
-#   ./build.sh --setup    One-time: install arduino-cli, board package, libraries
+#   ./build.sh --flash    Compile + flash via USB serial (PlatformIO + adafruit-nrfutil)
+#   ./build.sh --setup    One-time: install PlatformIO (auto-installs board + libs on first build)
 
 set -euo pipefail
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-FQBN="Seeeduino:nrf52:xiaonRF52840"
-BUILD_DIR="build/Seeeduino.nrf52.xiaonRF52840"
-SKETCH_NAME="ghost_operator.ino"
-BOARD_URL="https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json"
+PIO_ENV="seeed_xiao_nrf52840"
+BUILD_DIR=".pio/build/$PIO_ENV"
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "── $*"; }
 
-# Extract version from config.h
+# Extract version from src/config.h
 get_version() {
     local ver
-    ver=$(grep -E '^#define VERSION "' config.h | sed 's/.*"\(.*\)".*/\1/')
-    [[ -n "$ver" ]] || die "Could not extract VERSION from config.h"
+    ver=$(grep -E '^#define VERSION "' src/config.h | sed 's/.*"\(.*\)".*/\1/')
+    [[ -n "$ver" ]] || die "Could not extract VERSION from src/config.h"
     echo "$ver"
 }
 
-# If HEAD is an exact git tag, validate it matches config.h version
+# If HEAD is an exact git tag, validate it matches src/config.h version
 validate_git_tag() {
     local ver="$1"
     local tag
@@ -34,48 +32,31 @@ validate_git_tag() {
     if [[ -n "$tag" ]]; then
         local tag_ver="${tag#v}"  # strip v prefix
         if [[ "$tag_ver" != "$ver" ]]; then
-            die "Git tag '$tag' (version $tag_ver) does not match config.h version '$ver'"
+            die "Git tag '$tag' (version $tag_ver) does not match src/config.h version '$ver'"
         fi
-        info "Git tag $tag matches config.h version"
+        info "Git tag $tag matches src/config.h version"
     fi
 }
 
 # ── Setup ──────────────────────────────────────────────────────────────────────
 do_setup() {
-    info "Installing arduino-cli via Homebrew..."
-    if command -v arduino-cli &>/dev/null; then
-        info "arduino-cli already installed: $(arduino-cli version)"
+    info "Installing PlatformIO..."
+    if command -v pio &>/dev/null; then
+        info "PlatformIO already installed: $(pio --version)"
     else
-        brew install arduino-cli
+        pip3 install platformio
     fi
 
-    info "Configuring arduino-cli..."
-    arduino-cli config init --overwrite 2>/dev/null || true
-    arduino-cli config add board_manager.additional_urls "$BOARD_URL"
-    # Use ~/Arduino instead of ~/Documents/Arduino (macOS sandboxes ~/Documents)
-    arduino-cli config set directories.user "$HOME/Arduino"
-
-    info "Installing Seeed nRF52 board package..."
-    arduino-cli core update-index
-    arduino-cli core install Seeeduino:nrf52
-
-    info "Installing required libraries..."
-    arduino-cli lib install "Adafruit GFX Library"
-    arduino-cli lib install "Adafruit SSD1306"
-    arduino-cli lib install "Adafruit BusIO"
-
-    # Check python symlink (Seeed toolchain needs it)
-    if ! command -v python &>/dev/null; then
-        echo ""
-        echo "WARNING: 'python' command not found."
-        echo "The Seeed nRF52 toolchain requires it. Fix with:"
-        echo "  sudo ln -s \$(which python3) /usr/local/bin/python"
+    # adafruit-nrfutil is needed for DFU upload
+    if ! command -v adafruit-nrfutil &>/dev/null; then
+        info "Installing adafruit-nrfutil..."
+        pip3 install adafruit-nrfutil
     else
-        info "python available: $(python --version 2>&1)"
+        info "adafruit-nrfutil already installed"
     fi
 
     echo ""
-    info "Setup complete!"
+    info "Setup complete! Run 'make build' — PlatformIO auto-installs board + libs on first build."
 }
 
 # ── Compile ────────────────────────────────────────────────────────────────────
@@ -84,26 +65,18 @@ do_compile() {
     ver=$(get_version)
     info "Compiling Ghost Operator v${ver}..."
 
-    arduino-cli compile \
-        --fqbn "$FQBN" \
-        --build-path "$BUILD_DIR" \
-        . \
-        --warnings more
+    pio run -e "$PIO_ENV"
 
-    local hex_file="$BUILD_DIR/$SKETCH_NAME.hex"
-    local zip_file="$BUILD_DIR/$SKETCH_NAME.zip"
+    local zip_file="$BUILD_DIR/firmware.zip"
 
-    [[ -f "$hex_file" ]] || die "Expected HEX file not found: $hex_file"
     [[ -f "$zip_file" ]] || die "Expected DFU zip not found: $zip_file"
 
     # Report sizes
-    local hex_size zip_size
-    hex_size=$(wc -c < "$hex_file" | tr -d ' ')
+    local zip_size
     zip_size=$(wc -c < "$zip_file" | tr -d ' ')
 
     echo ""
     info "Build successful!"
-    echo "  HEX: $hex_file ($hex_size bytes)"
     echo "  DFU: $zip_file ($zip_size bytes)"
     echo "  Version: $ver"
 }
@@ -116,7 +89,7 @@ do_release() {
     ver=$(get_version)
     validate_git_tag "$ver"
 
-    local zip_file="$BUILD_DIR/$SKETCH_NAME.zip"
+    local zip_file="$BUILD_DIR/firmware.zip"
     local release_name="ghost_operator_dfu-v${ver}.zip"
     local release_path="releases/$release_name"
 
@@ -129,22 +102,52 @@ do_release() {
 }
 
 # ── Flash ──────────────────────────────────────────────────────────────────────
+find_port() {
+    # Find USB serial port (macOS: tty.usbmodem*, Linux: ttyACM*)
+    local p
+    for p in /dev/tty.usbmodem* /dev/ttyACM*; do
+        if [[ -e "$p" ]]; then
+            echo "$p"
+            return
+        fi
+    done
+}
+
 do_flash() {
     do_compile
 
-    local zip_file="$BUILD_DIR/$SKETCH_NAME.zip"
+    local zip_file="$BUILD_DIR/firmware.zip"
+
+    if ! command -v adafruit-nrfutil &>/dev/null; then
+        die "adafruit-nrfutil not found. Install with: pip3 install adafruit-nrfutil"
+    fi
 
     # Find USB serial port
     local port
-    port=$(find /dev -name "tty.usbmodem*" 2>/dev/null | head -1)
+    port=$(find_port)
     [[ -n "$port" ]] || die "No USB serial port found (expected /dev/tty.usbmodem*). Is the device connected?"
 
-    info "Flashing via $port..."
-
-    if ! command -v adafruit-nrfutil &>/dev/null; then
-        die "adafruit-nrfutil not found. Install with: pip install adafruit-nrfutil"
+    # 1200bps touch: open port at 1200 baud then close — triggers Adafruit
+    # bootloader to reboot into Serial DFU mode (DTR assert/deassert)
+    info "Triggering DFU mode on $port..."
+    if ! python3 -c "
+import serial, time
+s = serial.Serial('$port', 1200)
+time.sleep(0.1)
+s.close()
+"; then
+        die "Failed to trigger DFU mode (is pyserial installed?)"
     fi
 
+    # Wait for bootloader to re-enumerate USB
+    info "Waiting for bootloader..."
+    sleep 2
+
+    # Re-detect port (may change after reboot into bootloader)
+    port=$(find_port)
+    [[ -n "$port" ]] || die "DFU port not found after reboot. Is the device in bootloader mode?"
+
+    info "Flashing via $port..."
     adafruit-nrfutil dfu serial \
         --package "$zip_file" \
         --port "$port" \
@@ -163,7 +166,7 @@ case "${1:-}" in
         echo "Usage: ./build.sh [--setup|--release|--flash|--help]"
         echo ""
         echo "  (no args)   Compile firmware, report sizes"
-        echo "  --setup     Install arduino-cli, board package, libraries"
+        echo "  --setup     Install PlatformIO + adafruit-nrfutil"
         echo "  --release   Compile + create versioned DFU zip in releases/"
         echo "  --flash     Compile + flash via USB serial"
         echo "  --help      Show this help"

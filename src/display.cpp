@@ -1717,7 +1717,8 @@ static void drawCarouselPage() {
     }
 
     // Animate scroll toward selected item (snap on first frame)
-    float target = (float)cellCenterX[carouselCursor] - 64.0f;
+    int ci = (carouselCursor < count) ? carouselCursor : 0;
+    float target = (float)cellCenterX[ci] - 64.0f;
     if (crslSnap) {
       crslScrollX = target;
       crslSnap = false;

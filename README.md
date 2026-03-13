@@ -1,6 +1,6 @@
 # Ghost Operator - BLE HID Device
 
-## Version 2.3.2
+## Version 2.4.0
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---
@@ -327,26 +327,29 @@ Connect via USB at 115200 baud:
 
 | File | Description |
 |------|-------------|
-| `ghost_operator.ino` | Main entry point: setup(), loop(), BLE + USB HID callbacks |
-| `config.h` | Constants, enums, structs (header-only) |
-| `keys.h/.cpp` | Const data tables (keys, menu items, names) |
-| `icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, arrows) |
-| `state.h/.cpp` | All mutable globals (extern declarations) |
-| `settings.h/.cpp` | Flash persistence + value accessors |
-| `timing.h/.cpp` | Profiles, scheduling, formatting |
-| `encoder.h/.cpp` | ISR + polling quadrature decode |
-| `battery.h/.cpp` | ADC battery reading |
-| `hid.h/.cpp` | Keystroke sending + key selection |
-| `mouse.h/.cpp` | Mouse state machine |
-| `sleep.h/.cpp` | Deep sleep sequence |
-| `screenshot.h/.cpp` | PNG encoder + base64 serial output |
-| `serial_cmd.h/.cpp` | Serial debug commands + status |
-| `input.h/.cpp` | Encoder dispatch, buttons, name editor |
-| `display.h/.cpp` | All rendering (~800 lines) |
-| `ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
-| `orchestrator.h/.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
-| `sim_data.h/.cpp` | Simulation data tables (job templates, work modes, phase timing) |
-| `schedule.h/.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |
+| `src/ghost_operator.ino` | Main entry point: setup(), loop(), BLE + USB HID callbacks |
+| `src/config.h` | Constants, enums, structs (header-only) |
+| `src/keys.h/.cpp` | Const data tables (keys, menu items, names) |
+| `src/icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, arrows) |
+| `src/state.h/.cpp` | All mutable globals (extern declarations) |
+| `src/settings.h/.cpp` | Flash persistence + value accessors |
+| `src/timing.h/.cpp` | Profiles, scheduling, formatting |
+| `src/encoder.h/.cpp` | ISR + polling quadrature decode |
+| `src/battery.h/.cpp` | ADC battery reading |
+| `src/hid.h/.cpp` | Keystroke sending + key selection |
+| `src/mouse.h/.cpp` | Mouse state machine |
+| `src/sleep.h/.cpp` | Deep sleep sequence |
+| `src/screenshot.h/.cpp` | PNG encoder + base64 serial output |
+| `src/serial_cmd.h/.cpp` | Serial debug commands + status |
+| `src/input.h/.cpp` | Encoder dispatch, buttons, name editor |
+| `src/display.h/.cpp` | All rendering (~2900 lines) |
+| `src/ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `src/orchestrator.h/.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
+| `src/sim_data.h/.cpp` | Simulation data tables (job templates, work modes, phase timing) |
+| `src/schedule.h/.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |
+| `src/ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit) |
+| `platformio.ini` | PlatformIO build configuration (board, deps, flags) |
+| `boards/` | Custom board definition + variant files for Seeed XIAO nRF52840 |
 | `dashboard/` | Vue 3 web dashboard (USB serial config + Web Serial DFU) |
 | `schematic_v8.svg` | Circuit schematic |
 | `schematic_interactive_v3.html` | Interactive documentation |
@@ -355,9 +358,8 @@ Connect via USB at 115200 baud:
 | `CHANGELOG.md` | Version history (semver) |
 | `CLAUDE.md` | Project context for AI assistants |
 | `build.sh` | Build automation: compile, setup, release, flash |
-| `Makefile` | Convenience targets wrapping build.sh |
+| `Makefile` | Convenience targets wrapping build.sh + PlatformIO |
 | `.github/workflows/release.yml` | CI/CD: build + GitHub Release on `v*` tag push |
-| `ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit) |
 
 ---
 
