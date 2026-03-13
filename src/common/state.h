@@ -3,29 +3,15 @@
 
 #include "config.h"
 #include "sim_data.h"
-#include <bluefruit.h>
-#include <Adafruit_TinyUSB.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <Adafruit_LittleFS.h>
-#include <InternalFileSystem.h>
 
-// Display
-extern Adafruit_SSD1306 display;
-extern bool displayInitialized;
+// ============================================================================
+// Platform-independent state — shared between all platforms
+// Platform-specific state is declared in each platform's state.h
+// (e.g., src/nrf52/state.h includes this file and adds nRF52-specific objects)
+// ============================================================================
+
+// Display dirty flag (platform-agnostic — set by common code, consumed by platform renderer)
 extern volatile bool displayDirty;
-
-// File system
-extern Adafruit_LittleFS_Namespace::File settingsFile;
-
-// BLE Services
-extern BLEDis bledis;
-extern BLEHidAdafruit blehid;
-extern BLEUart bleuart;
-
-// USB HID
-extern Adafruit_USBD_HID usb_hid;
 
 // Settings
 extern Settings settings;
@@ -37,17 +23,13 @@ extern WorkModeDef workModes[WMODE_COUNT];
 extern Profile currentProfile;
 extern unsigned long profileDisplayStart;
 
-// Encoder
+// Encoder position (read by input dispatch; written by platform-specific ISR/polling)
 extern volatile int encoderPos;
 extern int lastEncoderPos;
-extern volatile uint8_t encoderPrevState;
-extern volatile int8_t lastEncoderDir;
 
 // Connection & enables
 extern volatile bool deviceConnected;
 extern bool usbConnected;
-extern volatile uint16_t bleConnHandle;
-extern bool bleDisabledForUsb;
 extern bool keyEnabled;
 extern bool mouseEnabled;
 extern uint8_t activeSlot;
@@ -133,23 +115,13 @@ extern uint32_t mouseJiggleCount;
 extern bool     easterEggActive;
 extern uint8_t  easterEggFrame;
 
-// Battery
+// Battery (platform sets these; common code reads them)
 extern int batteryPercent;
 extern float batteryVoltage;
 extern bool batteryCharging;
 
-// BLE connection interval management
-extern unsigned long lastHidActivity;
-extern bool bleIdleMode;
-
 // Die temperature (hysteresis-smoothed)
 extern int16_t cachedDieTempRaw;
-
-// RF/ADC thermal compensation
-extern uint8_t  rfThermalOffset;
-extern uint16_t adcDriftComp;
-extern unsigned long adcCalStart;
-extern unsigned long adcSettleTarget;
 
 // Serial status push (toggle with 't' command)
 extern bool serialStatusPush;
@@ -278,24 +250,5 @@ struct OrchestratorState {
 };
 
 extern OrchestratorState orch;
-
-// Game state (union — breakout, snake, and racer are mutually exclusive)
-union GameState {
-  BreakoutGameState brk;
-  SnakeGameState snk;
-  RacerGameState rcr;
-};
-extern GameState gameState;
-#define gBrk (gameState.brk)
-#define gSnk (gameState.snk)
-#define gRcr (gameState.rcr)
-
-// Deferred sound playback (set in BLE callbacks, consumed in loop())
-extern volatile bool connectSoundPending;
-extern volatile bool disconnectSoundPending;
-
-// Deferred settings save (avoids flash wear on rapid game-over)
-extern bool settingsDirty;
-extern unsigned long settingsDirtyMs;
 
 #endif // GHOST_STATE_H

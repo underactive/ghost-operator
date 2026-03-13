@@ -2,7 +2,10 @@
 #define GHOST_KEYS_H
 
 #include "config.h"
-#include <bluefruit.h>
+#include "hid_keycodes.h"
+#ifdef GHOST_PLATFORM_NRF52
+  #include <bluefruit.h>  // provides HID_KEY_*, KEYBOARD_MODIFIER_* on nRF52
+#endif
 
 extern const KeyDef AVAILABLE_KEYS[];
 extern const MenuItem MENU_ITEMS[];

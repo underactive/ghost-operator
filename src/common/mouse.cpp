@@ -2,9 +2,7 @@
 #include "state.h"
 #include "keys.h"
 #include "timing.h"
-#include "hid.h"
-#include "serial_cmd.h"
-#include "display.h"
+#include "platform_hal.h"
 #include <math.h>
 
 // ============================================================================

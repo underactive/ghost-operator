@@ -1,44 +1,30 @@
 #include "state.h"
 
-using namespace Adafruit_LittleFS_Namespace;
+// ============================================================================
+// Platform-independent state definitions
+// Platform-specific state is defined in each platform's state.cpp
+// ============================================================================
 
-// Display
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-bool displayInitialized = false;
+// Display dirty flag
 volatile bool displayDirty = true;  // first frame always renders
-
-// File system
-File settingsFile(InternalFS);
-
-// BLE Services
-BLEDis bledis;
-BLEHidAdafruit blehid;
-BLEUart bleuart;
-
-// USB HID
-Adafruit_USBD_HID usb_hid;
 
 // Settings
 Settings settings;
 
-// Mutable work modes (see initWorkModes() in sim_data.cpp)
+// Mutable work modes (see initWorkModes() in sim_data)
 WorkModeDef workModes[WMODE_COUNT];
 
 // Profile
 Profile currentProfile = PROFILE_NORMAL;
 unsigned long profileDisplayStart = 0;
 
-// Encoder
+// Encoder position
 volatile int encoderPos = 0;
 int lastEncoderPos = 0;
-volatile uint8_t encoderPrevState = 0;
-volatile int8_t  lastEncoderDir  = 0;
 
 // Connection & enables
 volatile bool deviceConnected = false;
 bool usbConnected = false;
-volatile uint16_t bleConnHandle = BLE_CONN_HANDLE_INVALID;
-bool bleDisabledForUsb = false;
 bool keyEnabled = true;
 bool mouseEnabled = true;
 uint8_t activeSlot = 0;
@@ -124,23 +110,13 @@ uint32_t mouseJiggleCount = 0;
 bool     easterEggActive  = false;
 uint8_t  easterEggFrame   = 0;
 
-// Battery
+// Battery (platform sets these; common code reads them)
 int batteryPercent = 100;
 float batteryVoltage = 4.2;
 bool batteryCharging = false;
 
-// BLE connection interval management
-unsigned long lastHidActivity = 0;
-bool bleIdleMode = false;
-
 // Die temperature (hysteresis-smoothed)
 int16_t cachedDieTempRaw = INT16_MIN;
-
-// RF/ADC thermal compensation
-uint8_t  rfThermalOffset  = 0;
-uint16_t adcDriftComp     = 0;
-unsigned long adcCalStart = 0;
-unsigned long adcSettleTarget = 60000;
 
 // Serial status push (off by default — toggle with 't' command)
 bool serialStatusPush = false;
@@ -192,14 +168,3 @@ uint8_t       volD7ClickCount   = 0;
 
 // Orchestrator state (simulation mode)
 OrchestratorState orch = {};
-
-// Game state (union — breakout, snake, and racer are mutually exclusive)
-GameState gameState = {};
-
-// Deferred sound playback (set in BLE callbacks, consumed in loop())
-volatile bool connectSoundPending = false;
-volatile bool disconnectSoundPending = false;
-
-// Deferred settings save
-bool settingsDirty = false;
-unsigned long settingsDirtyMs = 0;

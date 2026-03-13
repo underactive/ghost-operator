@@ -8,7 +8,11 @@
 // VERSION & CONFIG
 // ============================================================================
 #define VERSION "2.4.0"
-#define DEVICE_NAME "GhostOperator"
+#ifdef GHOST_PLATFORM_CYD
+  #define DEVICE_NAME "GhostOp CYD"
+#else
+  #define DEVICE_NAME "GhostOperator"
+#endif
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F61  // bumped: added racer settings
 #define NUM_CLICK_SLOTS   7       // configurable click action slots (like key slots)
@@ -18,39 +22,72 @@
 #define NUM_KEYS 37  // must match AVAILABLE_KEYS[] array size
 
 // ============================================================================
+// PLATFORM FEATURE FLAGS
+// ============================================================================
+#ifdef GHOST_PLATFORM_CYD
+  #define HAS_BATTERY       0
+  #define HAS_SOUND         0
+  #define HAS_USB_HID       0
+  #define HAS_ENCODER       0
+  #define HAS_TOUCH         1
+#else // GHOST_PLATFORM_NRF52 or default
+  #define HAS_BATTERY       1
+  #define HAS_SOUND         1
+  #define HAS_USB_HID       1
+  #define HAS_ENCODER       1
+  #define HAS_TOUCH         0
+#endif
+
+// ============================================================================
 // DISPLAY CONFIGURATION
 // ============================================================================
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
+#ifdef GHOST_PLATFORM_CYD
+  #define SCREEN_WIDTH  320
+  #define SCREEN_HEIGHT 240
+#else
+  #define SCREEN_WIDTH  128
+  #define SCREEN_HEIGHT 64
+  #define OLED_RESET    -1
+  #define SCREEN_ADDRESS 0x3C
+#endif
 
 // ============================================================================
 // PIN DEFINITIONS
 // ============================================================================
-#define PIN_ENCODER_A    0   // D0 - Encoder A (interrupt)
-#define PIN_ENCODER_B    1   // D1 - Encoder B (interrupt)
-#define PIN_ENCODER_BTN  2   // D2 - Encoder pushbutton
-#define PIN_FUNC_BTN     3   // D3 - Function button
-#define PIN_SDA          4   // D4 - I2C SDA
-#define PIN_SCL          5   // D5 - I2C SCL
-#define PIN_SOUND        6   // D6 - Piezo buzzer
-#define PIN_MUTE_BTN     7   // D7 - Mute button (SPST, active LOW)
+#ifdef GHOST_PLATFORM_CYD
+  // CYD pins (hardwired on PCB)
+  #define PIN_TFT_BACKLIGHT  21
+  #define PIN_TOUCH_CS       33
+  #define PIN_TOUCH_IRQ      36
+  #define PIN_RGB_R           4
+  #define PIN_RGB_G          16
+  #define PIN_RGB_B          17
+  #define PIN_LDR            34
+#else // GHOST_PLATFORM_NRF52
+  #define PIN_ENCODER_A    0   // D0 - Encoder A (interrupt)
+  #define PIN_ENCODER_B    1   // D1 - Encoder B (interrupt)
+  #define PIN_ENCODER_BTN  2   // D2 - Encoder pushbutton
+  #define PIN_FUNC_BTN     3   // D3 - Function button
+  #define PIN_SDA          4   // D4 - I2C SDA
+  #define PIN_SCL          5   // D5 - I2C SCL
+  #define PIN_SOUND        6   // D6 - Piezo buzzer
+  #define PIN_MUTE_BTN     7   // D7 - Mute button (SPST, active LOW)
 
-// Internal battery pin - use board defaults if available
-#ifndef PIN_VBAT
-#define PIN_VBAT         32
+  // Internal battery pin - use board defaults if available
+  #ifndef PIN_VBAT
+  #define PIN_VBAT         32
+  #endif
+  #define PIN_VBAT_ENABLE  14
+  #define PIN_CHG_STATUS   23  // D23 = P0.17 (~CHG), active LOW when charging
+
+  // nRF52840 GPIO for wake
+  #define PIN_FUNC_BTN_NRF  29
+
+  // nRF52840 GPIO numbers for direct port reads in encoder ISR
+  // Must match Arduino D0/D1 -> P0.02/P0.03 mapping on XIAO nRF52840
+  #define PIN_ENC_A_NRF  2   // P0.02 = D0
+  #define PIN_ENC_B_NRF  3   // P0.03 = D1
 #endif
-#define PIN_VBAT_ENABLE  14
-#define PIN_CHG_STATUS   23  // D23 = P0.17 (~CHG), active LOW when charging
-
-// nRF52840 GPIO for wake
-#define PIN_FUNC_BTN_NRF  29
-
-// nRF52840 GPIO numbers for direct port reads in encoder ISR
-// Must match Arduino D0/D1 -> P0.02/P0.03 mapping on XIAO nRF52840
-#define PIN_ENC_A_NRF  2   // P0.02 = D0
-#define PIN_ENC_B_NRF  3   // P0.03 = D1
 
 // ============================================================================
 // TIMING CONFIGURATION
