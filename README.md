@@ -13,7 +13,7 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 - **Software Power Control** - Deep sleep mode (~3µA)
 - **OLED Display** - Real-time countdown bars and uptime
 - **USB-C Charging** - Charge while operating
-- **~60+ hours runtime** on 1000mAh battery
+- **~120+ hours runtime** on 2000mAh battery
 - **Scroll Wheel** - Optional random scroll events during mouse jiggle
 - **Web Dashboard** - Configure via USB serial in Chrome (Web Serial API)
 - **Web Serial DFU** - Update firmware from the web dashboard via USB serial
@@ -44,7 +44,7 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 | DISP1 | 1 | SSD1306 OLED 0.96" | 128x64 I2C Display | $3.50 |
 | ENC1 | 1 | Rotary Encoder | EC11 with pushbutton (internal pull-ups) | $1.50 |
 | SW1 | 1 | Tactile Button | 6x6mm momentary | $0.10 |
-| BT1 | 1 | LiPo Battery | 3.7V 1000mAh, JST-SH 1.25mm | $6.00 |
+| BT1 | 1 | LiPo Battery | 3.7V 2000mAh, JST-SH 1.25mm | $6.00 |
 | C1 | 1 | Ceramic Capacitor | 100nF | $0.05 |
 | C2 | 1 | Electrolytic Capacitor | 10µF | $0.10 |
 | J1 | 1 | JST-SH Header | 2-pin, through-hole | $0.30 |

@@ -178,6 +178,18 @@ const uint8_t PROGMEM iconPause8[] = {
   0x66   // .##..##.
 };
 
+// Charging bolt icon (5x8 pixels) — lightning bolt for battery charging
+const uint8_t PROGMEM chargingIcon[] = {
+  0x30,  // ..##.
+  0x20,  // ..#..
+  0x60,  // .##..
+  0xF0,  // ####.
+  0x30,  // ..##.
+  0x20,  // ..#..
+  0x40,  // .#...
+  0x00   // .....
+};
+
 // Splash screen bitmap (128x64, 1024 bytes) -- inverted (white bg, black art)
 const uint8_t PROGMEM splashBitmap[] = {
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,

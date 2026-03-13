@@ -43,4 +43,5 @@ void readBattery() {
     batteryPercent = newPercent;
     markDisplayDirty();
   }
+
 }

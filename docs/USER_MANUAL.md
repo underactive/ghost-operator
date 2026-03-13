@@ -596,7 +596,7 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 | Job performance | 0–11 (5 = baseline) |
 | Sleep current | ~3µA |
 | Active current | ~15mA (with display) |
-| Battery life | ~60+ hours (1000mAh) |
+| Battery life | ~120+ hours (2000mAh) |
 
 ---
 

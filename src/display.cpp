@@ -464,12 +464,13 @@ static void drawNormalMode() {
     display.print(settings.deviceName);
   }
 
-  // Right side: BT icon + battery, right aligned
+  // Right side: BT icon + [charging icon] + battery, right aligned
   char batStr[16];
   snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
   int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
-  int btX = batX - 5 - 3;  // icon width + gap
+  int chgW = batteryCharging ? 7 : 0;  // 5px icon + 2px gap
+  int btX = batX - chgW - 5 - 3;       // BT icon + gap
   if (usbConnected) {
     display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
   } else if (deviceConnected) {
@@ -479,6 +480,9 @@ static void drawNormalMode() {
     if (btVisible) {
       display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
     }
+  }
+  if (batteryCharging) {
+    display.drawBitmap(batX - 7, 0, chargingIcon, 5, 8, SSD1306_WHITE);  // 5px icon + 2px gap
   }
   display.setCursor(batX, 0);
   display.print(batStr);
@@ -739,18 +743,22 @@ static void drawSimulationNormal() {
     display.print(settings.deviceName);
   }
 
-  // Right side: BT/USB icon + battery
+  // Right side: BT/USB icon + [charging icon] + battery
   char batStr[16];
   snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
   int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
-  int btX = batX - 5 - 3;
+  int chgW = batteryCharging ? 7 : 0;  // 5px icon + 2px gap
+  int btX = batX - chgW - 5 - 3;       // BT icon + gap
   if (usbConnected) {
     display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
   } else if (deviceConnected) {
     display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
   } else {
     if ((now / 500) % 2 == 0) display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  }
+  if (batteryCharging) {
+    display.drawBitmap(batX - 7, 0, chargingIcon, 5, 8, SSD1306_WHITE);  // 5px icon + 2px gap
   }
   display.setCursor(batX, 0);
   display.print(batStr);
@@ -1015,7 +1023,7 @@ static void drawSimulationScreensaver() {
   if (batteryPercent < 15) {
     display.setTextSize(1);
     char batStr[16];
-    snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
+    snprintf(batStr, sizeof(batStr), batteryCharging ? "+%d%%" : "%d%%", batteryPercent);
     int bw = strlen(batStr) * 6;
     display.setCursor((128 - bw) / 2, 56);
     display.print(batStr);
@@ -1179,7 +1187,7 @@ static void drawScreensaver() {
   // === Battery warning (y=48) -- only if <15% ===
   if (batteryPercent < 15) {
     char batStr[16];
-    snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
+    snprintf(batStr, sizeof(batStr), batteryCharging ? "+%d%%" : "%d%%", batteryPercent);
     int batWidth = strlen(batStr) * 6;
     display.setCursor((128 - batWidth) / 2, 48);
     display.print(batStr);
@@ -1817,7 +1825,7 @@ static void drawBreakoutNormal() {
 
     // Battery (far right)
     char batBuf[8];
-    snprintf(batBuf, sizeof(batBuf), "%d%%", batteryPercent);
+    snprintf(batBuf, sizeof(batBuf), batteryCharging ? "+%d%%" : "%d%%", batteryPercent);
     int batW = strlen(batBuf) * 6;
     display.setCursor(128 - batW, 0);
     display.print(batBuf);
@@ -1916,7 +1924,7 @@ static void drawSnakeNormal() {
 
     // Battery (far right)
     char batBuf[8];
-    snprintf(batBuf, sizeof(batBuf), "%d%%", batteryPercent);
+    snprintf(batBuf, sizeof(batBuf), batteryCharging ? "+%d%%" : "%d%%", batteryPercent);
     int batW = strlen(batBuf) * 6;
     display.setCursor(128 - batW, 0);
     display.print(batBuf);
@@ -2306,12 +2314,13 @@ static void drawVolumeHeader() {
   display.setCursor(0, 0);
   display.print("Volume");
 
-  // Right side: BT/USB icon + battery
+  // Right side: BT/USB icon + [charging icon] + battery
   char batStr[8];
   snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
   int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
-  int btX = batX - 8;
+  int chgW = batteryCharging ? 7 : 0;  // 5px icon + 2px gap
+  int btX = batX - chgW - 5 - 3;       // BT icon + gap
   unsigned long now = millis();
   if (usbConnected) {
     display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
@@ -2319,6 +2328,9 @@ static void drawVolumeHeader() {
     display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
   } else {
     if ((now / 500) % 2 == 0) display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  }
+  if (batteryCharging) {
+    display.drawBitmap(batX - 7, 0, chargingIcon, 5, 8, SSD1306_WHITE);  // 5px icon + 2px gap
   }
   display.setCursor(batX, 0);
   display.print(batStr);
@@ -2656,12 +2668,13 @@ static void drawMenuMode() {
     display.print("MENU");
   }
 
-  // BT/USB icon + battery right-aligned in header
+  // BT/USB icon + [charging icon] + battery right-aligned in header
   char batStr[16];
   snprintf(batStr, sizeof(batStr), "%d%%", batteryPercent);
   int batWidth = strlen(batStr) * 6;
   int batX = 128 - batWidth;
-  int btX = batX - 5 - 3;
+  int chgW = batteryCharging ? 7 : 0;  // 5px icon + 2px gap
+  int btX = batX - chgW - 5 - 3;       // BT icon + gap
   if (usbConnected) {
     display.drawBitmap(btX, 0, usbIcon, 5, 8, SSD1306_WHITE);
   } else if (deviceConnected) {
@@ -2669,6 +2682,9 @@ static void drawMenuMode() {
   } else {
     if ((millis() / 500) % 2 == 0)
       display.drawBitmap(btX, 0, btIcon, 5, 8, SSD1306_WHITE);
+  }
+  if (batteryCharging) {
+    display.drawBitmap(batX - 7, 0, chargingIcon, 5, 8, SSD1306_WHITE);  // 5px icon + 2px gap
   }
   display.setCursor(batX, 0);
   display.print(batStr);

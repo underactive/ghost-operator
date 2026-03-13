@@ -31,6 +31,11 @@
 - [ ] Keystrokes detected on host (use key test website)
 - [ ] Mouse movement visible on host
 - [ ] Battery percentage displays (with battery connected)
+- [ ] Charging indicator: lightning bolt icon appears between BT/USB icon and battery % in NORMAL header when USB-charging
+- [ ] Charging indicator: bolt icon appears in Simulation, Volume Control, and Menu headers when charging
+- [ ] Charging indicator: icon disappears promptly when USB is disconnected or battery is full
+- [ ] Charging indicator: Breakout and Snake game headers show "+N%" prefix when charging
+- [ ] Charging indicator: screensaver battery warning (<15%) shows "+N%" prefix when charging
 - [ ] Scheduling uses profile-adjusted values (verify via serial `s`)
 - [ ] Profile does NOT modify base settings (open menu -> shows original, not adjusted)
 - [ ] Sleep + wake -> lazy% and busy% persist, profile resets to NORMAL

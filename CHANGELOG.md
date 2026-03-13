@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.4.0] - 2026-03-12
 
+### Added
+
+- **Charging indicator** — Lightning bolt icon appears in OLED header (between BT/USB icon and battery %) when USB-charging; game and screensaver modes show `+N%` text prefix. Reads BQ25100 `~CHG` pin (D23/P0.17) with fast polling in main loop
+- **Battery spec update** — Documentation updated from 1000mAh to 2000mAh LiPo, runtime estimate ~60h → ~120h
+
 ### Changed
 
 - **Build system: Arduino CLI → PlatformIO** — Declarative `platformio.ini` replaces `arduino-cli` wrapper scripts. Eliminates sketch directory naming constraint (no more worktree symlinks or CI checkout path hacks). Dependencies auto-installed on first build.

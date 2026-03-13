@@ -27,7 +27,7 @@
 | ENC1 | EC11 Rotary Encoder | Input + key selection |
 | SW1 | Tactile button 6x6mm | Mode cycle / sleep |
 | SW2 | Tactile button 6x6mm | Mute (KB/MS toggle) |
-| BT1 | LiPo 3.7V 1000mAh | Power |
+| BT1 | LiPo 3.7V 2000mAh | Power |
 | C1 | 100nF ceramic | Decoupling |
 | C2 | 10µF electrolytic | Decoupling |
 
@@ -60,7 +60,7 @@ Modular architecture — 23 `.h/.cpp` module pairs + lean `.ino` entry point, al
 - `src/settings.h/.cpp` - Flash persistence + value accessors
 - `src/timing.h/.cpp` - Profiles, scheduling, formatting
 - `src/encoder.h/.cpp` - ISR + polling quadrature decode
-- `src/battery.h/.cpp` - ADC battery reading
+- `src/battery.h/.cpp` - ADC battery reading + charge status
 - `src/hid.h/.cpp` - Keystroke + mouse + scroll sending (BLE + USB dual-transport)
 - `src/mouse.h/.cpp` - Mouse state machine with sine easing
 - `src/sleep.h/.cpp` - Deep sleep sequence
@@ -93,7 +93,7 @@ Modular architecture — 23 `.h/.cpp` module pairs + lean `.ino` entry point, al
 - Device name: "GhostOperator" (customizable)
 - Auto-reconnects to last paired BLE host
 - "BT while USB" setting (default Off): when Off, BLE stops when USB is connected; when On, both transports active simultaneously
-- Display shows USB trident icon when wired, BLE icon when wireless
+- Display shows USB trident icon when wired, BLE icon when wireless, lightning bolt icon when charging
 - Jiggler runs when either BLE or USB is connected (disabled in Volume Control mode)
 
 #### 2. UI Modes

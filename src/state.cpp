@@ -127,6 +127,7 @@ uint8_t  easterEggFrame   = 0;
 // Battery
 int batteryPercent = 100;
 float batteryVoltage = 4.2;
+bool batteryCharging = false;
 
 // BLE connection interval management
 unsigned long lastHidActivity = 0;

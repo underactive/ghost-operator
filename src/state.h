@@ -136,6 +136,7 @@ extern uint8_t  easterEggFrame;
 // Battery
 extern int batteryPercent;
 extern float batteryVoltage;
+extern bool batteryCharging;
 
 // BLE connection interval management
 extern unsigned long lastHidActivity;

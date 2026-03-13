@@ -42,6 +42,7 @@
 #define PIN_VBAT         32
 #endif
 #define PIN_VBAT_ENABLE  14
+#define PIN_CHG_STATUS   23  // D23 = P0.17 (~CHG), active LOW when charging
 
 // nRF52840 GPIO for wake
 #define PIN_FUNC_BTN_NRF  29

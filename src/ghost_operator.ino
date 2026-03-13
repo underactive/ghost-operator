@@ -118,6 +118,8 @@ void setupPins() {
   pinMode(PIN_VBAT_ENABLE, OUTPUT);
   digitalWrite(PIN_VBAT_ENABLE, LOW);
 
+  pinMode(PIN_CHG_STATUS, INPUT_PULLUP);  // ~CHG: open-drain, LOW = charging
+
   NRF_POWER->DCDCEN = 1;  // NRF_POWER is not SoftDevice-owned — direct access is safe
 
   Serial.println("[OK] Pins configured");
@@ -470,6 +472,15 @@ void loop() {
     if (saverMs > 0 && (now - lastModeActivity > saverMs)) {
       screensaverActive = true;
       volD7ClickCount = 0;  // prevent stale click from firing on wake
+      markDisplayDirty();
+    }
+  }
+
+  // Charge status (fast poll — digitalRead is ~1µs)
+  {
+    bool charging = (digitalRead(PIN_CHG_STATUS) == LOW);
+    if (charging != batteryCharging) {
+      batteryCharging = charging;
       markDisplayDirty();
     }
   }
