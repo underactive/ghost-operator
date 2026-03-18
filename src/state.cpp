@@ -131,6 +131,8 @@ bool batteryCharging = false;
 
 // BLE connection interval management
 unsigned long lastHidActivity = 0;
+unsigned long ledKbOffMs = 0;
+unsigned long ledMouseOffMs = 0;
 bool bleIdleMode = false;
 
 // Die temperature (hysteresis-smoothed)

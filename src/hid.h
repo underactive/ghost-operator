@@ -26,4 +26,7 @@ void executeClick(uint8_t actionIdx, uint16_t holdMs);
 void sendConsumerPress(uint16_t usageCode);
 void sendConsumerRelease();
 
+// Activity LED feedback (Blue = KB, Green = Mouse)
+void tickActivityLeds();
+
 #endif // GHOST_HID_H

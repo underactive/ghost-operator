@@ -5,6 +5,17 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-03-18
+
+### Added
+
+- **Activity LEDs** — Blue LED flashes on keyboard HID activity, green LED flashes on mouse movement/clicks. Configurable via Display → "Activity LEDs" menu setting (default: On)
+
+### Fixed
+
+- **Orchestrator day-rollover drift** — Work block selection drifted from wall clock over multi-day uptime (e.g., showing "Lunch Break" at 7:30 AM after a weekend). `tickOrchestrator()` now re-syncs to wall clock via `syncOrchestratorTime()` on every day rollover when time is synced, instead of cycling blocks purely on `millis()` timers with accumulated jitter
+- **Pre-job-start sync crash** — `syncOrchestratorTime()` returned early without starting a block when current time was before job start, leaving the orchestrator in a tight loop (expired timer, no new block). Now starts a fresh day at block 0
+
 ## [2.4.0] - 2026-03-12
 
 ### Added

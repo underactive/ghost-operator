@@ -140,6 +140,8 @@ extern bool batteryCharging;
 
 // BLE connection interval management
 extern unsigned long lastHidActivity;
+extern unsigned long ledKbOffMs;
+extern unsigned long ledMouseOffMs;
 extern bool bleIdleMode;
 
 // Die temperature (hysteresis-smoothed)

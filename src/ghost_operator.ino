@@ -404,6 +404,7 @@ void loop() {
     markDisplayDirty();
   }
 
+  tickActivityLeds();
   pollEncoder();
   handleSerialCommands();
   handleBleUart();

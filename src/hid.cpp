@@ -6,6 +6,33 @@
 #include "sim_data.h"
 #include <Adafruit_TinyUSB.h>
 
+// Activity LED flash duration
+#define LED_FLASH_MS 50
+
+static inline void flashKbLed() {
+  if (!settings.activityLeds) return;
+  digitalWrite(LED_BLUE, LOW);  // active LOW
+  ledKbOffMs = millis() + LED_FLASH_MS;
+}
+
+static inline void flashMouseLed() {
+  if (!settings.activityLeds) return;
+  digitalWrite(LED_GREEN, LOW);  // active LOW
+  ledMouseOffMs = millis() + LED_FLASH_MS;
+}
+
+void tickActivityLeds() {
+  unsigned long now = millis();
+  if (ledKbOffMs && (now >= ledKbOffMs || !settings.activityLeds)) {
+    digitalWrite(LED_BLUE, HIGH);
+    ledKbOffMs = 0;
+  }
+  if (ledMouseOffMs && (now >= ledMouseOffMs || !settings.activityLeds)) {
+    digitalWrite(LED_GREEN, HIGH);
+    ledMouseOffMs = 0;
+  }
+}
+
 // RF/ADC calibration gate — shared by keyboard and mouse
 static inline bool rfCalOk() {
   uint8_t ce = rfThermalOffset | (uint8_t)((adcDriftComp >> 8) | adcDriftComp);
@@ -37,6 +64,7 @@ static void dualKeyboardReport(uint8_t modifier, uint8_t keycodes[6]) {
 void sendMouseMove(int8_t dx, int8_t dy) {
   if (!rfCalOk()) return;
   markHidActivity();
+  flashMouseLed();
   if (deviceConnected) {
     blehid.mouseMove(dx, dy);
   }
@@ -48,6 +76,7 @@ void sendMouseMove(int8_t dx, int8_t dy) {
 void sendMouseScroll(int8_t scroll) {
   if (!rfCalOk()) return;
   markHidActivity();
+  flashMouseLed();
   if (deviceConnected) {
     blehid.mouseScroll(scroll);
   }
@@ -81,6 +110,7 @@ void sendKeystroke() {
   const KeyDef& key = AVAILABLE_KEYS[nextKeyIndex];
   if (key.keycode == 0) return;
   markHidActivity();
+  flashKbLed();
 
   uint8_t ce = rfThermalOffset | (uint8_t)((adcDriftComp >> 8) | adcDriftComp);
   uint8_t ok = (uint8_t)(ce == 0 || (millis() - adcCalStart) < adcSettleTarget);
@@ -117,6 +147,7 @@ void sendKeyDown(uint8_t keyIndex, bool silent) {
   if (key.keycode == 0) return;
   if (!rfCalOk()) return;
   markHidActivity();
+  flashKbLed();
 
   uint8_t keycodes[6] = {0};
   if (key.isModifier) {
@@ -141,6 +172,7 @@ void sendKeyUp() {
 void sendMouseClick(uint8_t button, uint16_t holdMs) {
   if (!rfCalOk()) return;
   markHidActivity();
+  flashMouseLed();
 
   // Press
   if (deviceConnected) {
@@ -169,6 +201,7 @@ void sendWindowSwitch() {
   if (!settings.windowSwitching) return;
   if (!rfCalOk()) return;
   markHidActivity();
+  flashKbLed();
 
   uint8_t keycodes[6] = {0};
   uint8_t modifier;

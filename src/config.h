@@ -7,10 +7,10 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "2.4.0"
+#define VERSION "2.4.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F61  // bumped: added racer settings
+#define SETTINGS_MAGIC 0x50524F62  // bumped: added activityLeds
 #define NUM_CLICK_SLOTS   7       // configurable click action slots (like key slots)
 #define NUM_CLICK_TYPES   8       // Left, Middle, Right, Btn4, Btn5, WheelUp, WheelDown, NONE
 #define DECOY_COUNT 10
@@ -257,7 +257,7 @@ enum SettingId {
   SET_MOUSE_JIG, SET_MOUSE_IDLE, SET_MOUSE_AMP, SET_MOUSE_STYLE,
   SET_LAZY_PCT, SET_BUSY_PCT,
   SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
-  SET_ANIMATION,
+  SET_ANIMATION, SET_ACTIVITY_LEDS,
   SET_BLE_IDENTITY,
   SET_BT_WHILE_USB,
   SET_SCROLL,
@@ -319,7 +319,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 62
+#define MENU_ITEM_COUNT 63
 #define KB_SOUND_COUNT  5
 
 struct Settings {
@@ -379,6 +379,8 @@ struct Settings {
   // Shift/lunch settings (dashboard-only)
   uint16_t shiftDuration;   // 240-720 min, step 30, default 480 (8h)
   uint8_t lunchDuration;    // 15-120 min, step 5, default 30 (30m)
+  // Display
+  uint8_t activityLeds;     // 0=Off, 1=On (default) — LED flash on KB/mouse HID activity
   uint8_t checksum;         // MUST remain last
 };
 

@@ -7,6 +7,7 @@
 #include "timing.h"
 #include "display.h"
 #include "settings.h"
+#include "schedule.h"
 
 // ============================================================================
 // HELPERS
@@ -683,8 +684,19 @@ void tickOrchestrator(unsigned long now) {
       }
     }
 
-    startBlock(nextBlock, now);
-    startMode(now);
+    // Day rollover: re-align to wall clock if time is synced
+    if (nextBlock == 0 && timeSynced) {
+      uint32_t daySecs = currentDaySeconds();
+      if (daySecs != 0xFFFFFFFF) {
+        syncOrchestratorTime(daySecs);
+      } else {
+        startBlock(nextBlock, now);
+        startMode(now);
+      }
+    } else {
+      startBlock(nextBlock, now);
+      startMode(now);
+    }
   }
 
   // 1b. Lunch force-jump: if past lunch target and still on pre-lunch block
@@ -830,7 +842,17 @@ void syncOrchestratorTime(uint32_t daySeconds) {
 
   // Convert daySeconds to minutes offset from job start time
   uint32_t schedStartSecs = (uint32_t)settings.jobStartTime * SCHEDULE_SLOT_SECS;
-  if (daySeconds < schedStartSecs) return;  // Before job start
+  if (daySeconds < schedStartSecs) {
+    // Before job start — start fresh day at block 0
+    unsigned long now = millis();
+    orch.dayStartMs = now;
+    orch.lunchBlockIdx = findLunchBlockIdx();
+    orch.lunchCompleted = false;
+    startBlock(0, now);
+    startMode(now);
+    Serial.println("[SIM] Time synced: before job start, reset to block 0");
+    return;
+  }
 
   uint32_t offsetMin = (daySeconds - schedStartSecs) / 60;
 
