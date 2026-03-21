@@ -1198,6 +1198,14 @@ void handleButtons() {
         mouseReturnTotal = 0;
         scheduleNextMouseState();
       }
+      // Wake BLE from idle mode on unmute to ensure Mac's HID stack is active
+      if ((keyEnabled || mouseEnabled) && deviceConnected && bleIdleMode) {
+        BLEConnection* conn = Bluefruit.Connection(bleConnHandle);
+        if (conn) {
+          conn->requestConnectionParameter(BLE_INTERVAL_ACTIVE);
+          bleIdleMode = false;
+        }
+      }
       Serial.print("Mute KB:"); Serial.print(keyEnabled ? "ON" : "OFF");
       Serial.print(" MS:"); Serial.println(mouseEnabled ? "ON" : "OFF");
       pushSerialStatus();

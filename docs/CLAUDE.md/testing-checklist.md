@@ -114,3 +114,11 @@
 - [ ] Screenshot works in all UI modes (NORMAL, MENU, SLOTS, screensaver)
 - [ ] Screenshot with display not initialized prints error, does not crash
 - [ ] Encoder and BLE remain responsive during/after screenshot capture
+
+### Light Sleep + Orchestrator Sync
+- [ ] Simulation mode + Full Auto schedule: light sleep before job start -> wake during job hours -> correct work block displayed (not stale from previous day)
+- [ ] Simulation mode + Full Auto schedule: light sleep mid-workday -> wake later in workday -> correct block and progress shown
+- [ ] Simulation mode + manual light sleep: button wake -> orchestrator syncs to current time, activity resumes in correct block
+- [ ] Simulation mode + light sleep wake: serial monitor shows `[SIM] Time synced to block N` log line on wake
+- [ ] Simple mode + light sleep wake: keyboard/mouse activity resumes immediately, no orchestrator sync attempted
+- [ ] Light sleep wake without time sync (clock never synced): orchestrator continues from stale state, no crash

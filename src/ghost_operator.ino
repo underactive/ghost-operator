@@ -71,6 +71,7 @@ void connect_callback(uint16_t conn_handle) {
   Serial.println(central_name);
   bleConnHandle = conn_handle;
   deviceConnected = true;
+  bleHidFailCount = 0;
 
   // Reset timers so progress bars start fresh (not stale from pre-connection)
   unsigned long now = millis();

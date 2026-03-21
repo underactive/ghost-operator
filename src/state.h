@@ -143,6 +143,7 @@ extern unsigned long lastHidActivity;
 extern unsigned long ledKbOffMs;
 extern unsigned long ledMouseOffMs;
 extern bool bleIdleMode;
+extern uint8_t bleHidFailCount;  // consecutive GATT notify failures
 
 // Die temperature (hysteresis-smoothed)
 extern int16_t cachedDieTempRaw;

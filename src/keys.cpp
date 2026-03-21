@@ -109,23 +109,23 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Saver T.O.",    "Screensaver timeout (0=never)", FMT_SAVER_NAME, 0, 5, 1, SET_SAVER_TIMEOUT },
   { MENU_VALUE,   "Animation",     "Status animation style", FMT_ANIM_NAME, 0, 5, 1, SET_ANIMATION },
   { MENU_VALUE,   "Header txt",   "Normal screen header shows job or device name", FMT_HEADER_DISP, 0, 1, 1, SET_HEADER_DISPLAY },
-  { MENU_VALUE,   "Activity LEDs", "Flash blue/green LEDs on KB/mouse HID activity", FMT_ON_OFF, 0, 1, 1, SET_ACTIVITY_LEDS },
-  // idx 43-46: Sound
+  // idx 42-45: Sound
   { MENU_HEADING, "Sound",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "System sounds", "BLE connect/disconnect alert tones", FMT_ON_OFF, 0, 1, 1, SET_SYSTEM_SOUND },
   { MENU_VALUE,   "Keybd sounds", "Mechanical keyboard sound on keystroke", FMT_ON_OFF, 0, 1, 1, SET_SOUND_ENABLED },
   { MENU_VALUE,   "Key sound",    "Keyboard switch sound profile", FMT_KEY_SOUND, 0, 4, 1, SET_SOUND_TYPE },
-  // idx 47-49: Schedule
+  // idx 46-48: Schedule
   { MENU_HEADING, "Schedule",      NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Set clock",     "Set device time manually", FMT_DURATION_MS, 0, 0, 0, SET_SET_CLOCK },
   { MENU_ACTION,  "Schedule",      "Configure schedule mode & times", FMT_DURATION_MS, 0, 0, 0, SET_SCHEDULE_MODE },
-  // idx 50-57: Device
+  // idx 49-57: Device
   { MENU_HEADING, "Device",        NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_ACTION,  "Mode",          "Select operation mode (reboot required)", FMT_DURATION_MS, 0, 0, 0, SET_OP_MODE },
   { MENU_ACTION,  "Bluetooth name", "BLE device name preset (reboot to apply)", FMT_DURATION_MS, 0, 0, 0, SET_BLE_IDENTITY },
   { MENU_VALUE,   "BT while USB",  "Keep Bluetooth active when USB plugged in", FMT_ON_OFF, 0, 1, 1, SET_BT_WHILE_USB },
   { MENU_VALUE,   "Dashboard",     "Show dashboard link on USB connect (reboot to apply)", FMT_ON_OFF, 0, 1, 1, SET_DASHBOARD },
   { MENU_VALUE,   "Invert dial",   "Reverse encoder rotation direction", FMT_ON_OFF, 0, 1, 1, SET_INVERT_DIAL },
+  { MENU_VALUE,   "Activity LEDs", "Flash blue/green LEDs on KB/mouse HID activity", FMT_ON_OFF, 0, 1, 1, SET_ACTIVITY_LEDS },
   { MENU_ACTION,  "Restore defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
   { MENU_ACTION,  "Reboot",        "Restart device (applies pending changes)", FMT_DURATION_MS, 0, 0, 0, SET_REBOOT },
   // idx 58-62: About

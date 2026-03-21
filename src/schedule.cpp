@@ -190,6 +190,15 @@ void exitLightSleep() {
   mouseReturnTotal = 0;
   scheduleNextKey();
   scheduleNextMouseState();
+
+  // Re-sync orchestrator to wall clock after light sleep gap
+  if (settings.operationMode == OP_SIMULATION && timeSynced) {
+    uint32_t daySecs = currentDaySeconds();
+    if (daySecs != 0xFFFFFFFF) {
+      syncOrchestratorTime(daySecs);
+    }
+  }
+
   markDisplayDirty();
 
   Serial.println("[Schedule] Light sleep exited");

@@ -37,10 +37,10 @@ const CarouselConfig* getCarouselConfig(uint8_t settingId);
 // Symbolic menu indices — must match MENU_ITEMS[] order in keys.cpp
 #define MENU_IDX_KEY_SLOTS    22
 #define MENU_IDX_CLICK_SLOTS  32
-#define MENU_IDX_SET_CLOCK    48
-#define MENU_IDX_SCHEDULE     49
-#define MENU_IDX_OP_MODE      51   // "Mode" (Simple/Simulation/Volume/Breakout/Snake/Racer) — under Device heading
-#define MENU_IDX_BLE_IDENTITY 52
+#define MENU_IDX_SET_CLOCK    47
+#define MENU_IDX_SCHEDULE     48
+#define MENU_IDX_OP_MODE      50   // "Mode" (Simple/Simulation/Volume/Breakout/Snake/Racer) — under Device heading
+#define MENU_IDX_BLE_IDENTITY 51
 #define MENU_IDX_UPTIME       59
 #define MENU_IDX_DIE_TEMP     60
 #define MENU_IDX_HIGH_SCORE   61

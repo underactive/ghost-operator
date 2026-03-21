@@ -7,7 +7,7 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "2.4.1"
+#define VERSION "2.4.2"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F62  // bumped: added activityLeds
@@ -145,6 +145,7 @@
 #define BLE_SLAVE_LATENCY_IDLE    4     // skip up to 4 events (effective ~300ms)
 #define BLE_IDLE_THRESHOLD_MS     5000  // enter idle after 5s of no HID
 #define BLE_IDLE_CHECK_MS         2000  // check for idle transition every 2s
+#define BLE_HID_FAIL_THRESHOLD    5     // consecutive notify failures before forced reconnect
 
 // BLE device name character set
 #define NAME_CHAR_COUNT  65   // printable characters

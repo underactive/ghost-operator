@@ -134,6 +134,7 @@ unsigned long lastHidActivity = 0;
 unsigned long ledKbOffMs = 0;
 unsigned long ledMouseOffMs = 0;
 bool bleIdleMode = false;
+uint8_t bleHidFailCount = 0;
 
 // Die temperature (hysteresis-smoothed)
 int16_t cachedDieTempRaw = INT16_MIN;

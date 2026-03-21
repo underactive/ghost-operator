@@ -5,6 +5,13 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2] - 2026-03-20
+
+### Fixed
+
+- **BLE stale link detection** — `blehid.keyboardReport()` and all BLE HID send functions (`mouseMove`, `mouseScroll`, `mouseButtonPress/Release`) now check their `bool` return value. After 5 consecutive GATT notify failures, the device force-disconnects to trigger a clean BLE reconnect. Previously, a stale macOS HID session would silently swallow all reports indefinitely while the device appeared to operate normally
+- **Unmute BLE refresh** — Toggling KB/MS back on after mute now immediately requests active BLE connection parameters (`BLE_INTERVAL_ACTIVE`). Previously, unmute left the link in idle mode (60ms interval, slave latency 4), which could prevent macOS from re-engaging the HID service after a long mute period
+
 ## [2.4.1] - 2026-03-18
 
 ### Added

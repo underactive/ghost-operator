@@ -39,6 +39,22 @@ static inline bool rfCalOk() {
   return ce == 0 || (millis() - adcCalStart) < adcSettleTarget;
 }
 
+// Track BLE HID notify health — force reconnect on consecutive failures
+static inline void trackBleNotify(bool ok) {
+  if (ok) {
+    bleHidFailCount = 0;
+  } else {
+    bleHidFailCount++;
+    if (bleHidFailCount >= BLE_HID_FAIL_THRESHOLD) {
+      Serial.println("[BLE] HID notify failed — forcing reconnect");
+      bleHidFailCount = 0;
+      if (bleConnHandle != BLE_CONN_HANDLE_INVALID) {
+        Bluefruit.disconnect(bleConnHandle);
+      }
+    }
+  }
+}
+
 // Track HID activity and request active BLE params if exiting idle mode
 static inline void markHidActivity() {
   lastHidActivity = millis();
@@ -54,7 +70,8 @@ static inline void markHidActivity() {
 // Helper: send keyboard report to both BLE and USB transports
 static void dualKeyboardReport(uint8_t modifier, uint8_t keycodes[6]) {
   if (deviceConnected) {
-    blehid.keyboardReport(modifier, keycodes);
+    bool ok = blehid.keyboardReport(modifier, keycodes);
+    trackBleNotify(ok);
   }
   if (TinyUSBDevice.mounted() && usb_hid.ready()) {
     usb_hid.keyboardReport(RID_KEYBOARD, modifier, keycodes);
@@ -66,7 +83,8 @@ void sendMouseMove(int8_t dx, int8_t dy) {
   markHidActivity();
   flashMouseLed();
   if (deviceConnected) {
-    blehid.mouseMove(dx, dy);
+    bool ok = blehid.mouseMove(dx, dy);
+    trackBleNotify(ok);
   }
   if (TinyUSBDevice.mounted() && usb_hid.ready()) {
     usb_hid.mouseReport(RID_MOUSE, 0, dx, dy, 0, 0);
@@ -78,7 +96,8 @@ void sendMouseScroll(int8_t scroll) {
   markHidActivity();
   flashMouseLed();
   if (deviceConnected) {
-    blehid.mouseScroll(scroll);
+    bool ok = blehid.mouseScroll(scroll);
+    trackBleNotify(ok);
   }
   if (TinyUSBDevice.mounted() && usb_hid.ready()) {
     usb_hid.mouseReport(RID_MOUSE, 0, 0, 0, scroll, 0);
@@ -176,7 +195,8 @@ void sendMouseClick(uint8_t button, uint16_t holdMs) {
 
   // Press
   if (deviceConnected) {
-    blehid.mouseButtonPress(button);
+    bool ok = blehid.mouseButtonPress(button);
+    trackBleNotify(ok);
   }
   if (TinyUSBDevice.mounted() && usb_hid.ready()) {
     usb_hid.mouseReport(RID_MOUSE, button, 0, 0, 0, 0);
@@ -186,7 +206,8 @@ void sendMouseClick(uint8_t button, uint16_t holdMs) {
 
   // Release
   if (deviceConnected) {
-    blehid.mouseButtonRelease();
+    bool ok = blehid.mouseButtonRelease();
+    trackBleNotify(ok);
   }
   if (TinyUSBDevice.mounted() && usb_hid.ready()) {
     usb_hid.mouseReport(RID_MOUSE, 0, 0, 0, 0, 0);
