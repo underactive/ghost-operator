@@ -5,6 +5,13 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] - 2026-03-20
+
+### Fixed
+
+- **Deep sleep BLE cleanup** — `enterDeepSleep()` now sets `restartOnDisconnect(false)` and disconnects BLE before calling `sd_power_system_off()`. Previously, a pending BLE disconnect event (from `trackBleNotify` forced reconnect) would silently restart advertising during `delay()` calls in the sleep sequence, leaving SoftDevice events pending that prevented system-off from succeeding — causing an immediate WDT reboot instead of sleep
+- **WDT safety in sleep button wait** — Feed watchdog during the button-release wait loop in `enterDeepSleep()` to prevent WDT reset if the user holds the button after the countdown completes
+
 ## [2.4.2] - 2026-03-20
 
 ### Fixed

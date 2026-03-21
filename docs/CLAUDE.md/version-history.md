@@ -2,6 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
+| 2.4.3 | Deep sleep BLE cleanup: `enterDeepSleep()` now disables `restartOnDisconnect` and disconnects BLE before `sd_power_system_off()`, fixing immediate WDT reboot when pending BLE events from `trackBleNotify` prevented system-off. WDT feed added to button-release wait loop. |
 | 2.4.2 | BLE stale link detection: all BLE HID sends now check GATT notify return value, force-disconnect after 5 consecutive failures to trigger clean reconnect (fixes silent keystroke loss on macOS after long sessions or mute/unmute). Unmute BLE refresh: toggling KB/MS on immediately requests active BLE connection params to wake idle link. |
 | 2.4.1 | Activity LEDs: blue/green LED flash on KB/mouse HID activity (configurable via Display menu, default On). Fix orchestrator day-rollover drift: re-sync work blocks to wall clock on day wrap instead of cycling on millis() timers. Fix pre-job-start sync returning without starting a block. |
 | 2.4.0 | Build system migration: Arduino CLI → PlatformIO. Firmware sources moved to `src/`, custom board JSON (`boards/`), declarative `platformio.ini`, CI simplified (no checkout path hack), `build.sh` rewritten with 1200bps DFU touch, `Makefile` gains `monitor`/`clean` targets. Key PlatformIO gotchas documented: `lib_archive=no` (TinyUSB driver stripping), `-Os` over `-Ofast`, CC310 crypto path fix, board define injection. Charging indicator (lightning bolt icon via BQ25100 `~CHG` pin). Battery spec updated to 2000mAh (~120h runtime). |
