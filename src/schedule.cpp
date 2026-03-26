@@ -119,6 +119,7 @@ void checkSchedule() {
 void enterLightSleep(bool scheduled) {
   scheduleSleeping = true;
   manualLightSleep = !scheduled;
+  lastEncoderPos = encoderPos;  // reset baseline so stale delta doesn't wake immediately
   volD7ClickCount = 0;  // prevent stale click from firing on wake
 
   // Stop BLE advertising

@@ -437,6 +437,16 @@ void handleEncoder() {
   int pos = encoderPos;  // Read once — volatile, may change mid-expression
   int change = pos - lastEncoderPos;
 
+  // During light sleep, drain sub-detent noise to prevent accumulation from
+  // triggering a spurious wake.  Genuine rotation produces a full detent (4
+  // transitions) within a single ISR burst — noise accumulates slowly over
+  // seconds/minutes.  Draining resets the baseline each loop iteration so only
+  // a real click can reach the threshold.
+  if (scheduleSleeping && abs(change) < 4) {
+    lastEncoderPos = pos;
+    return;
+  }
+
   if (abs(change) >= 4) {  // Full detent
     int direction = (change > 0) ? 1 : -1;
     if (settings.invertDial) direction = -direction;
