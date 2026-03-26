@@ -2,6 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
+| 2.5.0 | Lifetime stats: persistent counters for keystrokes, mouse distance (miles), and mouse clicks in About menu + web dashboard. Fixed read-only menu arrow bug and light sleep encoder wake. |
 | 2.4.3 | Deep sleep BLE cleanup: `enterDeepSleep()` now disables `restartOnDisconnect` and disconnects BLE before `sd_power_system_off()`, fixing immediate WDT reboot when pending BLE events from `trackBleNotify` prevented system-off. WDT feed added to button-release wait loop. |
 | 2.4.2 | BLE stale link detection: all BLE HID sends now check GATT notify return value, force-disconnect after 5 consecutive failures to trigger clean reconnect (fixes silent keystroke loss on macOS after long sessions or mute/unmute). Unmute BLE refresh: toggling KB/MS on immediately requests active BLE connection params to wake idle link. |
 | 2.4.1 | Activity LEDs: blue/green LED flash on KB/mouse HID activity (configurable via Display menu, default On). Fix orchestrator day-rollover drift: re-sync work blocks to wall clock on day wrap instead of cycling on millis() timers. Fix pre-job-start sync returning without starting a block. |

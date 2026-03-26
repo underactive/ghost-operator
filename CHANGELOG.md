@@ -5,6 +5,19 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-03-26
+
+### Added
+
+- **Lifetime stats** — Persistent counters for total keystrokes, mouse distance (miles), and mouse clicks. Displayed as read-only items in the About menu section. Stats are stored in a separate `/stats.dat` file so they survive firmware updates and settings resets
+- **Dashboard stats view** — Lifetime stats shown in a new card in the web dashboard, updated live via `?status` polling
+- **Stats protocol fields** — `totalKeys`, `totalMousePx`, `totalClicks` added to both `?status` and `?settings` responses
+
+### Fixed
+
+- **Read-only menu arrow bug** — Spurious `<` arrow on read-only menu items with non-zero values (e.g., High score) now suppressed when `minVal == maxVal`
+- **Light sleep encoder wake** — Fixed spurious wake from encoder noise accumulation during light sleep
+
 ## [2.4.3] - 2026-03-20
 
 ### Fixed
