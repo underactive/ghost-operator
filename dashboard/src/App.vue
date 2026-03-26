@@ -13,6 +13,7 @@ import ScheduleSection from './components/ScheduleSection.vue'
 import DisplaySection from './components/DisplaySection.vue'
 import SoundSection from './components/SoundSection.vue'
 import DeviceSection from './components/DeviceSection.vue'
+import LifetimeStats from './components/LifetimeStats.vue'
 import FirmwareUpdate from './components/FirmwareUpdate.vue'
 </script>
 
@@ -46,6 +47,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
           <DisplaySection />
           <SoundSection />
           <DeviceSection />
+          <LifetimeStats />
         </template>
         <FirmwareUpdate />
       </div>

@@ -173,7 +173,7 @@ void processCommand(const char* line, ResponseWriter writer) {
 static void cmdQueryStatus() {
   unsigned long uptime = millis() - startTime;
 
-  char buf[280];
+  char buf[340];
   int len = snprintf(buf, sizeof(buf),
     "!status|connected=%d|usb=%d|kb=%d|ms=%d|bat=%d|batMv=%d|profile=%d|mode=%d"
     "|mouseState=%d|uptime=%lu|kbNext=%s|timeSynced=%d|schedSleeping=%d",
@@ -188,6 +188,13 @@ static void cmdQueryStatus() {
   if (timeSynced) {
     len += snprintf(buf + len, sizeof(buf) - len, "|daySecs=%lu", (unsigned long)currentDaySeconds());
   }
+
+  // Lifetime stats (live from RAM)
+  len += snprintf(buf + len, sizeof(buf) - len,
+    "|totalKeys=%lu|totalMousePx=%lu|totalClicks=%lu",
+    (unsigned long)stats.totalKeystrokes,
+    (unsigned long)stats.totalMousePixels,
+    (unsigned long)stats.totalMouseClicks);
 
   // Mode-specific status
   if (settings.operationMode == OP_RACER) {
@@ -273,6 +280,13 @@ static void cmdQuerySettings() {
     len += snprintf(buf + len, sizeof(buf) - len, "%s%d",
                     (i > 0) ? "," : "", settings.clickSlots[i]);
   }
+
+  // Lifetime stats (read-only, from separate stats file)
+  len += snprintf(buf + len, sizeof(buf) - len,
+    "|totalKeys=%lu|totalMousePx=%lu|totalClicks=%lu",
+    (unsigned long)stats.totalKeystrokes,
+    (unsigned long)stats.totalMousePixels,
+    (unsigned long)stats.totalMouseClicks);
 
   currentWriter(buf);
 }

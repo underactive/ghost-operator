@@ -131,6 +131,10 @@ export function parseSettings(data) {
     // Shift/lunch settings
     shiftDur: parseInt(data.shiftDur ?? '480'),
     lunchDur: parseInt(data.lunchDur ?? '30'),
+    // Lifetime stats (read-only)
+    totalKeys: parseInt(data.totalKeys) || 0,
+    totalMousePx: parseInt(data.totalMousePx) || 0,
+    totalClicks: parseInt(data.totalClicks) || 0,
   }
 }
 
@@ -158,6 +162,10 @@ export function parseStatus(data) {
     simMode: parseInt(data.simMode) || 0,
     simPhase: parseInt(data.simPhase) || 0,
     simProfile: parseInt(data.simProfile) || 0,
+    // Lifetime stats (live)
+    totalKeys: parseInt(data.totalKeys) || 0,
+    totalMousePx: parseInt(data.totalMousePx) || 0,
+    totalClicks: parseInt(data.totalClicks) || 0,
   }
 }
 

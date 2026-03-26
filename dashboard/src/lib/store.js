@@ -38,6 +38,10 @@ export const status = reactive({
   simMode: 0,
   simPhase: 0,
   simProfile: 0,
+  // Lifetime stats (live from status polling)
+  totalKeys: 0,
+  totalMousePx: 0,
+  totalClicks: 0,
 })
 
 export const settings = reactive({
@@ -94,6 +98,10 @@ export const settings = reactive({
   // Shift/lunch
   shiftDur: 480,
   lunchDur: 30,
+  // Lifetime stats (read-only)
+  totalKeys: 0,
+  totalMousePx: 0,
+  totalClicks: 0,
 })
 
 export const availableKeys = ref([])
