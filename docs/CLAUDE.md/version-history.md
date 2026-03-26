@@ -2,6 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
+| 2.5.1 | Dual-unit distance display (ft/m, mi/km) on OLED and dashboard. Shortened "Mouse dist" label to "Travel". |
 | 2.5.0 | Lifetime stats: persistent counters for keystrokes, mouse distance (miles), and mouse clicks in About menu + web dashboard. Fixed read-only menu arrow bug and light sleep encoder wake. |
 | 2.4.3 | Deep sleep BLE cleanup: `enterDeepSleep()` now disables `restartOnDisconnect` and disconnects BLE before `sd_power_system_off()`, fixing immediate WDT reboot when pending BLE events from `trackBleNotify` prevented system-off. WDT feed added to button-release wait loop. |
 | 2.4.2 | BLE stale link detection: all BLE HID sends now check GATT notify return value, force-disconnect after 5 consecutive failures to trigger clean reconnect (fixes silent keystroke loss on macOS after long sessions or mute/unmute). Unmute BLE refresh: toggling KB/MS on immediately requests active BLE connection params to wake idle link. |

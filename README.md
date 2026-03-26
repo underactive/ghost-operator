@@ -1,6 +1,6 @@
 # Ghost Operator - BLE HID Device
 
-## Version 2.5.0
+## Version 2.5.1
 A wireless Bluetooth device that prevents screen lock and idle timeout. Masquerades as a keyboard and mouse, sending periodic keystrokes and movements. What you do with it is your own business.
 
 ---

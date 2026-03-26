@@ -488,16 +488,23 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
       return;
     }
     case FMT_MOUSE_DIST: {
-      // ~96 DPI: 96 px/inch, 63360 in/mile → 6082560 px/mile
-      // Compute tenths-of-a-mile to avoid float
       uint32_t px = val;
-      uint32_t tenths = px / PIXELS_PER_TENTH_MILE;
-      if (tenths < 100) {
-        snprintf(buf, bufSize, "%lu.%lumi",
-          (unsigned long)(tenths / 10),
-          (unsigned long)(tenths % 10));
+      uint32_t feet = px / PIXELS_PER_FOOT;
+      if (feet < 5280) {
+        uint32_t meters = px / PIXELS_PER_METER;
+        snprintf(buf, bufSize, "%luft/%lum",
+          (unsigned long)feet, (unsigned long)meters);
       } else {
-        snprintf(buf, bufSize, "%lumi", (unsigned long)(tenths / 10));
+        uint32_t tMi = px / PIXELS_PER_TENTH_MILE;
+        uint32_t tKm = px / PIXELS_PER_TENTH_KM;
+        if (tMi < 100) {
+          snprintf(buf, bufSize, "%lu.%lumi/%lu.%lukm",
+            (unsigned long)(tMi / 10), (unsigned long)(tMi % 10),
+            (unsigned long)(tKm / 10), (unsigned long)(tKm % 10));
+        } else {
+          snprintf(buf, bufSize, "%lumi/%lukm",
+            (unsigned long)(tMi / 10), (unsigned long)(tKm / 10));
+        }
       }
       return;
     }

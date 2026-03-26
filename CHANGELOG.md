@@ -5,6 +5,13 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026-03-26
+
+### Changed
+
+- **Dual-unit distance display** — Mouse travel distance now shows both imperial and metric (e.g., `42ft/12m`, `1.2mi/1.9km`) on the OLED and dashboard. Units auto-scale from feet/meters to miles/km at the 1-mile threshold
+- **Travel label** — Shortened "Mouse dist" to "Travel" on the OLED menu to fit dual-unit values
+
 ## [2.5.0] - 2026-03-26
 
 ### Added

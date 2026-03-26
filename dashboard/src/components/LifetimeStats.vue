@@ -1,7 +1,10 @@
 <script setup>
 import { status } from '../lib/store.js'
 
+const PIXELS_PER_FOOT = 1152
+const PIXELS_PER_METER = 3780
 const PIXELS_PER_TENTH_MILE = 608256
+const PIXELS_PER_TENTH_KM = 377953
 
 function formatCount(n) {
   if (n < 10000) return n.toLocaleString()
@@ -10,9 +13,16 @@ function formatCount(n) {
 }
 
 function formatDistance(px) {
-  const tenths = Math.floor(px / PIXELS_PER_TENTH_MILE)
-  if (tenths < 100) return (tenths / 10).toFixed(1) + ' mi'
-  return Math.floor(tenths / 10) + ' mi'
+  const feet = Math.floor(px / PIXELS_PER_FOOT)
+  if (feet < 5280) {
+    const meters = Math.floor(px / PIXELS_PER_METER)
+    return `${feet.toLocaleString()} ft / ${meters.toLocaleString()} m`
+  }
+  const tMi = Math.floor(px / PIXELS_PER_TENTH_MILE)
+  const tKm = Math.floor(px / PIXELS_PER_TENTH_KM)
+  const mi = tMi < 100 ? (tMi / 10).toFixed(1) : Math.floor(tMi / 10)
+  const km = tKm < 100 ? (tKm / 10).toFixed(1) : Math.floor(tKm / 10)
+  return `${mi} mi / ${km} km`
 }
 </script>
 

@@ -7,14 +7,17 @@
 // ============================================================================
 // VERSION & CONFIG
 // ============================================================================
-#define VERSION "2.5.0"
+#define VERSION "2.5.1"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F62  // bumped: added activityLeds
 #define STATS_MAGIC    0x53544132  // "STA2" — lifetime stats file (bumped: added totalMouseClicks)
 #define STATS_FILE     "/stats.dat"
 #define STATS_SAVE_INTERVAL_MS 900000UL   // 15 minutes — periodic flash save for stats counters
+#define PIXELS_PER_FOOT       1152UL     // 96 px/in * 12 in/ft
+#define PIXELS_PER_METER      3780UL     // 96 px/in * 39.37 in/m
 #define PIXELS_PER_TENTH_MILE 608256UL   // 96 px/in * 63360 in/mi / 10
+#define PIXELS_PER_TENTH_KM   377953UL   // 96 px/in * 39370 in/km / 10
 #define NUM_CLICK_SLOTS   7       // configurable click action slots (like key slots)
 #define NUM_CLICK_TYPES   8       // Left, Middle, Right, Btn4, Btn5, WheelUp, WheelDown, NONE
 #define DECOY_COUNT 10
