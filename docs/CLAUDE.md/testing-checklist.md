@@ -122,3 +122,15 @@
 - [ ] Simulation mode + light sleep wake: serial monitor shows `[SIM] Time synced to block N` log line on wake
 - [ ] Simple mode + light sleep wake: keyboard/mouse activity resumes immediately, no orchestrator sync attempted
 - [ ] Light sleep wake without time sync (clock never synced): orchestrator continues from stale state, no crash
+
+### Lifetime Stats
+- [ ] "Keys sent" and "Mouse dist" items appear in About section (below High score, above Version)
+- [ ] Keys sent shows "0" and Mouse dist shows "0.0mi" on first boot (no prior stats file)
+- [ ] Keys sent increments after keystrokes are sent (connect BLE, wait for keystroke, check value)
+- [ ] Mouse dist increases after mouse jiggle cycle completes
+- [ ] Stats survive deep sleep and wake (values unchanged after wake)
+- [ ] Stats survive light sleep and wake
+- [ ] "Restore defaults" preserves stats (Keys sent and Mouse dist unchanged after restore)
+- [ ] Stats items do not trigger 30-second menu auto-close (scroll to Keys sent, wait >30s, menu stays open)
+- [ ] Compact formatting: Keys sent shows "Nk" for 10k+ and "N.NM" for 1M+
+- [ ] Mouse dist shows "N.Nmi" below 10mi, "Nmi" at 10mi+

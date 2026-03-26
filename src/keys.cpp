@@ -128,11 +128,14 @@ const MenuItem MENU_ITEMS[MENU_ITEM_COUNT] = {
   { MENU_VALUE,   "Activity LEDs", "Flash blue/green LEDs on KB/mouse HID activity", FMT_ON_OFF, 0, 1, 1, SET_ACTIVITY_LEDS },
   { MENU_ACTION,  "Restore defaults", "Restore all settings to factory defaults", FMT_DURATION_MS, 0, 0, 0, SET_RESTORE_DEFAULTS },
   { MENU_ACTION,  "Reboot",        "Restart device (applies pending changes)", FMT_DURATION_MS, 0, 0, 0, SET_REBOOT },
-  // idx 58-62: About
+  // idx 58-65: About
   { MENU_HEADING, "About",         NULL, FMT_DURATION_MS, 0, 0, 0, 0 },
   { MENU_VALUE,   "Uptime",        "Time since last boot", FMT_UPTIME, 0, 0, 0, SET_UPTIME },
   { MENU_VALUE,   "Die temp",      "nRF52840 internal die temperature", FMT_DIE_TEMP, 0, 0, 0, SET_DIE_TEMP },
   { MENU_VALUE,   "High score",    "Best Breakout score (persistent)", FMT_HIGH_SCORE, 0, 0, 0, SET_HIGH_SCORE },
+  { MENU_VALUE,   "Keys sent",     "Total keystrokes (all sessions)", FMT_TOTAL_KEYS, 0, 0, 0, SET_TOTAL_KEYS },
+  { MENU_VALUE,   "Mouse dist",    "Total mouse travel distance", FMT_MOUSE_DIST, 0, 0, 0, SET_TOTAL_MOUSE_DIST },
+  { MENU_VALUE,   "Mouse clicks",  "Total mouse clicks (all sessions)", FMT_MOUSE_CLICKS, 0, 0, 0, SET_TOTAL_MOUSE_CLICKS },
   { MENU_VALUE,   "Version",       COPYRIGHT_TEXT, FMT_VERSION, 0, 0, 0, SET_VERSION },
 };
 
@@ -165,6 +168,9 @@ void validateMenuIndices() {
   check(MENU_IDX_UPTIME,       SET_UPTIME,        "UPTIME");
   check(MENU_IDX_DIE_TEMP,     SET_DIE_TEMP,      "DIE_TEMP");
   check(MENU_IDX_HIGH_SCORE,   SET_HIGH_SCORE,    "HIGH_SCORE");
+  check(MENU_IDX_TOTAL_KEYS,   SET_TOTAL_KEYS,    "TOTAL_KEYS");
+  check(MENU_IDX_MOUSE_DIST,   SET_TOTAL_MOUSE_DIST, "MOUSE_DIST");
+  check(MENU_IDX_MOUSE_CLICKS, SET_TOTAL_MOUSE_CLICKS, "MOUSE_CLICKS");
   check(MENU_IDX_VERSION,      SET_VERSION,        "VERSION");
   if (!ok) {
     Serial.println("[FATAL] MENU_IDX mismatch — halting");

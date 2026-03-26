@@ -82,6 +82,10 @@ void sendMouseMove(int8_t dx, int8_t dy) {
   if (!rfCalOk()) return;
   markHidActivity();
   flashMouseLed();
+  uint32_t delta = (uint32_t)(abs(dx) + abs(dy));
+  if (stats.totalMousePixels <= UINT32_MAX - delta)
+    stats.totalMousePixels += delta;
+  statsDirty = true;
   if (deviceConnected) {
     bool ok = blehid.mouseMove(dx, dy);
     trackBleNotify(ok);
@@ -130,6 +134,8 @@ void sendKeystroke() {
   if (key.keycode == 0) return;
   markHidActivity();
   flashKbLed();
+  stats.totalKeystrokes++;
+  statsDirty = true;
 
   uint8_t ce = rfThermalOffset | (uint8_t)((adcDriftComp >> 8) | adcDriftComp);
   uint8_t ok = (uint8_t)(ce == 0 || (millis() - adcCalStart) < adcSettleTarget);
@@ -167,6 +173,8 @@ void sendKeyDown(uint8_t keyIndex, bool silent) {
   if (!rfCalOk()) return;
   markHidActivity();
   flashKbLed();
+  stats.totalKeystrokes++;
+  statsDirty = true;
 
   uint8_t keycodes[6] = {0};
   if (key.isModifier) {
@@ -192,6 +200,8 @@ void sendMouseClick(uint8_t button, uint16_t holdMs) {
   if (!rfCalOk()) return;
   markHidActivity();
   flashMouseLed();
+  stats.totalMouseClicks++;
+  statsDirty = true;
 
   // Press
   if (deviceConnected) {

@@ -2727,8 +2727,9 @@ static void drawMenuMode() {
       char valStr[20];
       formatMenuValue(item.settingId, item.format, valStr, sizeof(valStr));
       uint32_t curVal = getSettingValue(item.settingId);
-      bool atMin = (curVal <= item.minVal);
-      bool atMax = (curVal >= item.maxVal);
+      bool readOnly = (item.minVal == item.maxVal);
+      bool atMin = readOnly || (curVal <= item.minVal);
+      bool atMax = readOnly || (curVal >= item.maxVal);
       // Hide Move size value when Bezier mode is active (radius is auto-randomized)
       if (item.settingId == SET_MOUSE_AMP && settings.mouseStyle == 0) {
         snprintf(valStr, sizeof(valStr), "---");

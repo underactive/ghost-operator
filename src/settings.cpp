@@ -236,6 +236,60 @@ void loadSettings() {
     adcDriftComp = adcDriftCalibrate(ref + 9) ^ ADC_DRIFT_EXPECTED; }
 }
 
+// ============================================================================
+// LIFETIME STATS (separate file — survives SETTINGS_MAGIC bumps)
+// ============================================================================
+
+static uint8_t calcStatsChecksum() {
+  uint8_t sum = 0;
+  uint8_t* p = (uint8_t*)&stats;
+  for (size_t i = 0; i < offsetof(Stats, checksum); i++) {
+    sum ^= p[i];
+  }
+  return sum;
+}
+
+void saveStats() {
+  stats.magic = STATS_MAGIC;
+  stats.checksum = calcStatsChecksum();
+
+  if (InternalFS.exists(STATS_FILE)) {
+    InternalFS.remove(STATS_FILE);
+  }
+
+  File statsFile(InternalFS);
+  statsFile.open(STATS_FILE, FILE_O_WRITE);
+  if (statsFile) {
+    statsFile.write((uint8_t*)&stats, sizeof(Stats));
+    statsFile.close();
+  }
+}
+
+void loadStats() {
+  memset(&stats, 0, sizeof(Stats));
+
+  if (InternalFS.exists(STATS_FILE)) {
+    File statsFile(InternalFS);
+    statsFile.open(STATS_FILE, FILE_O_READ);
+    if (statsFile) {
+      statsFile.read((uint8_t*)&stats, sizeof(Stats));
+      statsFile.close();
+
+      if (stats.magic == STATS_MAGIC && stats.checksum == calcStatsChecksum()) {
+        Serial.println("Stats loaded from flash");
+        return;
+      } else {
+        Serial.println("Stats corrupted, starting fresh");
+      }
+    }
+  } else {
+    Serial.println("No stats file, starting fresh");
+  }
+
+  memset(&stats, 0, sizeof(Stats));
+  stats.magic = STATS_MAGIC;
+}
+
 uint32_t getSettingValue(uint8_t settingId) {
   switch (settingId) {
     case SET_KEY_MIN:        return settings.keyIntervalMin;
@@ -286,6 +340,9 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_VERSION:        return 0;  // read-only display
     case SET_UPTIME:         return 0;  // read-only display
     case SET_DIE_TEMP:       return 0;  // read-only display
+    case SET_TOTAL_KEYS:     return stats.totalKeystrokes;
+    case SET_TOTAL_MOUSE_DIST: return stats.totalMousePixels;
+    case SET_TOTAL_MOUSE_CLICKS: return stats.totalMouseClicks;
     default:                 return 0;
   }
 }
@@ -417,6 +474,46 @@ void formatMenuValue(uint8_t settingId, MenuValueFormat format, char* buf, size_
     case FMT_SNAKE_HIGH_SCORE: snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
     case FMT_RACER_SPEED:   snprintf(buf, bufSize, "%s", (val < RACER_SPEED_COUNT) ? RACER_SPEED_NAMES[val] : "???"); return;
     case FMT_RACER_HIGH_SCORE: snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
+    case FMT_TOTAL_KEYS: {
+      uint32_t k = val;
+      if (k < 10000) {
+        snprintf(buf, bufSize, "%lu", (unsigned long)k);
+      } else if (k < 1000000) {
+        snprintf(buf, bufSize, "%luk", (unsigned long)(k / 1000));
+      } else {
+        snprintf(buf, bufSize, "%lu.%luM",
+          (unsigned long)(k / 1000000),
+          (unsigned long)((k % 1000000) / 100000));
+      }
+      return;
+    }
+    case FMT_MOUSE_DIST: {
+      // ~96 DPI: 96 px/inch, 63360 in/mile → 6082560 px/mile
+      // Compute tenths-of-a-mile to avoid float
+      uint32_t px = val;
+      uint32_t tenths = px / PIXELS_PER_TENTH_MILE;
+      if (tenths < 100) {
+        snprintf(buf, bufSize, "%lu.%lumi",
+          (unsigned long)(tenths / 10),
+          (unsigned long)(tenths % 10));
+      } else {
+        snprintf(buf, bufSize, "%lumi", (unsigned long)(tenths / 10));
+      }
+      return;
+    }
+    case FMT_MOUSE_CLICKS: {
+      uint32_t c = val;
+      if (c < 10000) {
+        snprintf(buf, bufSize, "%lu", (unsigned long)c);
+      } else if (c < 1000000) {
+        snprintf(buf, bufSize, "%luk", (unsigned long)(c / 1000));
+      } else {
+        snprintf(buf, bufSize, "%lu.%luM",
+          (unsigned long)(c / 1000000),
+          (unsigned long)((c % 1000000) / 100000));
+      }
+      return;
+    }
     default:                snprintf(buf, bufSize, "%lu", (unsigned long)val); return;
   }
 }

@@ -11,6 +11,10 @@
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
 #define SETTINGS_MAGIC 0x50524F62  // bumped: added activityLeds
+#define STATS_MAGIC    0x53544132  // "STA2" — lifetime stats file (bumped: added totalMouseClicks)
+#define STATS_FILE     "/stats.dat"
+#define STATS_SAVE_INTERVAL_MS 900000UL   // 15 minutes — periodic flash save for stats counters
+#define PIXELS_PER_TENTH_MILE 608256UL   // 96 px/in * 63360 in/mi / 10
 #define NUM_CLICK_SLOTS   7       // configurable click action slots (like key slots)
 #define NUM_CLICK_TYPES   8       // Left, Middle, Right, Btn4, Btn5, WheelUp, WheelDown, NONE
 #define DECOY_COUNT 10
@@ -225,7 +229,7 @@
 // ============================================================================
 enum UIMode { MODE_NORMAL, MODE_MENU, MODE_SLOTS, MODE_NAME, MODE_DECOY, MODE_SCHEDULE, MODE_MODE, MODE_SET_CLOCK, MODE_CAROUSEL, MODE_CLICK_SLOTS, MODE_COUNT };
 enum MenuItemType { MENU_HEADING, MENU_VALUE, MENU_ACTION };
-enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION, FMT_BALL_SPEED, FMT_PADDLE_SIZE, FMT_HIGH_SCORE, FMT_LIVES, FMT_SNAKE_SPEED, FMT_SNAKE_WALLS, FMT_SNAKE_HIGH_SCORE, FMT_RACER_SPEED, FMT_RACER_HIGH_SCORE };
+enum MenuValueFormat { FMT_DURATION_MS, FMT_PERCENT, FMT_PERCENT_NEG, FMT_SAVER_NAME, FMT_VERSION, FMT_PIXELS, FMT_ANIM_NAME, FMT_MOUSE_STYLE, FMT_ON_OFF, FMT_SCHEDULE_MODE, FMT_TIME_5MIN, FMT_UPTIME, FMT_DIE_TEMP, FMT_OP_MODE, FMT_JOB_SIM, FMT_SWITCH_KEYS, FMT_HEADER_DISP, FMT_CLICK_TYPE, FMT_KEY_SOUND, FMT_PERF_LEVEL, FMT_VOLUME_THEME, FMT_ENC_BTN_ACTION, FMT_SIDE_BTN_ACTION, FMT_BALL_SPEED, FMT_PADDLE_SIZE, FMT_HIGH_SCORE, FMT_LIVES, FMT_SNAKE_SPEED, FMT_SNAKE_WALLS, FMT_SNAKE_HIGH_SCORE, FMT_RACER_SPEED, FMT_RACER_HIGH_SCORE, FMT_TOTAL_KEYS, FMT_MOUSE_DIST, FMT_MOUSE_CLICKS };
 enum ScheduleMode { SCHED_OFF, SCHED_AUTO_SLEEP, SCHED_FULL_AUTO, SCHED_MODE_COUNT };
 enum Profile { PROFILE_LAZY, PROFILE_NORMAL, PROFILE_BUSY, PROFILE_COUNT };
 enum MouseState { MOUSE_IDLE, MOUSE_JIGGLING, MOUSE_RETURNING };
@@ -298,7 +302,10 @@ enum SettingId {
   SET_REBOOT,
   SET_VERSION,
   SET_UPTIME,
-  SET_DIE_TEMP
+  SET_DIE_TEMP,
+  SET_TOTAL_KEYS,
+  SET_TOTAL_MOUSE_DIST,
+  SET_TOTAL_MOUSE_CLICKS
 };
 
 // ============================================================================
@@ -320,7 +327,7 @@ struct MenuItem {
   uint8_t settingId;
 };
 
-#define MENU_ITEM_COUNT 63
+#define MENU_ITEM_COUNT 66
 #define KB_SOUND_COUNT  5
 
 struct Settings {
@@ -383,6 +390,15 @@ struct Settings {
   // Display
   uint8_t activityLeds;     // 0=Off, 1=On (default) — LED flash on KB/mouse HID activity
   uint8_t checksum;         // MUST remain last
+};
+
+// Lifetime stats — separate from Settings to survive SETTINGS_MAGIC bumps
+struct Stats {
+  uint32_t magic;
+  uint32_t totalKeystrokes;  // cumulative keystroke count across all sessions
+  uint32_t totalMousePixels; // cumulative mouse Manhattan distance in HID units (~pixels)
+  uint32_t totalMouseClicks; // cumulative mouse click count (phantom clicks + scroll actions)
+  uint8_t checksum;
 };
 
 // Breakout game state (runtime, not persisted)

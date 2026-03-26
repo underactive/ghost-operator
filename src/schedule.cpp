@@ -122,6 +122,13 @@ void enterLightSleep(bool scheduled) {
   lastEncoderPos = encoderPos;  // reset baseline so stale delta doesn't wake immediately
   volD7ClickCount = 0;  // prevent stale click from firing on wake
 
+  // Save dirty stats before sleeping (RAM preserved, but guards against power-cycle)
+  if (statsDirty) {
+    saveStats();
+    statsDirty = false;
+    lastStatsSave = millis();
+  }
+
   // Stop BLE advertising
   Bluefruit.Advertising.restartOnDisconnect(false);
   Bluefruit.Advertising.stop();

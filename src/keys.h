@@ -44,6 +44,9 @@ const CarouselConfig* getCarouselConfig(uint8_t settingId);
 #define MENU_IDX_UPTIME       59
 #define MENU_IDX_DIE_TEMP     60
 #define MENU_IDX_HIGH_SCORE   61
-#define MENU_IDX_VERSION      62
+#define MENU_IDX_TOTAL_KEYS   62
+#define MENU_IDX_MOUSE_DIST   63
+#define MENU_IDX_MOUSE_CLICKS 64
+#define MENU_IDX_VERSION      65
 
 #endif // GHOST_KEYS_H

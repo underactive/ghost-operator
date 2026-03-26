@@ -20,6 +20,7 @@ Adafruit_USBD_HID usb_hid;
 
 // Settings
 Settings settings;
+Stats stats;
 
 // Mutable work modes (see initWorkModes() in sim_data.cpp)
 WorkModeDef workModes[WMODE_COUNT];
@@ -206,3 +207,7 @@ volatile bool disconnectSoundPending = false;
 // Deferred settings save
 bool settingsDirty = false;
 unsigned long settingsDirtyMs = 0;
+
+// Lifetime stats periodic save
+bool statsDirty = false;
+unsigned long lastStatsSave = 0;

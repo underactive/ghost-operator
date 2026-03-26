@@ -13,9 +13,13 @@ void enterDeepSleep() {
   scheduleSleeping = false;
   scheduleManualWake = false;
 
-  // Save settings before sleep (clears deferred-save flag)
+  // Save settings and stats before sleep
   settingsDirty = false;
   saveSettings();
+  if (statsDirty) {
+    saveStats();
+    statsDirty = false;
+  }
 
   if (displayInitialized) {
     display.clearDisplay();

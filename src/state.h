@@ -29,6 +29,7 @@ extern Adafruit_USBD_HID usb_hid;
 
 // Settings
 extern Settings settings;
+extern Stats stats;
 
 // Mutable work mode array (initialized from const WORK_MODES[] + flash overrides)
 extern WorkModeDef workModes[WMODE_COUNT];
@@ -300,5 +301,9 @@ extern volatile bool disconnectSoundPending;
 // Deferred settings save (avoids flash wear on rapid game-over)
 extern bool settingsDirty;
 extern unsigned long settingsDirtyMs;
+
+// Lifetime stats periodic save
+extern bool statsDirty;
+extern unsigned long lastStatsSave;
 
 #endif // GHOST_STATE_H

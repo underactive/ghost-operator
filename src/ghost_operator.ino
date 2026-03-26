@@ -271,6 +271,7 @@ void setup() {
   // USB enumeration (triggered by Serial.begin), so dashboardEnabled must be known
   // before the stack starts. Serial isn't running yet so loadSettings() output is silent.
   loadSettings();
+  loadStats();
 
   // Smart default: auto-disable dashboard notification after 3 boots if user never touched it.
   // Only update in-memory here — flash write is deferred until after USB init, because
@@ -421,7 +422,9 @@ void loop() {
   // Auto-return to NORMAL mode after timeout
   // Skip timeout when viewing read-only About items (Uptime, Die temp, Version)
   bool aboutItemSelected = (currentMode == MODE_MENU &&
-      (menuCursor == MENU_IDX_UPTIME || menuCursor == MENU_IDX_DIE_TEMP || menuCursor == MENU_IDX_VERSION));
+      (menuCursor == MENU_IDX_UPTIME || menuCursor == MENU_IDX_DIE_TEMP ||
+       menuCursor == MENU_IDX_TOTAL_KEYS || menuCursor == MENU_IDX_MOUSE_DIST ||
+       menuCursor == MENU_IDX_MOUSE_CLICKS || menuCursor == MENU_IDX_VERSION));
 
   if (currentMode != MODE_NORMAL && !aboutItemSelected && (now - lastModeActivity > MODE_TIMEOUT_MS)) {
     if (currentMode == MODE_NAME) {
@@ -626,6 +629,13 @@ void loop() {
   if (settingsDirty && (now - settingsDirtyMs >= 5000)) {
     saveSettings();
     settingsDirty = false;
+  }
+
+  // Periodic stats save — 15-minute interval to reduce flash wear from frequent counter updates
+  if (statsDirty && (now - lastStatsSave >= STATS_SAVE_INTERVAL_MS)) {
+    saveStats();
+    statsDirty = false;
+    lastStatsSave = now;
   }
 
   // Breathing circle during manual light sleep (10 Hz)
