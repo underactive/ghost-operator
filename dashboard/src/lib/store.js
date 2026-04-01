@@ -121,6 +121,107 @@ export const simDataLoading = ref(false)
 // Active transport module (serial or ble)
 let activeTransport = null
 
+// --- Pre-DFU backup (survives page refresh via localStorage) ---
+
+const DFU_BACKUP_KEY = 'ghost_dfu_backup'
+
+function saveDfuBackup() {
+  const backup = {
+    stats: {
+      totalKeys: status.totalKeys || settings.totalKeys || 0,
+      totalMousePx: status.totalMousePx || settings.totalMousePx || 0,
+      totalClicks: status.totalClicks || settings.totalClicks || 0,
+    },
+    settings: {},
+    timestamp: Date.now(),
+  }
+  for (const key of EXPORTABLE_KEYS) {
+    if (key === 'slots') {
+      backup.settings.slots = settings.slots.join(',')
+    } else if (key === 'clickSlots') {
+      backup.settings.clickSlots = settings.clickSlots.join(',')
+    } else {
+      backup.settings[key] = settings[key]
+    }
+  }
+  try {
+    localStorage.setItem(DFU_BACKUP_KEY, JSON.stringify(backup))
+  } catch { /* quota exceeded — silently drop */ }
+}
+
+function loadDfuBackup() {
+  try {
+    const raw = localStorage.getItem(DFU_BACKUP_KEY)
+    if (!raw) return null
+    const backup = JSON.parse(raw)
+    // Expire after 1 hour
+    if (Date.now() - backup.timestamp > 3600000) {
+      localStorage.removeItem(DFU_BACKUP_KEY)
+      return null
+    }
+    return backup
+  } catch { return null }
+}
+
+function clearDfuBackup() {
+  localStorage.removeItem(DFU_BACKUP_KEY)
+}
+
+async function restoreFromDfuBackup(delay) {
+  const backup = loadDfuBackup()
+  if (!backup) return
+
+  let restored = false
+
+  // Restore stats — use max(device, backup) so we never lose data
+  const statsToRestore = {
+    totalKeys: Math.max(status.totalKeys, backup.stats.totalKeys),
+    totalMousePx: Math.max(status.totalMousePx, backup.stats.totalMousePx),
+    totalClicks: Math.max(status.totalClicks, backup.stats.totalClicks),
+  }
+  if (statsToRestore.totalKeys > status.totalKeys ||
+      statsToRestore.totalMousePx > status.totalMousePx ||
+      statsToRestore.totalClicks > status.totalClicks) {
+    await activeTransport.send(buildSet('totalKeys', statsToRestore.totalKeys))
+    await sleep(delay)
+    await activeTransport.send(buildSet('totalMousePx', statsToRestore.totalMousePx))
+    await sleep(delay)
+    await activeTransport.send(buildSet('totalClicks', statsToRestore.totalClicks))
+    await sleep(delay)
+    restored = true
+  }
+
+  // Restore settings if they appear wiped (all at defaults)
+  const hasBackupSettings = backup.settings && Object.keys(backup.settings).length > 0
+  const looksDefault = settings.keyMin === 2000 && settings.keyMax === 6500 &&
+                       settings.name === 'GhostOperator'
+  const backupDiffers = hasBackupSettings && (
+    backup.settings.keyMin !== 2000 || backup.settings.keyMax !== 6500 ||
+    backup.settings.name !== 'GhostOperator')
+
+  if (looksDefault && backupDiffers) {
+    for (const key of Object.keys(backup.settings)) {
+      await activeTransport.send(buildSet(key, backup.settings[key]))
+      await sleep(delay)
+    }
+    restored = true
+  }
+
+  if (restored) {
+    await sendAndWait(buildAction('save'))
+    // Re-fetch to update UI with restored values
+    await activeTransport.send(buildQuery('settings'))
+    await sleep(delay)
+    await activeTransport.send(buildQuery('status'))
+    statusMessage.value = 'Restored from pre-update backup'
+    setTimeout(() => {
+      if (statusMessage.value === 'Restored from pre-update backup') statusMessage.value = ''
+    }, 4000)
+  }
+
+  clearDfuBackup()
+}
+
 // Battery history (up to 720 entries = 1 hour at 5s polling)
 export const batteryHistory = reactive([])
 const BATTERY_HISTORY_MAX = 720
@@ -278,6 +379,9 @@ async function connectWithTransport(transport, type) {
     await sleep(longDelay)
     await fetchSimData()
 
+    // Check for pre-DFU backup and restore if flash was wiped
+    await restoreFromDfuBackup(shortDelay)
+
     startPolling()
   } catch (err) {
     activeTransport = null
@@ -396,6 +500,9 @@ export async function refreshSettings() {
 export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort, onLog = () => {}) {
   dfuActive.value = true
   stopPolling()
+
+  // Backup stats and settings before DFU (LittleFS may be erased)
+  saveDfuBackup()
 
   try {
     // 1. Send !serialdfu over config serial to reboot device into serial DFU mode

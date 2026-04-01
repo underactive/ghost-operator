@@ -545,6 +545,22 @@ static void cmdSetValue(const char* body) {
     }
     currentWriter("+ok");
     return;
+  // Lifetime stats restore (dashboard sends these after DFU wipes flash)
+  } else if (strcmp(key, "totalKeys") == 0) {
+    stats.totalKeystrokes = (uint32_t)strtoul(valStr, NULL, 10);
+    statsDirty = true;
+    currentWriter("+ok");
+    return;
+  } else if (strcmp(key, "totalMousePx") == 0) {
+    stats.totalMousePixels = (uint32_t)strtoul(valStr, NULL, 10);
+    statsDirty = true;
+    currentWriter("+ok");
+    return;
+  } else if (strcmp(key, "totalClicks") == 0) {
+    stats.totalMouseClicks = (uint32_t)strtoul(valStr, NULL, 10);
+    statsDirty = true;
+    currentWriter("+ok");
+    return;
   } else {
     currentWriter("-err:unknown key");
     return;
@@ -563,6 +579,7 @@ static void cmdSetValue(const char* body) {
 static void cmdSave() {
   saveSettings();
   saveSimData();
+  if (statsDirty) { saveStats(); statsDirty = false; }
   currentWriter("+ok");
 }
 
@@ -653,6 +670,10 @@ static void cmdQuerySimBlocks(uint8_t jobIdx) {
 // the display, so this framebuffer persists through the reboot).
 // ----------------------------------------------------------------------------
 void resetToDfu() {
+  // Flush stats/settings before DFU (bootloader may erase LittleFS)
+  if (statsDirty) { saveStats(); statsDirty = false; }
+  saveSettings();
+
   if (displayInitialized) {
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE);
@@ -690,6 +711,10 @@ static void cmdDfu() {
 // Web Serial DFU transfer.
 // ----------------------------------------------------------------------------
 void resetToSerialDfu() {
+  // Flush stats/settings before DFU (bootloader may erase LittleFS)
+  if (statsDirty) { saveStats(); statsDirty = false; }
+  saveSettings();
+
   if (displayInitialized) {
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE);

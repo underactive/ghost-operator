@@ -275,9 +275,12 @@ WEB → DEVICE                    DEVICE → WEB
 =sideButton:N               →   +ok
 =shiftDur:N                 →   +ok
 =lunchDur:N                 →   +ok
+=totalKeys:N                →   +ok
+=totalMousePx:N             →   +ok
+=totalClicks:N              →   +ok
 =statusPush:1               →   +ok
 =name:MyDevice              →   +ok
-!save                       →   +ok
+!save                       →   +ok (saves settings, sim data, and stats)
 !defaults                   →   +ok
 !reboot                     →   (device reboots)
 !dfu                        →   +ok:dfu (then reboots into OTA DFU bootloader)
@@ -292,6 +295,7 @@ WEB → DEVICE                    DEVICE → WEB
 - `pushSerialStatus()` proactively sends `?status` response on state changes (key sent, profile/mode toggle, mouse transition) — guarded by `serialStatusPush` flag (default OFF; dashboard enables via `=statusPush:1` on connect; serial `t` command toggles manually)
 - NUS not added to advertising packet (would overflow 31 bytes); discovered via `optionalServices`
 - Web dashboard (Vue 3 + Vite) in `dashboard/` connects via Chrome Web Serial API (USB)
+- **DFU backup/restore:** The Seeed bootloader may erase the LittleFS region during DFU, wiping both `/settings.dat` and `/stats.dat`. The dashboard snapshots stats and settings to localStorage before sending `!serialdfu`, and auto-restores them on the first reconnection after DFU. Firmware also flushes stats/settings to flash before entering DFU mode. Stats restore uses `max(device, backup)` to avoid losing any data. Settings restore only triggers if device values match factory defaults.
 
 #### 10. DFU (Firmware Updates)
 - **IMPORTANT:** Must use `sd_power_gpregret_set()` (not `NRF_POWER->GPREGRET` directly) — SoftDevice owns the register; direct access causes a hard fault
