@@ -99,6 +99,8 @@ void sendMouseScroll(int8_t scroll) {
   if (!rfCalOk()) return;
   markHidActivity();
   flashMouseLed();
+  stats.totalMouseClicks++;
+  statsDirty = true;
   if (deviceConnected) {
     bool ok = blehid.mouseScroll(scroll);
     trackBleNotify(ok);
