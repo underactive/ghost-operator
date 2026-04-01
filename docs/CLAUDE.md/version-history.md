@@ -2,6 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
+| 2.5.2 | Fix mouse clicks lifetime stat: `sendMouseScroll()` now increments `totalMouseClicks` (scroll actions were uncounted). |
 | 2.5.1 | Dual-unit distance display (ft/m, mi/km) on OLED and dashboard. Shortened "Mouse dist" label to "Travel". |
 | 2.5.0 | Lifetime stats: persistent counters for keystrokes, mouse distance (miles), and mouse clicks in About menu + web dashboard. Fixed read-only menu arrow bug and light sleep encoder wake. |
 | 2.4.3 | Deep sleep BLE cleanup: `enterDeepSleep()` now disables `restartOnDisconnect` and disconnects BLE before `sd_power_system_off()`, fixing immediate WDT reboot when pending BLE events from `trackBleNotify` prevented system-off. WDT feed added to button-release wait loop. |
