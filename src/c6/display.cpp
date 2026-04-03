@@ -377,7 +377,7 @@ static lv_obj_t* createHeader(lv_obj_t* parent) {
 
 static void createSimpleContent(lv_obj_t* parent) {
   panelSimpleContent = lv_obj_create(parent);
-  lv_obj_set_size(panelSimpleContent, 320, 120);
+  lv_obj_set_size(panelSimpleContent, 320, 108);
   lv_obj_set_style_bg_opa(panelSimpleContent, LV_OPA_TRANSP, LV_STATE_DEFAULT);
   lv_obj_set_style_border_width(panelSimpleContent, 0, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_all(panelSimpleContent, 4, LV_STATE_DEFAULT);
@@ -387,7 +387,7 @@ static void createSimpleContent(lv_obj_t* parent) {
   lv_obj_clear_flag(panelSimpleContent, LV_OBJ_FLAG_SCROLLABLE);
 
   // --- Keyboard card ---
-  panelKb = createCard(panelSimpleContent, 151, 112);
+  panelKb = createCard(panelSimpleContent, 151, 100);
 
   lblKbTitle = lv_label_create(panelKb);
   lv_label_set_text(lblKbTitle, "KEYBOARD");
@@ -412,7 +412,7 @@ static void createSimpleContent(lv_obj_t* parent) {
   lv_obj_set_style_text_color(lblKbCountdown, COL_TEXT, LV_STATE_DEFAULT);
 
   // --- Mouse card ---
-  panelMs = createCard(panelSimpleContent, 151, 112);
+  panelMs = createCard(panelSimpleContent, 151, 100);
 
   lblMsTitle = lv_label_create(panelMs);
   lv_label_set_text(lblMsTitle, "MOUSE");
