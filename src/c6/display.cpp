@@ -83,9 +83,16 @@ static lv_obj_t* lblMsCountdown = nullptr;
 
 // Status bar
 static lv_obj_t* panelStatus = nullptr;
-static lv_obj_t* lblStatus = nullptr;       // footer left (device name)
+static lv_obj_t* lblStatus = nullptr;       // footer left (job name / device name)
 static lv_obj_t* imgKbIcon = nullptr;       // keyboard icon (animated)
 static lv_obj_t* imgMsIcon = nullptr;       // mouse icon (animated)
+
+// Shimmer effect for job sim name in footer (triggered on phase bar reset)
+static int shimmerPhase = -1;               // -1 = idle, 0+ = sweep position
+static unsigned long shimmerStepMs = 0;
+static int prevPhaseBarVal = -1;            // previous phase bar value (detect reset)
+#define SHIMMER_STEP_MS   70                // ms between position steps
+#define SHIMMER_WIDTH     3                 // half-width of bright band (chars)
 
 // ============================================================================
 // Activity icons — ARGB8888 from KBM_Outline sprite sheet (kbm_icons.h)
@@ -579,9 +586,10 @@ static lv_obj_t* createStatusBar(lv_obj_t* parent) {
   lv_obj_set_style_opa(imgMsIcon, 140, LV_STATE_DEFAULT);  // dimmed by default
   lv_obj_align(imgMsIcon, LV_ALIGN_LEFT_MID, 28, -1);
 
-  // Center: device name
+  // Center: job name (sim) or device name (simple), with shimmer in sim mode
   lblStatus = lv_label_create(panelStatus);
   lv_label_set_text(lblStatus, settings.deviceName);
+  lv_label_set_recolor(lblStatus, true);
   lv_obj_set_style_text_font(lblStatus, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblStatus, COL_TEXT_FOOTER, LV_STATE_DEFAULT);
   lv_obj_align(lblStatus, LV_ALIGN_CENTER, 0, 0);
@@ -657,13 +665,8 @@ static void updateHeader() {
   unsigned long now = millis();
   char buf[40];
 
-  // Left side: device name (simple) or job name (sim)
-  const char* leftStr;
-  if (settings.operationMode == OP_SIMULATION) {
-    leftStr = (settings.jobSimulation < JOB_SIM_COUNT) ? JOB_SIM_NAMES[settings.jobSimulation] : "???";
-  } else {
-    leftStr = settings.deviceName;
-  }
+  // Left side: always device name
+  const char* leftStr = settings.deviceName;
   if (strcmp(leftStr, prevHeaderLeft) != 0) {
     lv_label_set_text(lblDeviceName, leftStr);
     strncpy(prevHeaderLeft, leftStr, sizeof(prevHeaderLeft) - 1);
@@ -919,11 +922,12 @@ static void updateSimMode() {
   lv_label_set_text(lblSimActivity, phaseName);
 
   // Phase progress bar (drains as phase time passes)
+  int phaseBarVal = 0;
   if (orch.phaseDurationMs > 0) {
     unsigned long elapsed = now - orch.phaseStartMs;
     if (elapsed > orch.phaseDurationMs) elapsed = orch.phaseDurationMs;
-    int remaining = (int)(((orch.phaseDurationMs - elapsed) * 100UL) / orch.phaseDurationMs);
-    lv_bar_set_value(barSimKb, remaining, LV_ANIM_OFF);
+    phaseBarVal = (int)(((orch.phaseDurationMs - elapsed) * 100UL) / orch.phaseDurationMs);
+    lv_bar_set_value(barSimKb, phaseBarVal, LV_ANIM_OFF);
     formatMinSec((int)(orch.phaseDurationMs - elapsed), cdBuf, sizeof(cdBuf));
     lv_label_set_text(lblSimKbInfo, cdBuf);
   } else {
@@ -931,17 +935,58 @@ static void updateSimMode() {
     lv_label_set_text(lblSimKbInfo, "");
   }
 
+  // Trigger shimmer when phase bar resets to full
+  if (phaseBarVal > 90 && prevPhaseBarVal >= 0 && prevPhaseBarVal < 20) {
+    shimmerPhase = 0;
+    shimmerStepMs = now;
+  }
+  prevPhaseBarVal = phaseBarVal;
+
 }
 
 // ============================================================================
 // Status Bar Update
 // ============================================================================
 
+// Build shimmer recolor string: per-char hex colors with cosine falloff
+static void buildShimmerText(const char* text, int phase, char* buf, int bufSize) {
+  int len = (int)strlen(text);
+  int center = phase - SHIMMER_WIDTH;
+  int pos = 0;
+  for (int i = 0; i < len && pos < bufSize - 12; i++) {
+    int dist = abs(i - center);
+    float t = 0.0f;
+    if (dist < SHIMMER_WIDTH) {
+      t = (cosf((float)dist * M_PI / SHIMMER_WIDTH) + 1.0f) * 0.5f;
+    }
+    // Interpolate base (0xB0,0xB0,0xC0) → highlight (0xFF,0xFF,0xFF)
+    uint8_t r = 0xB0 + (uint8_t)((0xFF - 0xB0) * t);
+    uint8_t g = 0xB0 + (uint8_t)((0xFF - 0xB0) * t);
+    uint8_t b = 0xC0 + (uint8_t)((0xFF - 0xC0) * t);
+    pos += snprintf(buf + pos, bufSize - pos, "#%02X%02X%02X %c#", r, g, b, text[i]);
+  }
+  if (pos < bufSize) buf[pos] = '\0';
+}
+
 static void updateStatusBar() {
   unsigned long now = millis();
 
-  // Left: device name
-  lv_label_set_text(lblStatus, settings.deviceName);
+  // Left: job name (sim mode) or device name (simple mode)
+  const char* footerStr;
+  if (settings.operationMode == OP_SIMULATION) {
+    footerStr = (settings.jobSimulation < JOB_SIM_COUNT) ? JOB_SIM_NAMES[settings.jobSimulation] : "???";
+  } else {
+    footerStr = settings.deviceName;
+  }
+
+  // Shimmer effect on job name in sim mode
+  if (settings.operationMode == OP_SIMULATION && shimmerPhase >= 0) {
+    char shimmerBuf[160];
+    buildShimmerText(footerStr, shimmerPhase, shimmerBuf, sizeof(shimmerBuf));
+    lv_label_set_text(lblStatus, shimmerBuf);
+  } else {
+    lv_label_set_text(lblStatus, footerStr);
+  }
 
   // --- Keyboard icon animation (matches nRF52) ---
   if (!keyEnabled || scheduleSleeping) {
@@ -1148,6 +1193,19 @@ void updateDisplay() {
     }
     lv_timer_handler();
     return;
+  }
+
+  // Shimmer timing: advance sweep when triggered by phase bar reset
+  if (shimmerPhase >= 0 && now - shimmerStepMs >= SHIMMER_STEP_MS) {
+    shimmerStepMs = now;
+    shimmerPhase++;
+    const char* name = (settings.jobSimulation < JOB_SIM_COUNT)
+                         ? JOB_SIM_NAMES[settings.jobSimulation] : "???";
+    int len = (int)strlen(name);
+    if (shimmerPhase >= len + SHIMMER_WIDTH * 2) {
+      shimmerPhase = -1;  // sweep done, wait for next phase bar reset
+    }
+    displayDirty = true;
   }
 
   if (!displayDirty) {
