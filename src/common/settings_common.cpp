@@ -20,7 +20,7 @@ void loadDefaults() {
   settings.busyPercent = 15;
   settings.saverTimeout = DEFAULT_SAVER_IDX;  // Never
   settings.saverBrightness = 20;               // 20%
-  settings.displayBrightness = 80;             // 80%
+  settings.displayBrightness = 90;             // 90%
   settings.mouseAmplitude = 1;                 // 1px per step (default)
   settings.mouseStyle = 0;                     // Bezier (default)
   settings.animStyle = 2;                      // Ghost (default)

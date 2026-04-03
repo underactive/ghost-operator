@@ -13,6 +13,7 @@
 #include "sim_data.h"
 #include "platform_hal.h"
 #include "ghost_sprite.h"
+#include "ghost_splash.h"
 #include "kbm_icons.h"
 
 // ============================================================================
@@ -157,6 +158,11 @@ static lv_obj_t* panelSimpleContent = nullptr;
 
 // Splash screen
 static lv_obj_t* panelSplash = nullptr;
+static lv_obj_t* splashGhostImg = nullptr;
+static lv_image_dsc_t splashGhostDsc = {};
+static uint8_t splashGhostFrame = 0;
+static unsigned long splashFrameMs = 0;
+#define SPLASH_FRAME_INTERVAL 150  // ms between animation frames (~6.7 fps)
 
 // ============================================================================
 // SPI and LCD Callbacks
@@ -280,31 +286,35 @@ static void createSplash(lv_obj_t* screen) {
   lv_obj_set_flex_flow(panelSplash, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(panelSplash, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_clear_flag(panelSplash, LV_OBJ_FLAG_SCROLLABLE);
+  // Float above the flex layout so it covers the entire screen as an overlay
+  lv_obj_add_flag(panelSplash, LV_OBJ_FLAG_FLOATING);
+
+  // Animated ghost sprite
+  initKbmDsc(splashGhostDsc, splashFrames[0], SPLASH_FRAME_W, SPLASH_FRAME_H);
+  splashGhostImg = lv_image_create(panelSplash);
+  lv_image_set_src(splashGhostImg, &splashGhostDsc);
+  splashGhostFrame = 0;
+  splashFrameMs = millis();
 
   lv_obj_t* lblTitle = lv_label_create(panelSplash);
   lv_label_set_text(lblTitle, "GHOST OPERATOR");
   lv_obj_set_style_text_font(lblTitle, &lv_font_montserrat_24, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblTitle, COL_ACCENT, LV_STATE_DEFAULT);
+  lv_obj_set_style_pad_top(lblTitle, 4, LV_STATE_DEFAULT);
 
   lv_obj_t* lblSub = lv_label_create(panelSplash);
-  lv_label_set_text(lblSub, settings.deviceName);
-  lv_obj_set_style_text_font(lblSub, &lv_font_montserrat_14, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_color(lblSub, COL_TEXT_DIM, LV_STATE_DEFAULT);
-  lv_obj_set_style_pad_top(lblSub, 8, LV_STATE_DEFAULT);
-
-  lv_obj_t* lblVer = lv_label_create(panelSplash);
-  char verBuf[16];
-  snprintf(verBuf, sizeof(verBuf), "v%s", VERSION);
-  lv_label_set_text(lblVer, verBuf);
-  lv_obj_set_style_text_font(lblVer, &lv_font_montserrat_12, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_color(lblVer, COL_TEXT_DIM, LV_STATE_DEFAULT);
-  lv_obj_set_style_pad_top(lblVer, 4, LV_STATE_DEFAULT);
+  char verBuf[32];
+  snprintf(verBuf, sizeof(verBuf), "%s  v%s", settings.deviceName, VERSION);
+  lv_label_set_text(lblSub, verBuf);
+  lv_obj_set_style_text_font(lblSub, &lv_font_montserrat_12, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_color(lblSub, lv_color_hex(0xFFFFFF), LV_STATE_DEFAULT);
+  lv_obj_set_style_pad_top(lblSub, 4, LV_STATE_DEFAULT);
 
   lv_obj_t* lblOrg = lv_label_create(panelSplash);
   lv_label_set_text(lblOrg, "TARS Industrial");
   lv_obj_set_style_text_font(lblOrg, &lv_font_montserrat_10, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_color(lblOrg, lv_color_hex(0x404040), LV_STATE_DEFAULT);
-  lv_obj_set_style_pad_top(lblOrg, 16, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_color(lblOrg, lv_color_hex(0x808080), LV_STATE_DEFAULT);
+  lv_obj_set_style_pad_top(lblOrg, 12, LV_STATE_DEFAULT);
 }
 
 // ============================================================================
@@ -1120,15 +1130,22 @@ void updateDisplay() {
 
   unsigned long now = millis();
 
-  // Splash screen: show for 2 seconds, then dismiss
+  // Splash screen: animate ghost, then dismiss after 2 seconds
   if (!splashDismissed) {
     if (now - splashStartMs >= 2000) {
       lv_obj_del(panelSplash);
       panelSplash = nullptr;
+      splashGhostImg = nullptr;
       splashDismissed = true;
       displayDirty = true;
+      showCorrectLayout();
+    } else if (splashGhostImg && now - splashFrameMs >= SPLASH_FRAME_INTERVAL) {
+      // Cycle ghost animation frames during splash
+      splashFrameMs = now;
+      splashGhostFrame = (splashGhostFrame + 1) % SPLASH_NUM_FRAMES;
+      splashGhostDsc.data = splashFrames[splashGhostFrame];
+      lv_image_set_src(splashGhostImg, &splashGhostDsc);
     }
-    // Still run LVGL timer during splash
     lv_timer_handler();
     return;
   }

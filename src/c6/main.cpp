@@ -45,9 +45,7 @@ void setup() {
 
   // Load settings from NVS
   loadSettings();
-  // DEBUG: force simulation mode for testing display layout
-  settings.operationMode = OP_SIMULATION;
-  Serial.println("[OK] Settings loaded (forced SIM mode)");
+  Serial.println("[OK] Settings loaded");
 
   // Load lifetime stats from NVS
   loadStats();
