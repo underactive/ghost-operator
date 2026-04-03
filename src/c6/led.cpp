@@ -8,11 +8,12 @@
 // NeoPixel RGB LED on GPIO8 (Waveshare ESP32-C6-LCD-1.47)
 // ============================================================================
 
-static Adafruit_NeoPixel pixel(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+static Adafruit_NeoPixel pixel(1, PIN_NEOPIXEL, NEO_RGB + NEO_KHZ800);
 
-static unsigned long ledFlashStart = 0;
-static uint32_t ledFlashColor = 0;
-static bool ledFlashing = false;
+static unsigned long kbFlashStart = 0;
+static unsigned long msFlashStart = 0;
+static bool kbFlashing = false;
+static bool msFlashing = false;
 #define LED_FLASH_MS 80
 
 // Status LED state
@@ -28,39 +29,50 @@ void setupLed() {
 
 void flashKbLed() {
   if (!settings.activityLeds) return;
-  ledFlashColor = pixel.Color(0, 0, 255);  // blue = keyboard
-  ledFlashStart = millis();
-  ledFlashing = true;
-  pixel.setPixelColor(0, ledFlashColor);
+  kbFlashStart = millis();
+  kbFlashing = true;
+  // Show immediately: purple if mouse also active, else blue
+  uint32_t col = msFlashing ? pixel.Color(128, 0, 255) : pixel.Color(0, 0, 255);
+  pixel.setPixelColor(0, col);
   pixel.show();
 }
 
 void flashMouseLed() {
   if (!settings.activityLeds) return;
-  ledFlashColor = pixel.Color(0, 255, 0);  // green = mouse
-  ledFlashStart = millis();
-  ledFlashing = true;
-  pixel.setPixelColor(0, ledFlashColor);
+  msFlashStart = millis();
+  msFlashing = true;
+  // Show immediately: purple if keyboard also active, else green
+  uint32_t col = kbFlashing ? pixel.Color(128, 0, 255) : pixel.Color(0, 255, 0);
+  pixel.setPixelColor(0, col);
   pixel.show();
 }
 
 void tickLed() {
   unsigned long now = millis();
 
-  // Turn off flash after duration
-  if (ledFlashing && (now - ledFlashStart >= LED_FLASH_MS)) {
-    ledFlashing = false;
-    pixel.setPixelColor(0, 0);
+  // Expire individual flashes
+  if (kbFlashing && (now - kbFlashStart >= LED_FLASH_MS)) kbFlashing = false;
+  if (msFlashing && (now - msFlashStart >= LED_FLASH_MS)) msFlashing = false;
+
+  // Update combined flash color
+  bool anyFlash = kbFlashing || msFlashing;
+  if (anyFlash) {
+    uint32_t col;
+    if (kbFlashing && msFlashing) col = pixel.Color(128, 0, 255);  // purple
+    else if (kbFlashing)          col = pixel.Color(0, 0, 255);    // blue
+    else                          col = pixel.Color(0, 255, 0);    // green
+    pixel.setPixelColor(0, col);
     pixel.show();
+    return;  // flash takes priority over status
   }
 
   // Status LED (when not flashing) — update at STATUS_UPDATE_MS interval
-  if (!ledFlashing && (now - lastStatusUpdate >= STATUS_UPDATE_MS)) {
+  if (now - lastStatusUpdate >= STATUS_UPDATE_MS) {
     lastStatusUpdate = now;
     if (scheduleSleeping) {
       pixel.setPixelColor(0, 0);  // off during sleep
     } else if (deviceConnected) {
-      pixel.setPixelColor(0, pixel.Color(0, 20, 0));  // dim green = connected
+      pixel.setPixelColor(0, pixel.Color(20, 20, 0));  // dim yellow = connected
     } else {
       // Breathing blue (advertising)
       static bool blinkState = false;

@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <SPI.h>
+#include <math.h>
 #include <lvgl.h>
 #include "display.h"
 #include "config.h"
@@ -35,11 +36,17 @@ static lv_display_t* lvDisplay = nullptr;
 #define COL_CARD_BORDER lv_color_hex(0x2A2A40)
 #define COL_TEXT      lv_color_hex(0xFFFFFF)
 #define COL_TEXT_DIM  lv_color_hex(0x808080)
+#define COL_TEXT_FOOTER lv_color_hex(0xB0B0C0)  // bright but not white
 #define COL_ACCENT    lv_color_hex(0x00E676)
 #define COL_DISCONNECT lv_color_hex(0xFF1744)
 #define COL_BLUE      lv_color_hex(0x448AFF)
 #define COL_ORANGE    lv_color_hex(0xFF9100)
 #define COL_BAR_BG    lv_color_hex(0x2D2D3D)
+#define COL_BAR_BLOCK lv_color_hex(0xFF69B4)    // hot pink (block row)
+#define COL_BAR_MODE  lv_color_hex(0x00E5FF)    // aqua (mode row)
+#define COL_BAR_BUSY  lv_color_hex(0x00E676)    // same green as activity bar
+#define COL_BAR_NORMAL lv_color_hex(0xFFF59D)   // pastel yellow
+#define COL_BAR_LAZY  lv_color_hex(0xFF69B4)    // same pink as block bar
 #define COL_BAR_KB    lv_color_hex(0x00E676)
 #define COL_BAR_MS    lv_color_hex(0x448AFF)
 #define COL_HEADER_BG lv_color_hex(0x1A1A3E)
@@ -251,30 +258,34 @@ static void createSplash(lv_obj_t* screen) {
 static lv_obj_t* createHeader(lv_obj_t* parent) {
   lv_obj_t* hdr = lv_obj_create(parent);
   lv_obj_set_size(hdr, 320, 28);
-  lv_obj_set_style_bg_color(hdr, COL_HEADER_BG, LV_STATE_DEFAULT);
+  // Aqua-era macOS menubar: glossy white→light gray vertical gradient
+  lv_obj_set_style_bg_color(hdr, lv_color_hex(0xF0F0F0), LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(hdr, LV_OPA_COVER, LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_grad_color(hdr, COL_HEADER_GRAD, LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_grad_dir(hdr, LV_GRAD_DIR_HOR, LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_grad_color(hdr, lv_color_hex(0xC8C8C8), LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_grad_dir(hdr, LV_GRAD_DIR_VER, LV_STATE_DEFAULT);
   lv_obj_set_style_radius(hdr, 0, LV_STATE_DEFAULT);
-  lv_obj_set_style_border_width(hdr, 0, LV_STATE_DEFAULT);
+  // Subtle bottom border like the Aqua menubar
+  lv_obj_set_style_border_color(hdr, lv_color_hex(0x888888), LV_STATE_DEFAULT);
+  lv_obj_set_style_border_width(hdr, 1, LV_STATE_DEFAULT);
+  lv_obj_set_style_border_side(hdr, LV_BORDER_SIDE_BOTTOM, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_left(hdr, 8, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_right(hdr, 8, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_top(hdr, 4, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_bottom(hdr, 4, LV_STATE_DEFAULT);
   lv_obj_clear_flag(hdr, LV_OBJ_FLAG_SCROLLABLE);
 
-  // Device name (left)
+  // Device name (left) — bold black text like Aqua menubar
   lblDeviceName = lv_label_create(hdr);
   lv_label_set_text(lblDeviceName, settings.deviceName);
   lv_obj_set_style_text_font(lblDeviceName, &lv_font_montserrat_14, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_color(lblDeviceName, COL_TEXT, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_color(lblDeviceName, lv_color_hex(0x000000), LV_STATE_DEFAULT);
   lv_obj_align(lblDeviceName, LV_ALIGN_LEFT_MID, 0, 0);
 
-  // Right side info (profile + BLE + clock)
+  // Right side info — dark gray text
   lblHeaderRight = lv_label_create(hdr);
   lv_label_set_text(lblHeaderRight, "---");
   lv_obj_set_style_text_font(lblHeaderRight, &lv_font_montserrat_12, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_color(lblHeaderRight, COL_TEXT_DIM, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_color(lblHeaderRight, lv_color_hex(0x333333), LV_STATE_DEFAULT);
   lv_obj_align(lblHeaderRight, LV_ALIGN_RIGHT_MID, 0, 0);
 
   return hdr;
@@ -350,69 +361,71 @@ static void createSimpleContent(lv_obj_t* parent) {
 // Simulation Mode Content
 // ============================================================================
 
-// Helper: create a tight sim row matching nRF52 layout
-// Two lines stacked: top = label + countdown, bottom = thin bar
+// Helper: single-line sim row — label (left, flex) | bar + countdown (right-justified)
+// Layout: [Block Name Here          ████░░░░  2h 3m]
 static lv_obj_t* createSimRow(lv_obj_t* parent,
                                lv_obj_t** outLabel, lv_obj_t** outBar,
                                lv_obj_t** outCountdown, lv_color_t barColor) {
   lv_obj_t* row = lv_obj_create(parent);
-  lv_obj_set_size(row, 312, 28);
+  lv_obj_set_size(row, 312, 18);
   lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, LV_STATE_DEFAULT);
   lv_obj_set_style_border_width(row, 0, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_all(row, 0, LV_STATE_DEFAULT);
   lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 
-  // Label (top-left)
+  // Label (left — fits before the longer bar)
   *outLabel = lv_label_create(row);
   lv_label_set_text(*outLabel, "---");
   lv_obj_set_style_text_font(*outLabel, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(*outLabel, COL_TEXT, LV_STATE_DEFAULT);
-  lv_obj_set_width(*outLabel, 180);
+  lv_obj_set_width(*outLabel, 130);
   lv_label_set_long_mode(*outLabel, LV_LABEL_LONG_CLIP);
-  lv_obj_align(*outLabel, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_align(*outLabel, LV_ALIGN_LEFT_MID, 0, 0);
 
-  // Countdown (top-right)
+  // Countdown (far right, 55px)
   *outCountdown = lv_label_create(row);
   lv_label_set_text(*outCountdown, "");
   lv_obj_set_style_text_font(*outCountdown, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(*outCountdown, COL_TEXT_DIM, LV_STATE_DEFAULT);
   lv_obj_set_style_text_align(*outCountdown, LV_TEXT_ALIGN_RIGHT, LV_STATE_DEFAULT);
-  lv_obj_set_width(*outCountdown, 70);
-  lv_obj_align(*outCountdown, LV_ALIGN_TOP_RIGHT, 0, 0);
+  lv_obj_set_width(*outCountdown, 55);
+  lv_obj_align(*outCountdown, LV_ALIGN_RIGHT_MID, 0, 0);
 
-  // Thin bar (bottom, full width) — 4px tall
-  *outBar = createBar(row, 312, 4, barColor);
-  lv_obj_align(*outBar, LV_ALIGN_BOTTOM_MID, 0, 0);
+  // Bar (right-justified, next to countdown — 120px wide, 6px tall)
+  *outBar = createBar(row, 120, 6, barColor);
+  lv_obj_align(*outBar, LV_ALIGN_RIGHT_MID, -58, 0);
 
   return row;
 }
 
 static void createSimContent(lv_obj_t* parent) {
-  // Sim mode uses full 144px below header (no status bar)
+  // Sim content: 3 data rows + separator + activity label + thick bar
+  // Height: 4pad + 3×18 + 2×2gap + 1sep + 2gap + 16label + 4pad + 12bar = ~97px
+  // Leaves ~47px for an expanded footer below
   panelSimContent = lv_obj_create(parent);
-  lv_obj_set_size(panelSimContent, 320, 144);
+  lv_obj_set_size(panelSimContent, 320, 100);
   lv_obj_set_style_bg_opa(panelSimContent, LV_OPA_TRANSP, LV_STATE_DEFAULT);
   lv_obj_set_style_border_width(panelSimContent, 0, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_left(panelSimContent, 4, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_right(panelSimContent, 4, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_top(panelSimContent, 4, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_bottom(panelSimContent, 0, LV_STATE_DEFAULT);
-  lv_obj_set_style_pad_gap(panelSimContent, 1, LV_STATE_DEFAULT);
+  lv_obj_set_style_pad_gap(panelSimContent, 2, LV_STATE_DEFAULT);
   lv_obj_set_flex_flow(panelSimContent, LV_FLEX_FLOW_COLUMN);
   lv_obj_clear_flag(panelSimContent, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(panelSimContent, LV_OBJ_FLAG_HIDDEN);
 
-  // Row 1: Block (name + bar + countdown)
+  // Row 1: Block — hot pink bar
   createSimRow(panelSimContent, &lblSimBlock, &barSimBlock,
-               &lblSimBlockCountdown, COL_ACCENT);
+               &lblSimBlockCountdown, COL_BAR_BLOCK);
 
-  // Row 2: Mode
+  // Row 2: Mode — aqua bar
   createSimRow(panelSimContent, &lblSimMode, &barSimMode,
-               &lblSimModeCountdown, COL_BLUE);
+               &lblSimModeCountdown, COL_BAR_MODE);
 
-  // Row 3: Profile
+  // Row 3: Profile — color set dynamically (busy/normal/lazy)
   createSimRow(panelSimContent, &lblSimProfile, &barSimProfile,
-               &lblSimProfileCountdown, COL_ORANGE);
+               &lblSimProfileCountdown, COL_BAR_NORMAL);
 
   // Separator line
   lv_obj_t* sep = lv_obj_create(panelSimContent);
@@ -422,33 +435,30 @@ static void createSimContent(lv_obj_t* parent) {
   lv_obj_set_style_border_width(sep, 0, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_all(sep, 0, LV_STATE_DEFAULT);
 
-  // Activity row: phase name + bar + phase countdown
-  lv_obj_t* rowAct = lv_obj_create(panelSimContent);
-  lv_obj_set_size(rowAct, 312, 28);
-  lv_obj_set_style_bg_opa(rowAct, LV_OPA_TRANSP, LV_STATE_DEFAULT);
-  lv_obj_set_style_border_width(rowAct, 0, LV_STATE_DEFAULT);
-  lv_obj_set_style_pad_all(rowAct, 0, LV_STATE_DEFAULT);
-  lv_obj_clear_flag(rowAct, LV_OBJ_FLAG_SCROLLABLE);
+  // Activity: phase label (left) + countdown (right) — text-only line
+  lv_obj_t* rowActText = lv_obj_create(panelSimContent);
+  lv_obj_set_size(rowActText, 312, 16);
+  lv_obj_set_style_bg_opa(rowActText, LV_OPA_TRANSP, LV_STATE_DEFAULT);
+  lv_obj_set_style_border_width(rowActText, 0, LV_STATE_DEFAULT);
+  lv_obj_set_style_pad_all(rowActText, 0, LV_STATE_DEFAULT);
+  lv_obj_clear_flag(rowActText, LV_OBJ_FLAG_SCROLLABLE);
 
-  // Phase label (top-left, e.g., "KBD  TYPING")
-  lblSimActivity = lv_label_create(rowAct);
+  lblSimActivity = lv_label_create(rowActText);
   lv_label_set_text(lblSimActivity, "KBD");
   lv_obj_set_style_text_font(lblSimActivity, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblSimActivity, COL_ACCENT, LV_STATE_DEFAULT);
-  lv_obj_align(lblSimActivity, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_align(lblSimActivity, LV_ALIGN_LEFT_MID, 0, 0);
 
-  // Phase countdown (top-right)
-  lblSimKbInfo = lv_label_create(rowAct);
+  lblSimKbInfo = lv_label_create(rowActText);
   lv_label_set_text(lblSimKbInfo, "");
   lv_obj_set_style_text_font(lblSimKbInfo, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblSimKbInfo, COL_TEXT_DIM, LV_STATE_DEFAULT);
   lv_obj_set_style_text_align(lblSimKbInfo, LV_TEXT_ALIGN_RIGHT, LV_STATE_DEFAULT);
-  lv_obj_set_width(lblSimKbInfo, 70);
-  lv_obj_align(lblSimKbInfo, LV_ALIGN_TOP_RIGHT, 0, 0);
+  lv_obj_set_width(lblSimKbInfo, 55);
+  lv_obj_align(lblSimKbInfo, LV_ALIGN_RIGHT_MID, 0, 0);
 
-  // Phase bar (bottom, full width)
-  barSimKb = createBar(rowAct, 312, 4, COL_ACCENT);
-  lv_obj_align(barSimKb, LV_ALIGN_BOTTOM_MID, 0, 0);
+  // Thick activity bar below (12px tall = 2x normal)
+  barSimKb = createBar(panelSimContent, 312, 12, COL_ACCENT);
 }
 
 // ============================================================================
@@ -457,19 +467,23 @@ static void createSimContent(lv_obj_t* parent) {
 
 static lv_obj_t* createStatusBar(lv_obj_t* parent) {
   panelStatus = lv_obj_create(parent);
-  lv_obj_set_size(panelStatus, 320, 24);
+  lv_obj_set_size(panelStatus, 320, LV_SIZE_CONTENT);
+  lv_obj_set_flex_grow(panelStatus, 1);
   lv_obj_set_style_bg_color(panelStatus, COL_STATUS_BG, LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(panelStatus, LV_OPA_COVER, LV_STATE_DEFAULT);
   lv_obj_set_style_radius(panelStatus, 0, LV_STATE_DEFAULT);
   lv_obj_set_style_border_width(panelStatus, 0, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_left(panelStatus, 8, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_right(panelStatus, 8, LV_STATE_DEFAULT);
+  lv_obj_set_style_pad_top(panelStatus, 6, LV_STATE_DEFAULT);
+  lv_obj_set_style_pad_bottom(panelStatus, 4, LV_STATE_DEFAULT);
   lv_obj_clear_flag(panelStatus, LV_OBJ_FLAG_SCROLLABLE);
 
+  // Single centered label: "DeviceName  |  KB:ON  MS:ON  |  1h 45m"
   lblStatus = lv_label_create(panelStatus);
   lv_label_set_text(lblStatus, "");
-  lv_obj_set_style_text_font(lblStatus, &lv_font_montserrat_10, LV_STATE_DEFAULT);
-  lv_obj_set_style_text_color(lblStatus, COL_TEXT_DIM, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(lblStatus, &lv_font_montserrat_12, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_color(lblStatus, COL_TEXT_FOOTER, LV_STATE_DEFAULT);
   lv_obj_center(lblStatus);
 
   return panelStatus;
@@ -558,7 +572,8 @@ static void updateHeader() {
     strncpy(prevHeaderRight, buf, sizeof(prevHeaderRight) - 1);
     prevHeaderRight[sizeof(prevHeaderRight) - 1] = '\0';
 
-    lv_color_t col = deviceConnected ? COL_ACCENT : COL_DISCONNECT;
+    // Dark colors for light Aqua menubar background
+    lv_color_t col = deviceConnected ? lv_color_hex(0x007A33) : lv_color_hex(0xCC0000);
     lv_obj_set_style_text_color(lblHeaderRight, col, LV_STATE_DEFAULT);
   }
 }
@@ -745,9 +760,16 @@ static void updateSimMode() {
     lv_label_set_text(lblSimModeCountdown, cdBuf);
   }
 
-  // --- Row 3: Profile (bar drains) ---
+  // --- Row 3: Profile (bar drains, color matches profile) ---
   const char* profStr = (orch.autoProfile < PROFILE_COUNT) ? PROFILE_NAMES_TITLE[orch.autoProfile] : "???";
   lv_label_set_text(lblSimProfile, profStr);
+
+  // Dynamic bar color: busy=pastel green, normal=pastel yellow, lazy=pastel red
+  lv_color_t profBarColor = COL_BAR_NORMAL;
+  if (orch.autoProfile == PROFILE_BUSY) profBarColor = COL_BAR_BUSY;
+  else if (orch.autoProfile == PROFILE_LAZY) profBarColor = COL_BAR_LAZY;
+  lv_obj_set_style_bg_color(barSimProfile, profBarColor, LV_PART_INDICATOR);
+
   if (orch.profileStintMs > 0) {
     unsigned long elapsed = now - orch.profileStintStartMs;
     if (elapsed > orch.profileStintMs) elapsed = orch.profileStintMs;
@@ -758,7 +780,11 @@ static void updateSimMode() {
   }
 
   // --- Activity row: phase name + phase bar (drains) + phase countdown ---
-  const char* phaseName = (orch.phase < PHASE_COUNT) ? PHASE_NAMES[orch.phase] : "???";
+  static const char* PHASE_NAMES_LONG[] = {
+    "Typing", "Mouse", "Idle", "Switch Window",
+    "Typing + Mouse (form sim)", "Mouse + Keypress (draw sim)"
+  };
+  const char* phaseName = (orch.phase < PHASE_COUNT) ? PHASE_NAMES_LONG[orch.phase] : "???";
   lv_label_set_text(lblSimActivity, phaseName);
 
   // Phase progress bar (drains as phase time passes)
@@ -775,29 +801,39 @@ static void updateSimMode() {
   }
 }
 
-static void updateStatusBar() {
-  char buf[64];
-  const char* modeName;
-  bool isSim = (settings.operationMode == OP_SIMULATION);
+// ============================================================================
+// Status Bar Update
+// ============================================================================
 
-  if (isSim) {
-    modeName = (settings.jobSimulation < JOB_SIM_COUNT) ? JOB_SIM_NAMES[settings.jobSimulation] : "???";
-  } else if (settings.operationMode == OP_VOLUME) {
-    modeName = "Volume Ctrl";
-  } else {
-    modeName = "Simple";
-  }
+static void updateStatusBar() {
+  char buf[80];
+
+  // Format: "DeviceName  |  KB:ON  MS:ON  |  1 h 45 m"
+  const char* kbStr = keyEnabled ? "KB:ON" : "KB:OFF";
+  const char* msStr = mouseEnabled ? "MS:ON" : "MS:OFF";
 
   if (scheduleSleeping) {
-    snprintf(buf, sizeof(buf), "%s  |  SLEEPING", modeName);
+    snprintf(buf, sizeof(buf), "%s  |  SLEEPING", settings.deviceName);
+  } else if (timeSynced) {
+    char timeBuf[12];
+    formatCurrentTime(timeBuf, sizeof(timeBuf));
+    snprintf(buf, sizeof(buf), "%s  |  %s  %s  |  %s",
+             settings.deviceName, kbStr, msStr, timeBuf);
   } else {
-    char uptimeBuf[16];
-    formatUptime(millis() - startTime, uptimeBuf, sizeof(uptimeBuf));
-    snprintf(buf, sizeof(buf), "%s  |  KB:%s  MS:%s  |  %s",
-             modeName,
-             keyEnabled ? "ON" : "OFF",
-             mouseEnabled ? "ON" : "OFF",
-             uptimeBuf);
+    // Uptime with spaces between units
+    unsigned long upMs = millis() - startTime;
+    unsigned long secs = upMs / 1000;
+    unsigned long mins = secs / 60;
+    unsigned long hrs = mins / 60;
+    mins %= 60;
+    if (hrs > 0) {
+      snprintf(buf, sizeof(buf), "%s  |  %s  %s  |  %luh %02lum",
+               settings.deviceName, kbStr, msStr, hrs, mins);
+    } else {
+      secs %= 60;
+      snprintf(buf, sizeof(buf), "%s  |  %s  %s  |  %lum %02lus",
+               settings.deviceName, kbStr, msStr, mins, secs);
+    }
   }
 
   if (strcmp(buf, prevStatus) != 0) {
@@ -815,18 +851,15 @@ static void showCorrectLayout() {
       lv_obj_add_flag(panelSimpleContent, LV_OBJ_FLAG_HIDDEN);
     if (lv_obj_has_flag(panelSimContent, LV_OBJ_FLAG_HIDDEN))
       lv_obj_clear_flag(panelSimContent, LV_OBJ_FLAG_HIDDEN);
-    // Hide status bar in sim mode (nRF52 doesn't have one)
-    if (!lv_obj_has_flag(panelStatus, LV_OBJ_FLAG_HIDDEN))
-      lv_obj_add_flag(panelStatus, LV_OBJ_FLAG_HIDDEN);
   } else {
     if (lv_obj_has_flag(panelSimpleContent, LV_OBJ_FLAG_HIDDEN))
       lv_obj_clear_flag(panelSimpleContent, LV_OBJ_FLAG_HIDDEN);
     if (!lv_obj_has_flag(panelSimContent, LV_OBJ_FLAG_HIDDEN))
       lv_obj_add_flag(panelSimContent, LV_OBJ_FLAG_HIDDEN);
-    // Show status bar in simple mode
-    if (lv_obj_has_flag(panelStatus, LV_OBJ_FLAG_HIDDEN))
-      lv_obj_clear_flag(panelStatus, LV_OBJ_FLAG_HIDDEN);
   }
+  // Status bar always visible (both modes)
+  if (lv_obj_has_flag(panelStatus, LV_OBJ_FLAG_HIDDEN))
+    lv_obj_clear_flag(panelStatus, LV_OBJ_FLAG_HIDDEN);
 }
 
 // ============================================================================
