@@ -1,5 +1,5 @@
 <script setup>
-import { connectionState, settings, dirty, saving, saveToFlash, statusMessage, dfuActive } from './lib/store.js'
+import { connectionState, settings, dirty, saving, saveToFlash, statusMessage, dfuActive, platform } from './lib/store.js'
 import ConnectButton from './components/ConnectButton.vue'
 import StatusBar from './components/StatusBar.vue'
 import BatteryChart from './components/BatteryChart.vue'
@@ -28,7 +28,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
 
     <template v-if="connectionState.connected || dfuActive">
       <StatusBar v-if="connectionState.connected" />
-      <BatteryChart v-if="connectionState.connected" />
+      <BatteryChart v-if="connectionState.connected && platform !== 'c6'" />
 
       <div class="settings-grid">
         <template v-if="connectionState.connected">
@@ -45,11 +45,11 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
           <!-- Both modes -->
           <ScheduleSection />
           <DisplaySection />
-          <SoundSection />
+          <SoundSection v-if="platform !== 'c6'" />
           <DeviceSection />
           <LifetimeStats />
         </template>
-        <FirmwareUpdate />
+        <FirmwareUpdate v-if="platform !== 'c6'" />
       </div>
 
       <footer v-if="connectionState.connected" class="save-bar">

@@ -2,7 +2,7 @@
 #define GHOST_KEYS_H
 
 #include "config.h"
-#include <bluefruit.h>
+#include "hid_keycodes.h"
 
 extern const KeyDef AVAILABLE_KEYS[];
 extern const MenuItem MENU_ITEMS[];

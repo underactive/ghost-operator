@@ -1,11 +1,9 @@
 #include "orchestrator.h"
 #include "state.h"
 #include "keys.h"
-#include "hid.h"
+#include "platform_hal.h"
 #include "mouse.h"
-#include "serial_cmd.h"
 #include "timing.h"
-#include "display.h"
 #include "settings.h"
 #include "schedule.h"
 

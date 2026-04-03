@@ -7,7 +7,8 @@ import * as serialTransport from './serial.js'
 import * as bleTransport from './ble.js'
 import * as dfuSerial from './dfu/serial.js'
 import { performDfu } from './dfu/dfu.js'
-import { parseResponse, parseSettings, parseStatus, parseWorkMode, parseSimBlocks, buildQuery, buildSet, buildAction } from './protocol.js'
+import { parseResponse, parseSettings, parseStatus, parseWorkMode, parseSimBlocks } from './protocol.js'
+import { buildJsonQuery, buildJsonSet, buildJsonCommand, parseJsonLine } from './protocol_json.js'
 
 // --- Reactive state ---
 
@@ -111,6 +112,7 @@ export const saving = ref(false)
 export const statusMessage = ref('')
 export const dfuActive = ref(false)
 export const transportType = ref(null) // 'usb' | 'ble' | null
+export const platform = ref(null) // 'nrf52' | 'c6' | 'cyd' | null
 
 // Simulation tuning state
 export const simModes = reactive([])      // Array of 11 parsed work mode objects
@@ -276,34 +278,115 @@ function pushBatterySample(pct, mv) {
   }
 }
 
+// --- Protocol-aware command builders ---
+
+/**
+ * Build a query command in the appropriate format for the detected platform.
+ * Before platform detection, uses text protocol (universally supported).
+ */
+function buildQuery(key, params) {
+  if (platform.value === 'c6') {
+    return buildJsonQuery(key, params)
+  }
+  // Text protocol — params.i for indexed queries like ?wmode:0
+  if (params && params.i !== undefined) {
+    return `?${key}:${params.i}`
+  }
+  return `?${key}`
+}
+
+/**
+ * Build a set command in the appropriate format for the detected platform.
+ */
+function buildSet(key, value) {
+  if (platform.value === 'c6') {
+    // For JSON protocol, type the value appropriately
+    let typedValue = value
+    if (key === 'slots' || key === 'clickSlots') {
+      typedValue = typeof value === 'string' ? value.split(',').map(Number) : value
+    } else if (typeof value === 'string' && !isNaN(value) && value !== '') {
+      typedValue = Number(value)
+    }
+    return buildJsonSet({ [key]: typedValue })
+  }
+  return `=${key}:${value}`
+}
+
+/**
+ * Build an action command in the appropriate format for the detected platform.
+ */
+function buildAction(action) {
+  if (platform.value === 'c6') {
+    return buildJsonCommand(action)
+  }
+  return `!${action}`
+}
+
 // --- Line handler ---
 
 function handleLine(line) {
-  const parsed = parseResponse(line)
+  let parsed
+  if (line.startsWith('{')) {
+    // JSON response (from C6)
+    parsed = parseJsonLine(line)
+  } else {
+    // Text protocol response (nRF52, CYD, or C6 fallback)
+    parsed = parseResponse(line)
+  }
+
+  const isJson = parsed.json === true
 
   if (parsed.type === 'settings') {
-    const s = parseSettings(parsed.data)
-    Object.assign(settings, s)
-    savedSnapshot = JSON.stringify(s)
+    if (isJson) {
+      // JSON: data is already typed — assign directly
+      Object.assign(settings, parsed.data)
+      // Ensure array fields are proper arrays
+      if (Array.isArray(parsed.data.slots)) settings.slots = parsed.data.slots
+      if (Array.isArray(parsed.data.clickSlots)) settings.clickSlots = parsed.data.clickSlots
+    } else {
+      const s = parseSettings(parsed.data)
+      Object.assign(settings, s)
+    }
+    savedSnapshot = JSON.stringify({ ...settings })
     dirty.value = false
     // Update device name from settings (serial doesn't provide it at connect time)
-    if (s.name && connectionState.connected) {
-      connectionState.deviceName = s.name
+    if (settings.name && connectionState.connected) {
+      connectionState.deviceName = settings.name
     }
   } else if (parsed.type === 'status') {
-    const s = parseStatus(parsed.data)
-    Object.assign(status, s)
-    pushBatterySample(s.bat, s.batMv)
+    if (isJson) {
+      Object.assign(status, parsed.data)
+    } else {
+      const s = parseStatus(parsed.data)
+      Object.assign(status, s)
+    }
+    pushBatterySample(status.bat, status.batMv)
+
+    // Auto-detect platform from status response
+    if (!platform.value) {
+      const p = isJson ? parsed.data.platform : parsed.data?.platform
+      if (p === 'c6') platform.value = 'c6'
+      else if (p === 'cyd') platform.value = 'cyd'
+      else platform.value = 'nrf52'
+    }
   } else if (parsed.type === 'keys') {
-    availableKeys.value = parsed.data
+    availableKeys.value = isJson ? parsed.data : parsed.data
   } else if (parsed.type === 'decoys') {
-    decoyNames.value = parsed.data
+    decoyNames.value = isJson ? parsed.data : parsed.data
   } else if (parsed.type === 'wmode') {
-    const mode = parseWorkMode(parsed.data)
-    simModes[mode.idx] = mode
+    if (isJson) {
+      simModes[parsed.data.idx] = parsed.data
+    } else {
+      const mode = parseWorkMode(parsed.data)
+      simModes[mode.idx] = mode
+    }
   } else if (parsed.type === 'simblocks') {
-    const jobIdx = parseInt(parsed.data.job) || 0
-    simBlocks[jobIdx] = parseSimBlocks(parsed.data)
+    if (isJson) {
+      simBlocks[parsed.data.job] = parsed.data.blocks
+    } else {
+      const jobIdx = parseInt(parsed.data.job) || 0
+      simBlocks[jobIdx] = parseSimBlocks(parsed.data)
+    }
   } else if (parsed.type === 'ok' || parsed.type === 'error') {
     if (pendingQueue.length > 0) {
       const { resolve } = pendingQueue.shift()
@@ -322,6 +405,7 @@ function handleLine(line) {
 async function connectWithTransport(transport, type) {
   connectionState.connecting = true
   connectionState.error = ''
+  platform.value = null
 
   try {
     activeTransport = transport
@@ -331,6 +415,7 @@ async function connectWithTransport(transport, type) {
       connectionState.connected = false
       connectionState.deviceName = ''
       transportType.value = null
+      platform.value = null
       activeTransport = null
       stopPolling()
       // Drain pending queue with error responses
@@ -357,6 +442,11 @@ async function connectWithTransport(transport, type) {
     const shortDelay = type === 'ble' ? 150 : 50
     const longDelay = type === 'ble' ? 200 : 100
 
+    // Query status first to detect platform (text protocol — universally supported)
+    await transport.send('?status')
+    await sleep(longDelay)
+
+    // Platform is now detected — subsequent commands use JSON for C6
     // Enable real-time status push from device
     await transport.send(buildSet('statusPush', 1))
     await sleep(shortDelay)
@@ -414,6 +504,7 @@ export async function disconnectDevice() {
   connectionState.connected = false
   connectionState.deviceName = ''
   transportType.value = null
+  platform.value = null
   activeTransport = null
 }
 
@@ -569,11 +660,11 @@ export async function fetchSimData() {
   simDataLoading.value = true
   const delay = transportType.value === 'ble' ? 150 : 50
   for (let i = 0; i < 11; i++) {
-    await activeTransport.send(buildQuery(`wmode:${i}`))
+    await activeTransport.send(buildQuery('wmode', { i }))
     await sleep(delay)
   }
   for (let j = 0; j < 3; j++) {
-    await activeTransport.send(buildQuery(`simblocks:${j}`))
+    await activeTransport.send(buildQuery('simblocks', { i: j }))
     await sleep(delay)
   }
   simDataLoading.value = false
@@ -584,10 +675,11 @@ export async function fetchSimData() {
  * Set a single work mode parameter.
  */
 export async function setWorkModeParam(modeIdx, field, value) {
-  await activeTransport.send(buildSet('wmode', `${modeIdx}:${field}:${value}`))
+  // Work mode commands use text format on all platforms (C6 supports both protocols)
+  await activeTransport.send(`=wmode:${modeIdx}:${field}:${value}`)
   // Re-fetch that mode to update local state
   await sleep(50)
-  await activeTransport.send(buildQuery(`wmode:${modeIdx}`))
+  await activeTransport.send(buildQuery('wmode', { i: modeIdx }))
   simDataDirty.value = true
   dirty.value = true
 }
@@ -604,9 +696,10 @@ export async function setWorkModeTiming(modeIdx, profileIdx, timing) {
     timing.mouseDurMinMs, timing.mouseDurMaxMs,
     timing.idleDurMinMs, timing.idleDurMaxMs,
   ].join(',')
-  await activeTransport.send(buildSet('wmode', `${modeIdx}:t${profileIdx}:${csv}`))
+  // Work mode timing uses text format on all platforms (C6 supports both protocols)
+  await activeTransport.send(`=wmode:${modeIdx}:t${profileIdx}:${csv}`)
   await sleep(50)
-  await activeTransport.send(buildQuery(`wmode:${modeIdx}`))
+  await activeTransport.send(buildQuery('wmode', { i: modeIdx }))
   simDataDirty.value = true
   dirty.value = true
 }
@@ -822,11 +915,11 @@ export async function importSettings(file) {
         continue
       }
 
-      // Send scalar fields
+      // Send scalar fields (text format — C6 supports both protocols)
       for (const field of scalarFields) {
         if (field in mode) {
           try {
-            await activeTransport.send(buildSet('wmode', `${idx}:${field}:${mode[field]}`))
+            await activeTransport.send(`=wmode:${idx}:${field}:${mode[field]}`)
             await sleep(50)
           } catch (err) {
             result.errors.push(`sim mode ${idx} ${field}: ${err.message}`)
@@ -834,13 +927,13 @@ export async function importSettings(file) {
         }
       }
 
-      // Send timing arrays (3 profiles)
+      // Send timing arrays (3 profiles, text format)
       if (Array.isArray(mode.timing)) {
         for (let p = 0; p < mode.timing.length && p < 3; p++) {
           const t = mode.timing[p]
           if (Array.isArray(t) && t.length === 12) {
             try {
-              await activeTransport.send(buildSet('wmode', `${idx}:t${p}:${t.join(',')}`))
+              await activeTransport.send(`=wmode:${idx}:t${p}:${t.join(',')}`)
               await sleep(50)
             } catch (err) {
               result.errors.push(`sim mode ${idx} t${p}: ${err.message}`)

@@ -25,39 +25,84 @@
 #define NUM_KEYS 37  // must match AVAILABLE_KEYS[] array size
 
 // ============================================================================
+// PLATFORM FEATURE FLAGS
+// ============================================================================
+#ifdef GHOST_PLATFORM_C6
+  #define HAS_BATTERY       0
+  #define HAS_SOUND         0
+  #define HAS_USB_HID       0
+  #define HAS_ENCODER       0
+  #define HAS_TOUCH         0
+  #define HAS_NEOPIXEL      1
+#elif defined(GHOST_PLATFORM_CYD)
+  #define HAS_BATTERY       0
+  #define HAS_SOUND         0
+  #define HAS_USB_HID       0
+  #define HAS_ENCODER       0
+  #define HAS_TOUCH         1
+  #define HAS_NEOPIXEL      0
+#else // GHOST_PLATFORM_NRF52 or default
+  #define HAS_BATTERY       1
+  #define HAS_SOUND         1
+  #define HAS_USB_HID       1
+  #define HAS_ENCODER       1
+  #define HAS_TOUCH         0
+  #define HAS_NEOPIXEL      0
+#endif
+
+// ============================================================================
 // DISPLAY CONFIGURATION
 // ============================================================================
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
+#ifdef GHOST_PLATFORM_C6
+  #define SCREEN_WIDTH  320
+  #define SCREEN_HEIGHT 172
+#elif defined(GHOST_PLATFORM_CYD)
+  #define SCREEN_WIDTH  320
+  #define SCREEN_HEIGHT 240
+#else // nRF52
+  #define SCREEN_WIDTH 128
+  #define SCREEN_HEIGHT 64
+  #define OLED_RESET -1
+  #define SCREEN_ADDRESS 0x3C
+#endif
 
 // ============================================================================
 // PIN DEFINITIONS
 // ============================================================================
-#define PIN_ENCODER_A    0   // D0 - Encoder A (interrupt)
-#define PIN_ENCODER_B    1   // D1 - Encoder B (interrupt)
-#define PIN_ENCODER_BTN  2   // D2 - Encoder pushbutton
-#define PIN_FUNC_BTN     3   // D3 - Function button
-#define PIN_SDA          4   // D4 - I2C SDA
-#define PIN_SCL          5   // D5 - I2C SCL
-#define PIN_SOUND        6   // D6 - Piezo buzzer
-#define PIN_MUTE_BTN     7   // D7 - Mute button (SPST, active LOW)
+#ifdef GHOST_PLATFORM_C6
+  #define PIN_LCD_MOSI      6
+  #define PIN_LCD_SCLK      7
+  #define PIN_LCD_CS        14
+  #define PIN_LCD_DC        15
+  #define PIN_LCD_RST       21
+  #define PIN_LCD_BL        22
+  #define PIN_NEOPIXEL      8
+#elif !defined(GHOST_PLATFORM_CYD)
+  // nRF52 pins
+  #define PIN_ENCODER_A    0   // D0 - Encoder A (interrupt)
+  #define PIN_ENCODER_B    1   // D1 - Encoder B (interrupt)
+  #define PIN_ENCODER_BTN  2   // D2 - Encoder pushbutton
+  #define PIN_FUNC_BTN     3   // D3 - Function button
+  #define PIN_SDA          4   // D4 - I2C SDA
+  #define PIN_SCL          5   // D5 - I2C SCL
+  #define PIN_SOUND        6   // D6 - Piezo buzzer
+  #define PIN_MUTE_BTN     7   // D7 - Mute button (SPST, active LOW)
 
-// Internal battery pin - use board defaults if available
-#ifndef PIN_VBAT
-#define PIN_VBAT         32
+  // Internal battery pin - use board defaults if available
+  #ifndef PIN_VBAT
+  #define PIN_VBAT         32
+  #endif
+  #define PIN_VBAT_ENABLE  14
+  #define PIN_CHG_STATUS   23  // D23 = P0.17 (~CHG), active LOW when charging
+
+  // nRF52840 GPIO for wake
+  #define PIN_FUNC_BTN_NRF  29
+
+  // nRF52840 GPIO numbers for direct port reads in encoder ISR
+  // Must match Arduino D0/D1 -> P0.02/P0.03 mapping on XIAO nRF52840
+  #define PIN_ENC_A_NRF  2   // P0.02 = D0
+  #define PIN_ENC_B_NRF  3   // P0.03 = D1
 #endif
-#define PIN_VBAT_ENABLE  14
-#define PIN_CHG_STATUS   23  // D23 = P0.17 (~CHG), active LOW when charging
-
-// nRF52840 GPIO for wake
-#define PIN_FUNC_BTN_NRF  29
-
-// nRF52840 GPIO numbers for direct port reads in encoder ISR
-// Must match Arduino D0/D1 -> P0.02/P0.03 mapping on XIAO nRF52840
-#define PIN_ENC_A_NRF  2   // P0.02 = D0
-#define PIN_ENC_B_NRF  3   // P0.03 = D1
 
 // ============================================================================
 // TIMING CONFIGURATION
@@ -246,6 +291,13 @@ enum WorkModeId {
   WMODE_LUNCH_BREAK, WMODE_IRL_MEETING, WMODE_FILE_MGMT, WMODE_COUNT
 };
 enum OperationMode { OP_SIMPLE, OP_SIMULATION, OP_VOLUME, OP_BREAKOUT, OP_SNAKE, OP_RACER, OP_MODE_COUNT };
+
+// Platform-specific op mode limit (C6 supports only Simple + Simulation)
+#ifdef GHOST_PLATFORM_C6
+  #define OP_MODE_MAX OP_SIMULATION
+#else
+  #define OP_MODE_MAX (OP_MODE_COUNT - 1)
+#endif
 enum SwitchKeys { SWITCH_KEYS_ALT_TAB, SWITCH_KEYS_CMD_TAB, SWITCH_KEYS_COUNT };
 
 // Breakout game states

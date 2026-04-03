@@ -25,6 +25,8 @@
  * - Function button long (hold 3.5s): Sleep confirmation countdown -> deep sleep
  */
 
+#include <Arduino.h>
+
 #include "config.h"
 #include "keys.h"
 #include "icons.h"
@@ -51,6 +53,16 @@
 
 #include <nrf_soc.h>
 #include <nrf_power.h>
+
+// Forward declarations (needed after .ino -> .cpp rename; Arduino IDE auto-generates these)
+void connect_callback(uint16_t conn_handle);
+void disconnect_callback(uint16_t conn_handle, uint8_t reason);
+void setupPins();
+void i2cBusRecovery();
+void setupDisplay();
+void setupBLE();
+void startAdvertising();
+void setupUSBHID();
 
 // ============================================================================
 // WEBUSB LANDING PAGE

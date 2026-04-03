@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { settings, setSetting, resetDefaults, rebootDevice, decoyNames, exportSettings, importSettings } from '../lib/store.js'
+import { settings, setSetting, resetDefaults, rebootDevice, decoyNames, exportSettings, importSettings, platform } from '../lib/store.js'
 
 const showResetConfirm = ref(false)
 const showRebootConfirm = ref(false)
@@ -62,42 +62,56 @@ async function onFileSelected(e) {
 <template>
   <section class="card">
     <h2>Device</h2>
-    <div class="field">
-      <label>BLE Identity <span class="help-text">(requires reboot)</span></label>
-      <select :value="settings.decoy" @change="onDecoyChange">
-        <option v-for="(name, idx) in decoyNames" :key="idx + 1" :value="idx + 1">
-          {{ name }}
-        </option>
-        <option :value="0">Custom</option>
-      </select>
-    </div>
+    <template v-if="platform !== 'c6'">
+      <div class="field">
+        <label>BLE Identity <span class="help-text">(requires reboot)</span></label>
+        <select :value="settings.decoy" @change="onDecoyChange">
+          <option v-for="(name, idx) in decoyNames" :key="idx + 1" :value="idx + 1">
+            {{ name }}
+          </option>
+          <option :value="0">Custom</option>
+        </select>
+      </div>
 
-    <div class="field" :class="{ 'field-disabled': settings.decoy !== 0 }">
-      <label>Custom Name</label>
+      <div class="field" :class="{ 'field-disabled': settings.decoy !== 0 }">
+        <label>Custom Name</label>
+        <input
+          type="text"
+          :value="settings.name"
+          maxlength="14"
+          :disabled="settings.decoy !== 0"
+          @input="onNameInput"
+        />
+      </div>
+    </template>
+
+    <div v-if="platform === 'c6'" class="field">
+      <label>Device Name</label>
       <input
         type="text"
         :value="settings.name"
         maxlength="14"
-        :disabled="settings.decoy !== 0"
         @input="onNameInput"
       />
     </div>
 
-    <div class="field">
-      <label>BT while USB <span class="help-text">(keep Bluetooth on when USB plugged in)</span></label>
-      <select :value="settings.btWhileUsb" @change="setSetting('btWhileUsb', Number($event.target.value))">
-        <option :value="0">Off</option>
-        <option :value="1">On</option>
-      </select>
-    </div>
+    <template v-if="platform !== 'c6'">
+      <div class="field">
+        <label>BT while USB <span class="help-text">(keep Bluetooth on when USB plugged in)</span></label>
+        <select :value="settings.btWhileUsb" @change="setSetting('btWhileUsb', Number($event.target.value))">
+          <option :value="0">Off</option>
+          <option :value="1">On</option>
+        </select>
+      </div>
 
-    <div class="field">
-      <label>Dashboard Link <span class="help-text">(show link on USB connect; reboot to apply)</span></label>
-      <select :value="settings.dashboard" @change="setSetting('dashboard', Number($event.target.value))">
-        <option :value="0">Off</option>
-        <option :value="1">On</option>
-      </select>
-    </div>
+      <div class="field">
+        <label>Dashboard Link <span class="help-text">(show link on USB connect; reboot to apply)</span></label>
+        <select :value="settings.dashboard" @change="setSetting('dashboard', Number($event.target.value))">
+          <option :value="0">Off</option>
+          <option :value="1">On</option>
+        </select>
+      </div>
+    </template>
 
     <div class="backup-section">
       <label>Settings Backup</label>

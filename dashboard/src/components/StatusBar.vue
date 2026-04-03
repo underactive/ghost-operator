@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { status, settings, setSetting } from '../lib/store.js'
+import { status, settings, setSetting, platform } from '../lib/store.js'
 import {
   PROFILE_NAMES, MODE_NAMES, MOUSE_STATE_NAMES,
   OP_MODE_NAMES, WORK_MODE_NAMES, PHASE_NAMES,
@@ -63,7 +63,7 @@ function formatUptime(ms) {
         <span class="status-label">USB</span>
         <span class="status-value" :class="status.usb ? 'on' : 'off'">{{ status.usb ? 'Connected' : 'Off' }}</span>
       </div>
-      <div class="status-item">
+      <div v-if="platform !== 'c6'" class="status-item">
         <span class="status-label">Battery</span>
         <span class="status-value" :class="{ 'low-bat': status.bat < 15 }">{{ status.bat }}%</span>
       </div>
