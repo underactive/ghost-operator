@@ -90,20 +90,12 @@ static lv_obj_t* imgMsIcon = nullptr;       // mouse icon (animated)
 // Converted: 10×10 A8 (1 byte/pixel alpha), scaled 2x to 20×20 at render time
 // ============================================================================
 
-// Helper: convert 1-bit packed bitmap to A8, pre-scaled 2x for sharp pixels
-// src: packed bits (MSB first), w×h pixels
-// dst: A8 output at 2x size ((w*2) × (h*2) bytes)
-static void bitmapToA8_2x(const uint8_t* src, uint8_t* dst, int w, int h) {
-  int dstW = w * 2;
+// Helper: convert 1-bit packed bitmap to A8 (1 byte/pixel alpha)
+static void bitmapToA8(const uint8_t* src, uint8_t* dst, int w, int h) {
   for (int row = 0; row < h; row++) {
     for (int col = 0; col < w; col++) {
       int byteIdx = row * ((w + 7) / 8) + (col / 8);
-      uint8_t val = (src[byteIdx] & (0x80 >> (col % 8))) ? 0xFF : 0x00;
-      // Write 2×2 block
-      dst[(row*2)     * dstW + (col*2)]     = val;
-      dst[(row*2)     * dstW + (col*2) + 1] = val;
-      dst[(row*2 + 1) * dstW + (col*2)]     = val;
-      dst[(row*2 + 1) * dstW + (col*2) + 1] = val;
+      dst[row * w + col] = (src[byteIdx] & (0x80 >> (col % 8))) ? 0xFF : 0x00;
     }
   }
 }
@@ -135,35 +127,48 @@ static const uint8_t bmpMsScroll[] = {
   0x73,0x80, 0x73,0x80, 0x7F,0x80, 0x7F,0x80, 0x7F,0x80
 };
 
-// A8 buffers at 2x size (pre-scaled for sharp pixels, no LVGL interpolation)
-static uint8_t a8KbNormal[20*20];   // 10×10 → 20×20
-static uint8_t a8KbPressed[20*16];  // 10×8  → 20×16
-static uint8_t a8MsNormal[20*20];
-static uint8_t a8MsClick[20*20];
-static uint8_t a8MsScroll[20*20];
+// A8 buffers at native 1x size (10×10 or 10×8)
+static uint8_t a8KbNormal[10*10];
+static uint8_t a8KbPressed[10*8];
+static uint8_t a8MsNormal[10*10];
+static uint8_t a8MsClick[10*10];
+static uint8_t a8MsScroll[10*10];
 
-// LVGL image descriptors at 2x dimensions
-static lv_image_dsc_t imgdKbNormal  = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=20}, .data_size=400, .data=a8KbNormal };
-static lv_image_dsc_t imgdKbPressed = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=16}, .data_size=320, .data=a8KbPressed };
-static lv_image_dsc_t imgdMsNormal  = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=20}, .data_size=400, .data=a8MsNormal };
-static lv_image_dsc_t imgdMsClick   = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=20}, .data_size=400, .data=a8MsClick };
-static lv_image_dsc_t imgdMsScroll  = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=20}, .data_size=400, .data=a8MsScroll };
+// LVGL image descriptors at native size (zero-init all fields to suppress warnings)
+static lv_image_dsc_t imgdKbNormal  = {};
+static lv_image_dsc_t imgdKbPressed = {};
+static lv_image_dsc_t imgdMsNormal  = {};
+static lv_image_dsc_t imgdMsClick   = {};
+static lv_image_dsc_t imgdMsScroll  = {};
 
 // Icon animation state
 static const lv_image_dsc_t* prevKbImg = nullptr;
 static const lv_image_dsc_t* prevMsImg = nullptr;
 static int prevMsNudge = 0;
 
-static void initIconBitmaps() {
-  bitmapToA8_2x(bmpKbNormal,  a8KbNormal,  10, 10);
-  bitmapToA8_2x(bmpKbPressed, a8KbPressed, 10, 8);
-  bitmapToA8_2x(bmpMsNormal,  a8MsNormal,  10, 10);
-  bitmapToA8_2x(bmpMsClick,   a8MsClick,   10, 10);
-  bitmapToA8_2x(bmpMsScroll,  a8MsScroll,  10, 10);
+static void initImgDsc(lv_image_dsc_t& dsc, const uint8_t* data, int w, int h) {
+  memset(&dsc, 0, sizeof(dsc));
+  dsc.header.cf = LV_COLOR_FORMAT_A8;
+  dsc.header.w = w;
+  dsc.header.h = h;
+  dsc.data_size = w * h;
+  dsc.data = data;
 }
 
-// BLE icon flashing state
-static bool bleIconVisible = true;
+static void initIconBitmaps() {
+  bitmapToA8(bmpKbNormal,  a8KbNormal,  10, 10);
+  bitmapToA8(bmpKbPressed, a8KbPressed, 10, 8);
+  bitmapToA8(bmpMsNormal,  a8MsNormal,  10, 10);
+  bitmapToA8(bmpMsClick,   a8MsClick,   10, 10);
+  bitmapToA8(bmpMsScroll,  a8MsScroll,  10, 10);
+
+  initImgDsc(imgdKbNormal,  a8KbNormal,  10, 10);
+  initImgDsc(imgdKbPressed, a8KbPressed, 10, 8);
+  initImgDsc(imgdMsNormal,  a8MsNormal,  10, 10);
+  initImgDsc(imgdMsClick,   a8MsClick,   10, 10);
+  initImgDsc(imgdMsScroll,  a8MsScroll,  10, 10);
+}
+
 
 // Sim mode widgets (overlay — shown instead of KB/MS cards)
 static lv_obj_t* panelSimContent = nullptr;
@@ -365,19 +370,19 @@ static lv_obj_t* createHeader(lv_obj_t* parent) {
   lv_obj_set_style_text_color(lblDeviceName, lv_color_hex(0x000000), LV_STATE_DEFAULT);
   lv_obj_align(lblDeviceName, LV_ALIGN_LEFT_MID, 0, 0);
 
-  // BT symbol (far right, 16pt)
+  // BT symbol (far right, 16pt) — fixed position
   lblHeaderBt = lv_label_create(hdr);
   lv_label_set_text(lblHeaderBt, LV_SYMBOL_BLUETOOTH);
   lv_obj_set_style_text_font(lblHeaderBt, &lv_font_montserrat_16, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblHeaderBt, lv_color_hex(0x0060CC), LV_STATE_DEFAULT);
   lv_obj_align(lblHeaderBt, LV_ALIGN_RIGHT_MID, 0, 0);
 
-  // Uptime/clock text (left of BT icon)
+  // Uptime/clock text — fixed right position (doesn't shift when BT icon flashes)
   lblHeaderRight = lv_label_create(hdr);
   lv_label_set_text(lblHeaderRight, "");
   lv_obj_set_style_text_font(lblHeaderRight, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblHeaderRight, lv_color_hex(0x333333), LV_STATE_DEFAULT);
-  lv_obj_align_to(lblHeaderRight, lblHeaderBt, LV_ALIGN_OUT_LEFT_MID, -4, 0);
+  lv_obj_align(lblHeaderRight, LV_ALIGN_RIGHT_MID, -22, 0);
 
   return hdr;
 }
@@ -595,13 +600,13 @@ static lv_obj_t* createStatusBar(lv_obj_t* parent) {
   // Right: animated keyboard + mouse icons from nRF52 (scaled 2x)
   imgKbIcon = lv_image_create(panelStatus);
   lv_image_set_src(imgKbIcon, &imgdKbNormal);
-  lv_obj_set_style_image_recolor(imgKbIcon, COL_TEXT, LV_STATE_DEFAULT);
+  lv_obj_set_style_image_recolor(imgKbIcon, COL_TEXT_FOOTER, LV_STATE_DEFAULT);
   lv_obj_set_style_image_recolor_opa(imgKbIcon, LV_OPA_COVER, LV_STATE_DEFAULT);
-  lv_obj_align(imgKbIcon, LV_ALIGN_RIGHT_MID, -28, 0);
+  lv_obj_align(imgKbIcon, LV_ALIGN_RIGHT_MID, -24, 0);
 
   imgMsIcon = lv_image_create(panelStatus);
   lv_image_set_src(imgMsIcon, &imgdMsNormal);
-  lv_obj_set_style_image_recolor(imgMsIcon, COL_TEXT, LV_STATE_DEFAULT);
+  lv_obj_set_style_image_recolor(imgMsIcon, COL_TEXT_FOOTER, LV_STATE_DEFAULT);
   lv_obj_set_style_image_recolor_opa(imgMsIcon, LV_OPA_COVER, LV_STATE_DEFAULT);
   lv_obj_align(imgMsIcon, LV_ALIGN_RIGHT_MID, 0, 0);
 
@@ -649,7 +654,6 @@ static char prevKbKey[32] = "";
 static char prevKbInterval[32] = "";
 static char prevMsState[12] = "";
 static char prevMsDuration[32] = "";
-static char prevStatus[64] = "";
 static int prevKbBar = -1;
 static int prevMsBar = -1;
 static char prevKbCountdown[16] = "";
@@ -676,17 +680,20 @@ static void updateHeader() {
     prevHeaderLeft[sizeof(prevHeaderLeft) - 1] = '\0';
   }
 
-  // BT icon: solid when connected, flashing when advertising
+  // BT icon: solid when connected, flashing via hidden flag when advertising
+  // Always keep the symbol text set — use hidden flag for flashing to avoid layout shifts
+  lv_label_set_text(lblHeaderBt, LV_SYMBOL_BLUETOOTH);
   if (deviceConnected) {
-    lv_label_set_text(lblHeaderBt, LV_SYMBOL_BLUETOOTH);
     lv_obj_set_style_text_color(lblHeaderBt, lv_color_hex(0x0060CC), LV_STATE_DEFAULT);
+    if (lv_obj_has_flag(lblHeaderBt, LV_OBJ_FLAG_HIDDEN))
+      lv_obj_clear_flag(lblHeaderBt, LV_OBJ_FLAG_HIDDEN);
   } else {
-    bleIconVisible = !bleIconVisible;
-    lv_label_set_text(lblHeaderBt, bleIconVisible ? LV_SYMBOL_BLUETOOTH : "");
-    lv_obj_set_style_text_color(lblHeaderBt, lv_color_hex(0x888888), LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(lblHeaderBt, lv_color_hex(0xBBBBBB), LV_STATE_DEFAULT);
+    if (lv_obj_has_flag(lblHeaderBt, LV_OBJ_FLAG_HIDDEN))
+      lv_obj_clear_flag(lblHeaderBt, LV_OBJ_FLAG_HIDDEN);
   }
 
-  // Uptime or clock (right of BT icon)
+  // Uptime or clock — fixed position (not relative to BT icon)
   if (timeSynced) {
     char timeBuf[12];
     formatCurrentTime(timeBuf, sizeof(timeBuf));
@@ -710,8 +717,6 @@ static void updateHeader() {
     strncpy(prevHeaderRight, buf, sizeof(prevHeaderRight) - 1);
     prevHeaderRight[sizeof(prevHeaderRight) - 1] = '\0';
   }
-  // Re-align time text to stay left of BT icon
-  lv_obj_align_to(lblHeaderRight, lblHeaderBt, LV_ALIGN_OUT_LEFT_MID, -4, 0);
 }
 
 static void updateSimpleMode() {
@@ -917,8 +922,8 @@ static void updateSimMode() {
 
   // --- Activity row: phase name + phase bar (drains) + phase countdown ---
   static const char* PHASE_NAMES_LONG[] = {
-    "Typing", "Mouse", "Idle", "Switch Window",
-    "Typing + Mouse (form sim)", "Mouse + Keypress (draw sim)"
+    "Keyboard", "Mouse", "Idle", "Switch Window",
+    "Keyboard + Mouse (form sim)", "Mouse + Keypress (draw sim)"
   };
   const char* phaseName = (orch.phase < PHASE_COUNT) ? PHASE_NAMES_LONG[orch.phase] : "???";
   lv_label_set_text(lblSimActivity, phaseName);
@@ -962,6 +967,9 @@ static void updateStatusBar() {
       lv_image_set_src(imgKbIcon, kbImg);
       prevKbImg = kbImg;
     }
+    // Bright white when key is held down, footer color otherwise
+    lv_color_t kbCol = orch.keyDown ? lv_color_hex(0xFFFFFF) : COL_TEXT_FOOTER;
+    lv_obj_set_style_image_recolor(imgKbIcon, kbCol, LV_STATE_DEFAULT);
   }
 
   // --- Mouse icon animation (matches nRF52) ---
@@ -982,8 +990,8 @@ static void updateStatusBar() {
       msImg = &imgdMsScroll;
     } else {
       msImg = &imgdMsNormal;
-      // Nudge left/right when mouse is actively moving
-      bool mouseMoving = (mouseState == MOUSE_JIGGLING) ||
+      // Nudge left/right only during active orchestrator mouse phases
+      bool mouseMoving = (orch.phase == PHASE_MOUSING && mouseState == MOUSE_JIGGLING) ||
                          (orch.phase == PHASE_KB_MOUSE && orch.kbmsSubPhase == KBMS_MOUSE_SWIPE) ||
                          (orch.phase == PHASE_MOUSE_KB && orch.mskbSubPhase == MSKB_MOUSE_DRAW);
       if (mouseMoving) {
@@ -991,6 +999,11 @@ static void updateStatusBar() {
         nudge = nudgeTable[(now / 150) % 4];
       }
     }
+
+    // Bright white when animating (click/scroll/moving), footer color when idle
+    bool msAnimating = (msImg != &imgdMsNormal) || (nudge != 0);
+    lv_color_t msCol = msAnimating ? lv_color_hex(0xFFFFFF) : COL_TEXT_FOOTER;
+    lv_obj_set_style_image_recolor(imgMsIcon, msCol, LV_STATE_DEFAULT);
 
     if (msImg != prevMsImg) {
       lv_image_set_src(imgMsIcon, msImg);
