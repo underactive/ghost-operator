@@ -90,6 +90,7 @@ export function parseSettings(data) {
     saverBright: parseInt(data.saverBright) || 20,
     saverTimeout: parseInt(data.saverTimeout ?? '5'),
     animStyle: parseInt(data.animStyle ?? '2'),
+    dispFlip: parseInt(data.dispFlip) ?? 0,
     name: data.name || 'GhostOperator',
     btWhileUsb: parseInt(data.btWhileUsb) ?? 0,
     scroll: parseInt(data.scroll) ?? 0,

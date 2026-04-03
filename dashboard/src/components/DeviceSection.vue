@@ -62,35 +62,23 @@ async function onFileSelected(e) {
 <template>
   <section class="card">
     <h2>Device</h2>
-    <template v-if="platform !== 'c6'">
-      <div class="field">
-        <label>BLE Identity <span class="help-text">(requires reboot)</span></label>
-        <select :value="settings.decoy" @change="onDecoyChange">
-          <option v-for="(name, idx) in decoyNames" :key="idx + 1" :value="idx + 1">
-            {{ name }}
-          </option>
-          <option :value="0">Custom</option>
-        </select>
-      </div>
+    <div class="field">
+      <label>BLE Identity <span class="help-text">(requires reboot)</span></label>
+      <select :value="settings.decoy" @change="onDecoyChange">
+        <option v-for="(name, idx) in decoyNames" :key="idx + 1" :value="idx + 1">
+          {{ name }}
+        </option>
+        <option :value="0">Custom</option>
+      </select>
+    </div>
 
-      <div class="field" :class="{ 'field-disabled': settings.decoy !== 0 }">
-        <label>Custom Name</label>
-        <input
-          type="text"
-          :value="settings.name"
-          maxlength="14"
-          :disabled="settings.decoy !== 0"
-          @input="onNameInput"
-        />
-      </div>
-    </template>
-
-    <div v-if="platform === 'c6'" class="field">
-      <label>Device Name</label>
+    <div class="field" :class="{ 'field-disabled': settings.decoy !== 0 }">
+      <label>Custom Name</label>
       <input
         type="text"
         :value="settings.name"
         maxlength="14"
+        :disabled="settings.decoy !== 0"
         @input="onNameInput"
       />
     </div>

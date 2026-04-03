@@ -12,6 +12,8 @@
 #include "orchestrator.h"
 #include "sim_data.h"
 #include "platform_hal.h"
+#include "ghost_sprite.h"
+#include "kbm_icons.h"
 
 // ============================================================================
 // LVGL Display Driver for ESP32-C6-LCD-1.47 (Waveshare)
@@ -85,56 +87,20 @@ static lv_obj_t* imgKbIcon = nullptr;       // keyboard icon (animated)
 static lv_obj_t* imgMsIcon = nullptr;       // mouse icon (animated)
 
 // ============================================================================
-// Activity icons — converted from nRF52's 1-bit PROGMEM to LVGL A8 format
-// Original: 10×10 pixels, 1-bit packed (2 bytes/row)
-// Converted: 10×10 A8 (1 byte/pixel alpha), scaled 2x to 20×20 at render time
+// Activity icons — ARGB8888 from KBM_Outline sprite sheet (kbm_icons.h)
 // ============================================================================
 
-// Helper: convert 1-bit packed bitmap to A8 (1 byte/pixel alpha)
-static void bitmapToA8(const uint8_t* src, uint8_t* dst, int w, int h) {
-  for (int row = 0; row < h; row++) {
-    for (int col = 0; col < w; col++) {
-      int byteIdx = row * ((w + 7) / 8) + (col / 8);
-      dst[row * w + col] = (src[byteIdx] & (0x80 >> (col % 8))) ? 0xFF : 0x00;
-    }
-  }
+static void initKbmDsc(lv_image_dsc_t& dsc, const uint8_t* data, int w, int h) {
+  memset(&dsc, 0, sizeof(dsc));
+  dsc.header.cf = LV_COLOR_FORMAT_ARGB8888;
+  dsc.header.w = w;
+  dsc.header.h = h;
+  dsc.header.stride = w * 4;  // bytes per row — required for ARGB8888
+  dsc.data_size = w * h * 4;
+  dsc.data = data;
 }
 
-// nRF52 icon bitmaps (1-bit packed, same data as icons.cpp)
-// Keycap normal (10x10)
-static const uint8_t bmpKbNormal[] = {
-  0x7F,0x80, 0x80,0x40, 0x9E,0x40, 0xA1,0x40, 0xA1,0x40,
-  0xBF,0x40, 0xA1,0x40, 0xA1,0x40, 0x80,0x40, 0x7F,0x80
-};
-// Keycap pressed (10x8 — shorter, depressed)
-static const uint8_t bmpKbPressed[] = {
-  0x7F,0x80, 0x80,0x40, 0x9E,0x40, 0xA1,0x40,
-  0xBF,0x40, 0xA1,0x40, 0x80,0x40, 0x7F,0x80
-};
-// Mouse normal (10x10)
-static const uint8_t bmpMsNormal[] = {
-  0x0C,0x00, 0x06,0x00, 0x0C,0x00, 0x7F,0x80, 0x40,0x80,
-  0x5E,0x80, 0x40,0x80, 0x7F,0x80, 0x7F,0x80, 0x7F,0x80
-};
-// Mouse click (10x10 — button filled)
-static const uint8_t bmpMsClick[] = {
-  0x0C,0x00, 0x06,0x00, 0x0C,0x00, 0x7F,0x80, 0x40,0x80,
-  0x40,0x80, 0x40,0x80, 0x7F,0x80, 0x7F,0x80, 0x7F,0x80
-};
-// Mouse scroll (10x10 — scroll wheel highlighted)
-static const uint8_t bmpMsScroll[] = {
-  0x0C,0x00, 0x06,0x00, 0x0C,0x00, 0x7F,0x80, 0x73,0x80,
-  0x73,0x80, 0x73,0x80, 0x7F,0x80, 0x7F,0x80, 0x7F,0x80
-};
-
-// A8 buffers at native 1x size (10×10 or 10×8)
-static uint8_t a8KbNormal[10*10];
-static uint8_t a8KbPressed[10*8];
-static uint8_t a8MsNormal[10*10];
-static uint8_t a8MsClick[10*10];
-static uint8_t a8MsScroll[10*10];
-
-// LVGL image descriptors at native size (zero-init all fields to suppress warnings)
+// LVGL image descriptors (initialized in initIconBitmaps)
 static lv_image_dsc_t imgdKbNormal  = {};
 static lv_image_dsc_t imgdKbPressed = {};
 static lv_image_dsc_t imgdMsNormal  = {};
@@ -145,28 +111,29 @@ static lv_image_dsc_t imgdMsScroll  = {};
 static const lv_image_dsc_t* prevKbImg = nullptr;
 static const lv_image_dsc_t* prevMsImg = nullptr;
 static int prevMsNudge = 0;
+static lv_opa_t prevKbOpa = 0;
+static lv_opa_t prevMsOpa = 0;
 
-static void initImgDsc(lv_image_dsc_t& dsc, const uint8_t* data, int w, int h) {
-  memset(&dsc, 0, sizeof(dsc));
-  dsc.header.cf = LV_COLOR_FORMAT_A8;
-  dsc.header.w = w;
-  dsc.header.h = h;
-  dsc.data_size = w * h;
-  dsc.data = data;
-}
+// Ghost sprite animation
+static lv_obj_t* imgGhost = nullptr;
+static lv_image_dsc_t ghostDsc = {};
+static int ghostX = 280;             // current x position in footer
+static int ghostDir = -1;            // 1=right, -1=left (starts moving left)
+static uint8_t ghostFrame = 0;       // current animation frame
+static unsigned long ghostFrameMs = 0;  // last frame advance time
+static unsigned long ghostMoveMs = 0;   // last movement time
+#define GHOST_FRAME_INTERVAL 120     // ms between animation frames
+#define GHOST_MOVE_INTERVAL  40      // ms between position steps
+#define GHOST_SPEED          1       // pixels per step
+#define GHOST_X_MIN          200     // left bound (~60% of 320, last 40%)
+#define GHOST_X_MAX          280     // right bound
 
 static void initIconBitmaps() {
-  bitmapToA8(bmpKbNormal,  a8KbNormal,  10, 10);
-  bitmapToA8(bmpKbPressed, a8KbPressed, 10, 8);
-  bitmapToA8(bmpMsNormal,  a8MsNormal,  10, 10);
-  bitmapToA8(bmpMsClick,   a8MsClick,   10, 10);
-  bitmapToA8(bmpMsScroll,  a8MsScroll,  10, 10);
-
-  initImgDsc(imgdKbNormal,  a8KbNormal,  10, 10);
-  initImgDsc(imgdKbPressed, a8KbPressed, 10, 8);
-  initImgDsc(imgdMsNormal,  a8MsNormal,  10, 10);
-  initImgDsc(imgdMsClick,   a8MsClick,   10, 10);
-  initImgDsc(imgdMsScroll,  a8MsScroll,  10, 10);
+  initKbmDsc(imgdKbNormal,  kbmIcon_kbNormal,  KBM_KBNORMAL_W,  KBM_KBNORMAL_H);
+  initKbmDsc(imgdKbPressed, kbmIcon_kbPressed, KBM_KBPRESSED_W, KBM_KBPRESSED_H);
+  initKbmDsc(imgdMsNormal,  kbmIcon_msNormal,  KBM_MSNORMAL_W,  KBM_MSNORMAL_H);
+  initKbmDsc(imgdMsClick,   kbmIcon_msClick,   KBM_MSCLICK_W,   KBM_MSCLICK_H);
+  initKbmDsc(imgdMsScroll,  kbmIcon_msScroll,  KBM_MSSCROLL_W,  KBM_MSSCROLL_H);
 }
 
 
@@ -589,26 +556,39 @@ static lv_obj_t* createStatusBar(lv_obj_t* parent) {
   lv_obj_set_style_pad_top(panelStatus, 6, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_bottom(panelStatus, 4, LV_STATE_DEFAULT);
   lv_obj_clear_flag(panelStatus, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_add_flag(panelStatus, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 
-  // Left: device name
+  // Left: animated keyboard + mouse icons (ARGB8888, opacity for dim/bright)
+  imgKbIcon = lv_image_create(panelStatus);
+  lv_image_set_src(imgKbIcon, &imgdKbNormal);
+  lv_obj_set_style_opa(imgKbIcon, 140, LV_STATE_DEFAULT);  // dimmed by default
+  lv_obj_align(imgKbIcon, LV_ALIGN_LEFT_MID, 0, -1);
+
+  imgMsIcon = lv_image_create(panelStatus);
+  lv_image_set_src(imgMsIcon, &imgdMsNormal);
+  lv_obj_set_style_opa(imgMsIcon, 140, LV_STATE_DEFAULT);  // dimmed by default
+  lv_obj_align(imgMsIcon, LV_ALIGN_LEFT_MID, 28, -1);
+
+  // Center: device name
   lblStatus = lv_label_create(panelStatus);
   lv_label_set_text(lblStatus, settings.deviceName);
   lv_obj_set_style_text_font(lblStatus, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblStatus, COL_TEXT_FOOTER, LV_STATE_DEFAULT);
-  lv_obj_align(lblStatus, LV_ALIGN_LEFT_MID, 0, 0);
+  lv_obj_align(lblStatus, LV_ALIGN_CENTER, 0, 0);
 
-  // Right: animated keyboard + mouse icons from nRF52 (scaled 2x)
-  imgKbIcon = lv_image_create(panelStatus);
-  lv_image_set_src(imgKbIcon, &imgdKbNormal);
-  lv_obj_set_style_image_recolor(imgKbIcon, COL_TEXT_FOOTER, LV_STATE_DEFAULT);
-  lv_obj_set_style_image_recolor_opa(imgKbIcon, LV_OPA_COVER, LV_STATE_DEFAULT);
-  lv_obj_align(imgKbIcon, LV_ALIGN_RIGHT_MID, -24, 0);
+  // Ghost sprite (ARGB8888, positioned absolutely)
+  memset(&ghostDsc, 0, sizeof(ghostDsc));
+  ghostDsc.header.cf = LV_COLOR_FORMAT_ARGB8888;
+  ghostDsc.header.w = GHOST_FRAME_W;
+  ghostDsc.header.h = GHOST_FRAME_H;
+  ghostDsc.header.stride = GHOST_FRAME_W * 4;
+  ghostDsc.data_size = GHOST_FRAME_W * GHOST_FRAME_H * 4;
+  ghostDsc.data = ghostFramesLeft[0];
 
-  imgMsIcon = lv_image_create(panelStatus);
-  lv_image_set_src(imgMsIcon, &imgdMsNormal);
-  lv_obj_set_style_image_recolor(imgMsIcon, COL_TEXT_FOOTER, LV_STATE_DEFAULT);
-  lv_obj_set_style_image_recolor_opa(imgMsIcon, LV_OPA_COVER, LV_STATE_DEFAULT);
-  lv_obj_align(imgMsIcon, LV_ALIGN_RIGHT_MID, 0, 0);
+  imgGhost = lv_image_create(panelStatus);
+  lv_image_set_src(imgGhost, &ghostDsc);
+  lv_obj_set_pos(imgGhost, ghostX, -6);  // offset up to vertically center in footer
+  lv_obj_clear_flag(imgGhost, LV_OBJ_FLAG_SCROLLABLE);
 
   return panelStatus;
 }
@@ -967,9 +947,12 @@ static void updateStatusBar() {
       lv_image_set_src(imgKbIcon, kbImg);
       prevKbImg = kbImg;
     }
-    // Bright white when key is held down, footer color otherwise
-    lv_color_t kbCol = orch.keyDown ? lv_color_hex(0xFFFFFF) : COL_TEXT_FOOTER;
-    lv_obj_set_style_image_recolor(imgKbIcon, kbCol, LV_STATE_DEFAULT);
+    // Full opacity when active, dimmed when idle
+    lv_opa_t kbOpa = orch.keyDown ? LV_OPA_COVER : 140;
+    if (kbOpa != prevKbOpa) {
+      lv_obj_set_style_opa(imgKbIcon, kbOpa, LV_STATE_DEFAULT);
+      prevKbOpa = kbOpa;
+    }
   }
 
   // --- Mouse icon animation (matches nRF52) ---
@@ -1000,10 +983,13 @@ static void updateStatusBar() {
       }
     }
 
-    // Bright white when animating (click/scroll/moving), footer color when idle
+    // Full opacity when animating, dimmed when idle
     bool msAnimating = (msImg != &imgdMsNormal) || (nudge != 0);
-    lv_color_t msCol = msAnimating ? lv_color_hex(0xFFFFFF) : COL_TEXT_FOOTER;
-    lv_obj_set_style_image_recolor(imgMsIcon, msCol, LV_STATE_DEFAULT);
+    lv_opa_t msOpa = msAnimating ? LV_OPA_COVER : 140;
+    if (msOpa != prevMsOpa) {
+      lv_obj_set_style_opa(imgMsIcon, msOpa, LV_STATE_DEFAULT);
+      prevMsOpa = msOpa;
+    }
 
     if (msImg != prevMsImg) {
       lv_image_set_src(imgMsIcon, msImg);
@@ -1011,8 +997,35 @@ static void updateStatusBar() {
     }
     // Apply nudge offset
     if (nudge != prevMsNudge) {
-      lv_obj_align(imgMsIcon, LV_ALIGN_RIGHT_MID, nudge, 0);
+      lv_obj_align(imgMsIcon, LV_ALIGN_LEFT_MID, 28 + nudge, -1);
       prevMsNudge = nudge;
+    }
+  }
+
+  // --- Ghost sprite animation ---
+  if (imgGhost) {
+    bool moved = false;
+
+    // Advance animation frame
+    if (now - ghostFrameMs >= GHOST_FRAME_INTERVAL) {
+      ghostFrameMs = now;
+      ghostFrame = (ghostFrame + 1) % GHOST_NUM_FRAMES;
+      const uint8_t** frames = (ghostDir > 0) ? ghostFramesRight : ghostFramesLeft;
+      ghostDsc.data = frames[ghostFrame];
+      lv_image_set_src(imgGhost, &ghostDsc);
+    }
+
+    // Move position
+    if (now - ghostMoveMs >= GHOST_MOVE_INTERVAL) {
+      ghostMoveMs = now;
+      ghostX += ghostDir * GHOST_SPEED;
+      if (ghostX <= GHOST_X_MIN) { ghostX = GHOST_X_MIN; ghostDir = 1; }
+      if (ghostX >= GHOST_X_MAX) { ghostX = GHOST_X_MAX; ghostDir = -1; }
+      moved = true;
+    }
+
+    if (moved) {
+      lv_obj_set_pos(imgGhost, ghostX, -6);
     }
   }
 }
@@ -1044,7 +1057,7 @@ void setupDisplay() {
   spiInit();
   hwReset();
 
-  // Convert nRF52 1-bit icon bitmaps to LVGL A8 format
+  // Initialize ARGB8888 icon descriptors from sprite sheet data
   initIconBitmaps();
 
   // Initialize LVGL
@@ -1083,8 +1096,9 @@ void setupDisplay() {
   lv_st7789_set_invert(lvDisplay, true);
 
   // Rotate to landscape (320×172) — this sets MADCTL's MV (swap XY) bit
-  // Try ROTATION_90 first; if mirrored/upside-down, switch to ROTATION_270
-  lv_display_set_rotation(lvDisplay, LV_DISPLAY_ROTATION_90);
+  // ROTATION_90 = normal, ROTATION_270 = flipped 180°
+  lv_display_set_rotation(lvDisplay,
+    settings.displayFlip ? LV_DISPLAY_ROTATION_270 : LV_DISPLAY_ROTATION_90);
 
   // Backlight: PWM via LEDC
   ledcAttach(PIN_LCD_BL, 5000, 8);
@@ -1162,4 +1176,11 @@ void setBacklightBrightness(uint8_t percent) {
 
 void setBacklightOff() {
   ledcWrite(PIN_LCD_BL, 0);
+}
+
+void setDisplayFlip(bool flipped) {
+  if (!lvDisplay) return;
+  lv_display_set_rotation(lvDisplay,
+    flipped ? LV_DISPLAY_ROTATION_270 : LV_DISPLAY_ROTATION_90);
+  markDisplayDirty();
 }

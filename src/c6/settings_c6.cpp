@@ -85,6 +85,7 @@ void loadSettings() {
     if (settings.shiftDuration < SHIFT_MIN_MINUTES || settings.shiftDuration > SHIFT_MAX_MINUTES) settings.shiftDuration = 480;
     if (settings.lunchDuration < LUNCH_DUR_MIN || settings.lunchDuration > LUNCH_DUR_MAX) settings.lunchDuration = 30;
     if (settings.activityLeds > 1) settings.activityLeds = 1;
+    if (settings.displayFlip > 1) settings.displayFlip = 0;
     return;
   }
 

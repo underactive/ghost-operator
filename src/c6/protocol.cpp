@@ -10,6 +10,7 @@
 #include "sim_data.h"
 #include "orchestrator.h"
 #include "platform_hal.h"
+#include "display.h"
 
 // ============================================================================
 // JSON config protocol for ESP32-C6
@@ -184,6 +185,7 @@ static void jsonQuerySettings(JsonDocument& resp) {
   d["saverBright"] = settings.saverBrightness;
   d["saverTimeout"] = settings.saverTimeout;
   d["animStyle"] = settings.animStyle;
+  d["dispFlip"] = settings.displayFlip;
 
   // Device
   d["name"] = settings.deviceName;
@@ -338,6 +340,7 @@ static const SettingKeyMap SETTING_MAP[] = {
   { "saverBright", SET_SAVER_BRIGHT },
   { "saverTimeout",SET_SAVER_TIMEOUT },
   { "animStyle",   SET_ANIMATION },
+  { "dispFlip",    SET_DISPLAY_FLIP },
   { "btWhileUsb",  SET_BT_WHILE_USB },
   { "scroll",      SET_SCROLL },
   { "dashboard",   SET_DASHBOARD },
@@ -468,6 +471,10 @@ static void jsonHandleSet(JsonObject data, ResponseWriter writer) {
         setSettingValue(SETTING_MAP[i].settingId, kv.value().as<uint32_t>());
         needReschedule = true;
         found = true;
+        // Apply display flip at runtime (no reboot needed)
+        if (SETTING_MAP[i].settingId == SET_DISPLAY_FLIP) {
+          setDisplayFlip(settings.displayFlip);
+        }
         break;
       }
     }

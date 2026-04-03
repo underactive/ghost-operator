@@ -43,7 +43,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
           <!-- Simple mode only -->
           <ProfileSection v-if="settings.opMode === 0" />
           <!-- Both modes -->
-          <ScheduleSection />
+          <ScheduleSection v-if="platform !== 'c6'" />
           <DisplaySection />
           <SoundSection v-if="platform !== 'c6'" />
           <DeviceSection />

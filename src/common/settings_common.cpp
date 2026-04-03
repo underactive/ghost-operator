@@ -71,6 +71,7 @@ void loadDefaults() {
   settings.shiftDuration = 480;   // 8 hours
   settings.lunchDuration = 30;    // 30 minutes
   settings.activityLeds = 1;      // On (LED flash on KB/mouse activity)
+  settings.displayFlip = 0;       // Normal orientation
   markDisplayDirty();
 }
 
@@ -98,6 +99,7 @@ uint32_t getSettingValue(uint8_t settingId) {
     case SET_SAVER_TIMEOUT:  return settings.saverTimeout;
     case SET_ANIMATION:      return settings.animStyle;
     case SET_ACTIVITY_LEDS:  return settings.activityLeds;
+    case SET_DISPLAY_FLIP:   return settings.displayFlip;
     case SET_BT_WHILE_USB:   return settings.btWhileUsb;
     case SET_SCROLL:         return settings.scrollEnabled;
     case SET_DASHBOARD:      return settings.dashboardEnabled;
@@ -170,6 +172,7 @@ void setSettingValue(uint8_t settingId, uint32_t value) {
     case SET_SAVER_TIMEOUT:  settings.saverTimeout = (uint8_t)clampVal(value, 0, SAVER_TIMEOUT_COUNT - 1); break;
     case SET_ANIMATION:      settings.animStyle = (uint8_t)clampVal(value, 0, ANIM_STYLE_COUNT - 1); break;
     case SET_ACTIVITY_LEDS:  settings.activityLeds = (uint8_t)clampVal(value, 0, 1); break;
+    case SET_DISPLAY_FLIP:   settings.displayFlip = (uint8_t)clampVal(value, 0, 1); break;
     case SET_BT_WHILE_USB:   settings.btWhileUsb = (uint8_t)clampVal(value, 0, 1); break;
     case SET_SCROLL:         settings.scrollEnabled = (uint8_t)clampVal(value, 0, 1); break;
     case SET_DASHBOARD:

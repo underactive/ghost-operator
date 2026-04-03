@@ -58,6 +58,7 @@ export const settings = reactive({
   saverBright: 20,
   saverTimeout: 5,
   animStyle: 2,
+  dispFlip: 0,
   name: 'GhostOperator',
   btWhileUsb: 0,
   scroll: 0,
@@ -382,7 +383,12 @@ function handleLine(line) {
     }
   } else if (parsed.type === 'simblocks') {
     if (isJson) {
-      simBlocks[parsed.data.job] = parsed.data.blocks
+      simBlocks[parsed.data.job] = (parsed.data.blocks || []).map(b => ({
+        name: b.name,
+        startMin: b.start,
+        durMin: b.dur,
+        modes: (b.modes || []).map(m => ({ modeId: m.id, weight: m.w }))
+      }))
     } else {
       const jobIdx = parseInt(parsed.data.job) || 0
       simBlocks[jobIdx] = parseSimBlocks(parsed.data)
@@ -776,7 +782,7 @@ function sleep(ms) {
 const EXPORTABLE_KEYS = [
   'keyMin', 'keyMax', 'mouseJig', 'mouseIdle', 'mouseAmp', 'mouseStyle', 'scroll',
   'lazyPct', 'busyPct',
-  'dispBright', 'saverBright', 'saverTimeout', 'animStyle',
+  'dispBright', 'saverBright', 'saverTimeout', 'animStyle', 'dispFlip',
   'decoy', 'name', 'btWhileUsb', 'invertDial',
   'schedMode', 'schedStart', 'schedEnd',
   'opMode', 'jobSim', 'jobPerf', 'jobStart',

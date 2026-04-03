@@ -11,6 +11,7 @@
 #include "sim_data.h"
 #include "orchestrator.h"
 #include "platform_hal.h"
+#include "display.h"
 
 // ============================================================================
 // BLE UART (Nordic UART Service) for ESP32-C6
@@ -259,7 +260,7 @@ static void cmdQuerySettings() {
   int len = snprintf(buf, sizeof(buf),
     "!settings|keyMin=%lu|keyMax=%lu|mouseJig=%lu|mouseIdle=%lu"
     "|mouseAmp=%d|mouseStyle=%d|lazyPct=%d|busyPct=%d"
-    "|dispBright=%d|saverBright=%d|saverTimeout=%d|animStyle=%d"
+    "|dispBright=%d|saverBright=%d|saverTimeout=%d|animStyle=%d|dispFlip=%d"
     "|name=%s|btWhileUsb=%d|scroll=%d|dashboard=%d|invertDial=%d"
     "|decoy=%d|schedMode=%d|schedStart=%d|schedEnd=%d",
     settings.keyIntervalMin, settings.keyIntervalMax,
@@ -267,7 +268,7 @@ static void cmdQuerySettings() {
     settings.mouseAmplitude, settings.mouseStyle,
     settings.lazyPercent, settings.busyPercent,
     settings.displayBrightness, settings.saverBrightness,
-    settings.saverTimeout, settings.animStyle,
+    settings.saverTimeout, settings.animStyle, settings.displayFlip,
     settings.deviceName, settings.btWhileUsb,
     settings.scrollEnabled, settings.dashboardEnabled,
     settings.invertDial,
@@ -386,6 +387,9 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_SAVER_TIMEOUT, (uint32_t)atol(valStr));
   } else if (strcmp(key, "animStyle") == 0) {
     setSettingValue(SET_ANIMATION, (uint32_t)atol(valStr));
+  } else if (strcmp(key, "dispFlip") == 0) {
+    setSettingValue(SET_DISPLAY_FLIP, (uint32_t)atol(valStr));
+    setDisplayFlip(settings.displayFlip);
   } else if (strcmp(key, "btWhileUsb") == 0) {
     setSettingValue(SET_BT_WHILE_USB, (uint32_t)atol(valStr));
   } else if (strcmp(key, "scroll") == 0) {

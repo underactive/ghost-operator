@@ -10,7 +10,7 @@
 #define VERSION "2.5.2"
 #define DEVICE_NAME "GhostOperator"
 #define SETTINGS_FILE "/settings.dat"
-#define SETTINGS_MAGIC 0x50524F62  // bumped: added activityLeds
+#define SETTINGS_MAGIC 0x50524F63  // bumped: added displayFlip
 #define STATS_MAGIC    0x53544132  // "STA2" — lifetime stats file (bumped: added totalMouseClicks)
 #define STATS_FILE     "/stats.dat"
 #define STATS_SAVE_INTERVAL_MS 900000UL   // 15 minutes — periodic flash save for stats counters
@@ -317,7 +317,7 @@ enum SettingId {
   SET_MOUSE_JIG, SET_MOUSE_IDLE, SET_MOUSE_AMP, SET_MOUSE_STYLE,
   SET_LAZY_PCT, SET_BUSY_PCT,
   SET_DISPLAY_BRIGHT, SET_SAVER_BRIGHT, SET_SAVER_TIMEOUT,
-  SET_ANIMATION, SET_ACTIVITY_LEDS,
+  SET_ANIMATION, SET_ACTIVITY_LEDS, SET_DISPLAY_FLIP,
   SET_BLE_IDENTITY,
   SET_BT_WHILE_USB,
   SET_SCROLL,
@@ -444,6 +444,7 @@ struct Settings {
   uint8_t lunchDuration;    // 15-120 min, step 5, default 30 (30m)
   // Display
   uint8_t activityLeds;     // 0=Off, 1=On (default) — LED flash on KB/mouse HID activity
+  uint8_t displayFlip;      // 0=Normal (default), 1=Flipped (180° rotation)
   uint8_t checksum;         // MUST remain last
 };
 

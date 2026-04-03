@@ -1,5 +1,5 @@
 <script setup>
-import { settings, setSetting } from '../lib/store.js'
+import { settings, setSetting, platform } from '../lib/store.js'
 import { ANIM_NAMES, SAVER_NAMES } from '../lib/protocol.js'
 </script>
 
@@ -41,7 +41,17 @@ import { ANIM_NAMES, SAVER_NAMES } from '../lib/protocol.js'
         </option>
       </select>
     </div>
-    <div class="field">
+    <div v-if="platform === 'c6'" class="field">
+      <label>Flip Display <span class="help-text">(rotate 180°)</span></label>
+      <select
+        :value="settings.dispFlip"
+        @change="setSetting('dispFlip', Number($event.target.value))"
+      >
+        <option :value="0">Normal</option>
+        <option :value="1">Flipped</option>
+      </select>
+    </div>
+    <div v-if="platform !== 'c6'" class="field">
       <label>Animation Style</label>
       <select
         :value="settings.animStyle"
