@@ -59,7 +59,8 @@ static lv_display_t* lvDisplay = nullptr;
 
 // Header
 static lv_obj_t* lblDeviceName = nullptr;
-static lv_obj_t* lblHeaderRight = nullptr;
+static lv_obj_t* lblHeaderBt = nullptr;     // BT symbol (larger font)
+static lv_obj_t* lblHeaderRight = nullptr;  // uptime/clock text
 
 // Keyboard card
 static lv_obj_t* panelKb = nullptr;
@@ -79,7 +80,90 @@ static lv_obj_t* lblMsCountdown = nullptr;
 
 // Status bar
 static lv_obj_t* panelStatus = nullptr;
-static lv_obj_t* lblStatus = nullptr;
+static lv_obj_t* lblStatus = nullptr;       // footer left (device name)
+static lv_obj_t* imgKbIcon = nullptr;       // keyboard icon (animated)
+static lv_obj_t* imgMsIcon = nullptr;       // mouse icon (animated)
+
+// ============================================================================
+// Activity icons — converted from nRF52's 1-bit PROGMEM to LVGL A8 format
+// Original: 10×10 pixels, 1-bit packed (2 bytes/row)
+// Converted: 10×10 A8 (1 byte/pixel alpha), scaled 2x to 20×20 at render time
+// ============================================================================
+
+// Helper: convert 1-bit packed bitmap to A8, pre-scaled 2x for sharp pixels
+// src: packed bits (MSB first), w×h pixels
+// dst: A8 output at 2x size ((w*2) × (h*2) bytes)
+static void bitmapToA8_2x(const uint8_t* src, uint8_t* dst, int w, int h) {
+  int dstW = w * 2;
+  for (int row = 0; row < h; row++) {
+    for (int col = 0; col < w; col++) {
+      int byteIdx = row * ((w + 7) / 8) + (col / 8);
+      uint8_t val = (src[byteIdx] & (0x80 >> (col % 8))) ? 0xFF : 0x00;
+      // Write 2×2 block
+      dst[(row*2)     * dstW + (col*2)]     = val;
+      dst[(row*2)     * dstW + (col*2) + 1] = val;
+      dst[(row*2 + 1) * dstW + (col*2)]     = val;
+      dst[(row*2 + 1) * dstW + (col*2) + 1] = val;
+    }
+  }
+}
+
+// nRF52 icon bitmaps (1-bit packed, same data as icons.cpp)
+// Keycap normal (10x10)
+static const uint8_t bmpKbNormal[] = {
+  0x7F,0x80, 0x80,0x40, 0x9E,0x40, 0xA1,0x40, 0xA1,0x40,
+  0xBF,0x40, 0xA1,0x40, 0xA1,0x40, 0x80,0x40, 0x7F,0x80
+};
+// Keycap pressed (10x8 — shorter, depressed)
+static const uint8_t bmpKbPressed[] = {
+  0x7F,0x80, 0x80,0x40, 0x9E,0x40, 0xA1,0x40,
+  0xBF,0x40, 0xA1,0x40, 0x80,0x40, 0x7F,0x80
+};
+// Mouse normal (10x10)
+static const uint8_t bmpMsNormal[] = {
+  0x0C,0x00, 0x06,0x00, 0x0C,0x00, 0x7F,0x80, 0x40,0x80,
+  0x5E,0x80, 0x40,0x80, 0x7F,0x80, 0x7F,0x80, 0x7F,0x80
+};
+// Mouse click (10x10 — button filled)
+static const uint8_t bmpMsClick[] = {
+  0x0C,0x00, 0x06,0x00, 0x0C,0x00, 0x7F,0x80, 0x40,0x80,
+  0x40,0x80, 0x40,0x80, 0x7F,0x80, 0x7F,0x80, 0x7F,0x80
+};
+// Mouse scroll (10x10 — scroll wheel highlighted)
+static const uint8_t bmpMsScroll[] = {
+  0x0C,0x00, 0x06,0x00, 0x0C,0x00, 0x7F,0x80, 0x73,0x80,
+  0x73,0x80, 0x73,0x80, 0x7F,0x80, 0x7F,0x80, 0x7F,0x80
+};
+
+// A8 buffers at 2x size (pre-scaled for sharp pixels, no LVGL interpolation)
+static uint8_t a8KbNormal[20*20];   // 10×10 → 20×20
+static uint8_t a8KbPressed[20*16];  // 10×8  → 20×16
+static uint8_t a8MsNormal[20*20];
+static uint8_t a8MsClick[20*20];
+static uint8_t a8MsScroll[20*20];
+
+// LVGL image descriptors at 2x dimensions
+static lv_image_dsc_t imgdKbNormal  = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=20}, .data_size=400, .data=a8KbNormal };
+static lv_image_dsc_t imgdKbPressed = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=16}, .data_size=320, .data=a8KbPressed };
+static lv_image_dsc_t imgdMsNormal  = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=20}, .data_size=400, .data=a8MsNormal };
+static lv_image_dsc_t imgdMsClick   = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=20}, .data_size=400, .data=a8MsClick };
+static lv_image_dsc_t imgdMsScroll  = { .header = {.cf=LV_COLOR_FORMAT_A8,.w=20,.h=20}, .data_size=400, .data=a8MsScroll };
+
+// Icon animation state
+static const lv_image_dsc_t* prevKbImg = nullptr;
+static const lv_image_dsc_t* prevMsImg = nullptr;
+static int prevMsNudge = 0;
+
+static void initIconBitmaps() {
+  bitmapToA8_2x(bmpKbNormal,  a8KbNormal,  10, 10);
+  bitmapToA8_2x(bmpKbPressed, a8KbPressed, 10, 8);
+  bitmapToA8_2x(bmpMsNormal,  a8MsNormal,  10, 10);
+  bitmapToA8_2x(bmpMsClick,   a8MsClick,   10, 10);
+  bitmapToA8_2x(bmpMsScroll,  a8MsScroll,  10, 10);
+}
+
+// BLE icon flashing state
+static bool bleIconVisible = true;
 
 // Sim mode widgets (overlay — shown instead of KB/MS cards)
 static lv_obj_t* panelSimContent = nullptr;
@@ -281,12 +365,19 @@ static lv_obj_t* createHeader(lv_obj_t* parent) {
   lv_obj_set_style_text_color(lblDeviceName, lv_color_hex(0x000000), LV_STATE_DEFAULT);
   lv_obj_align(lblDeviceName, LV_ALIGN_LEFT_MID, 0, 0);
 
-  // Right side info — dark gray text
+  // BT symbol (far right, 16pt)
+  lblHeaderBt = lv_label_create(hdr);
+  lv_label_set_text(lblHeaderBt, LV_SYMBOL_BLUETOOTH);
+  lv_obj_set_style_text_font(lblHeaderBt, &lv_font_montserrat_16, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_color(lblHeaderBt, lv_color_hex(0x0060CC), LV_STATE_DEFAULT);
+  lv_obj_align(lblHeaderBt, LV_ALIGN_RIGHT_MID, 0, 0);
+
+  // Uptime/clock text (left of BT icon)
   lblHeaderRight = lv_label_create(hdr);
-  lv_label_set_text(lblHeaderRight, "---");
+  lv_label_set_text(lblHeaderRight, "");
   lv_obj_set_style_text_font(lblHeaderRight, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblHeaderRight, lv_color_hex(0x333333), LV_STATE_DEFAULT);
-  lv_obj_align(lblHeaderRight, LV_ALIGN_RIGHT_MID, 0, 0);
+  lv_obj_align_to(lblHeaderRight, lblHeaderBt, LV_ALIGN_OUT_LEFT_MID, -4, 0);
 
   return hdr;
 }
@@ -403,7 +494,7 @@ static void createSimContent(lv_obj_t* parent) {
   // Height: 4pad + 3×18 + 2×2gap + 1sep + 2gap + 16label + 4pad + 12bar = ~97px
   // Leaves ~47px for an expanded footer below
   panelSimContent = lv_obj_create(parent);
-  lv_obj_set_size(panelSimContent, 320, 100);
+  lv_obj_set_size(panelSimContent, 320, 104);
   lv_obj_set_style_bg_opa(panelSimContent, LV_OPA_TRANSP, LV_STATE_DEFAULT);
   lv_obj_set_style_border_width(panelSimContent, 0, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_left(panelSimContent, 4, LV_STATE_DEFAULT);
@@ -437,7 +528,7 @@ static void createSimContent(lv_obj_t* parent) {
 
   // Activity: phase label (left) + countdown (right) — text-only line
   lv_obj_t* rowActText = lv_obj_create(panelSimContent);
-  lv_obj_set_size(rowActText, 312, 16);
+  lv_obj_set_size(rowActText, 312, 18);
   lv_obj_set_style_bg_opa(rowActText, LV_OPA_TRANSP, LV_STATE_DEFAULT);
   lv_obj_set_style_border_width(rowActText, 0, LV_STATE_DEFAULT);
   lv_obj_set_style_pad_all(rowActText, 0, LV_STATE_DEFAULT);
@@ -445,20 +536,35 @@ static void createSimContent(lv_obj_t* parent) {
 
   lblSimActivity = lv_label_create(rowActText);
   lv_label_set_text(lblSimActivity, "KBD");
-  lv_obj_set_style_text_font(lblSimActivity, &lv_font_montserrat_12, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(lblSimActivity, &lv_font_montserrat_16, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblSimActivity, COL_ACCENT, LV_STATE_DEFAULT);
   lv_obj_align(lblSimActivity, LV_ALIGN_LEFT_MID, 0, 0);
 
   lblSimKbInfo = lv_label_create(rowActText);
   lv_label_set_text(lblSimKbInfo, "");
-  lv_obj_set_style_text_font(lblSimKbInfo, &lv_font_montserrat_12, LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(lblSimKbInfo, &lv_font_montserrat_14, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblSimKbInfo, COL_TEXT_DIM, LV_STATE_DEFAULT);
   lv_obj_set_style_text_align(lblSimKbInfo, LV_TEXT_ALIGN_RIGHT, LV_STATE_DEFAULT);
   lv_obj_set_width(lblSimKbInfo, 55);
   lv_obj_align(lblSimKbInfo, LV_ALIGN_RIGHT_MID, 0, 0);
 
   // Thick activity bar below (12px tall = 2x normal)
-  barSimKb = createBar(panelSimContent, 312, 12, COL_ACCENT);
+  // Styled like Windows 10 copy dialog: green with shimmer pulse
+  barSimKb = lv_bar_create(panelSimContent);
+  lv_obj_set_size(barSimKb, 312, 12);
+  lv_bar_set_range(barSimKb, 0, 100);
+  lv_bar_set_value(barSimKb, 0, LV_ANIM_OFF);
+  // Track background
+  lv_obj_set_style_bg_color(barSimKb, COL_BAR_BG, LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(barSimKb, LV_OPA_COVER, LV_STATE_DEFAULT);
+  lv_obj_set_style_radius(barSimKb, 3, LV_STATE_DEFAULT);
+  // Indicator: green gradient for shiny effect
+  lv_obj_set_style_bg_color(barSimKb, lv_color_hex(0x00C853), LV_PART_INDICATOR);
+  lv_obj_set_style_bg_grad_color(barSimKb, lv_color_hex(0x69F0AE), LV_PART_INDICATOR);
+  lv_obj_set_style_bg_grad_dir(barSimKb, LV_GRAD_DIR_VER, LV_PART_INDICATOR);
+  lv_obj_set_style_bg_opa(barSimKb, LV_OPA_COVER, LV_PART_INDICATOR);
+  lv_obj_set_style_radius(barSimKb, 3, LV_PART_INDICATOR);
+
 }
 
 // ============================================================================
@@ -479,12 +585,25 @@ static lv_obj_t* createStatusBar(lv_obj_t* parent) {
   lv_obj_set_style_pad_bottom(panelStatus, 4, LV_STATE_DEFAULT);
   lv_obj_clear_flag(panelStatus, LV_OBJ_FLAG_SCROLLABLE);
 
-  // Single centered label: "DeviceName  |  KB:ON  MS:ON  |  1h 45m"
+  // Left: device name
   lblStatus = lv_label_create(panelStatus);
-  lv_label_set_text(lblStatus, "");
+  lv_label_set_text(lblStatus, settings.deviceName);
   lv_obj_set_style_text_font(lblStatus, &lv_font_montserrat_12, LV_STATE_DEFAULT);
   lv_obj_set_style_text_color(lblStatus, COL_TEXT_FOOTER, LV_STATE_DEFAULT);
-  lv_obj_center(lblStatus);
+  lv_obj_align(lblStatus, LV_ALIGN_LEFT_MID, 0, 0);
+
+  // Right: animated keyboard + mouse icons from nRF52 (scaled 2x)
+  imgKbIcon = lv_image_create(panelStatus);
+  lv_image_set_src(imgKbIcon, &imgdKbNormal);
+  lv_obj_set_style_image_recolor(imgKbIcon, COL_TEXT, LV_STATE_DEFAULT);
+  lv_obj_set_style_image_recolor_opa(imgKbIcon, LV_OPA_COVER, LV_STATE_DEFAULT);
+  lv_obj_align(imgKbIcon, LV_ALIGN_RIGHT_MID, -28, 0);
+
+  imgMsIcon = lv_image_create(panelStatus);
+  lv_image_set_src(imgMsIcon, &imgdMsNormal);
+  lv_obj_set_style_image_recolor(imgMsIcon, COL_TEXT, LV_STATE_DEFAULT);
+  lv_obj_set_style_image_recolor_opa(imgMsIcon, LV_OPA_COVER, LV_STATE_DEFAULT);
+  lv_obj_align(imgMsIcon, LV_ALIGN_RIGHT_MID, 0, 0);
 
   return panelStatus;
 }
@@ -557,25 +676,42 @@ static void updateHeader() {
     prevHeaderLeft[sizeof(prevHeaderLeft) - 1] = '\0';
   }
 
-  // Right side: BLE status + time (no battery)
-  const char* connStr = deviceConnected ? "BLE" : "...";
+  // BT icon: solid when connected, flashing when advertising
+  if (deviceConnected) {
+    lv_label_set_text(lblHeaderBt, LV_SYMBOL_BLUETOOTH);
+    lv_obj_set_style_text_color(lblHeaderBt, lv_color_hex(0x0060CC), LV_STATE_DEFAULT);
+  } else {
+    bleIconVisible = !bleIconVisible;
+    lv_label_set_text(lblHeaderBt, bleIconVisible ? LV_SYMBOL_BLUETOOTH : "");
+    lv_obj_set_style_text_color(lblHeaderBt, lv_color_hex(0x888888), LV_STATE_DEFAULT);
+  }
+
+  // Uptime or clock (right of BT icon)
   if (timeSynced) {
     char timeBuf[12];
     formatCurrentTime(timeBuf, sizeof(timeBuf));
-    snprintf(buf, sizeof(buf), "%s  %s", connStr, timeBuf);
+    snprintf(buf, sizeof(buf), "%s", timeBuf);
   } else {
-    snprintf(buf, sizeof(buf), "%s", connStr);
+    unsigned long upMs = now - startTime;
+    unsigned long secs = upMs / 1000;
+    unsigned long mins = secs / 60;
+    unsigned long hrs = mins / 60;
+    mins %= 60;
+    if (hrs > 0) {
+      snprintf(buf, sizeof(buf), "%luh %02lum", hrs, mins);
+    } else {
+      secs %= 60;
+      snprintf(buf, sizeof(buf), "%lum %02lus", mins, secs);
+    }
   }
 
   if (strcmp(buf, prevHeaderRight) != 0) {
     lv_label_set_text(lblHeaderRight, buf);
     strncpy(prevHeaderRight, buf, sizeof(prevHeaderRight) - 1);
     prevHeaderRight[sizeof(prevHeaderRight) - 1] = '\0';
-
-    // Dark colors for light Aqua menubar background
-    lv_color_t col = deviceConnected ? lv_color_hex(0x007A33) : lv_color_hex(0xCC0000);
-    lv_obj_set_style_text_color(lblHeaderRight, col, LV_STATE_DEFAULT);
   }
+  // Re-align time text to stay left of BT icon
+  lv_obj_align_to(lblHeaderRight, lblHeaderBt, LV_ALIGN_OUT_LEFT_MID, -4, 0);
 }
 
 static void updateSimpleMode() {
@@ -799,6 +935,7 @@ static void updateSimMode() {
     lv_bar_set_value(barSimKb, 0, LV_ANIM_OFF);
     lv_label_set_text(lblSimKbInfo, "");
   }
+
 }
 
 // ============================================================================
@@ -806,40 +943,64 @@ static void updateSimMode() {
 // ============================================================================
 
 static void updateStatusBar() {
-  char buf[80];
+  unsigned long now = millis();
 
-  // Format: "DeviceName  |  KB:ON  MS:ON  |  1 h 45 m"
-  const char* kbStr = keyEnabled ? "KB:ON" : "KB:OFF";
-  const char* msStr = mouseEnabled ? "MS:ON" : "MS:OFF";
+  // Left: device name
+  lv_label_set_text(lblStatus, settings.deviceName);
 
-  if (scheduleSleeping) {
-    snprintf(buf, sizeof(buf), "%s  |  SLEEPING", settings.deviceName);
-  } else if (timeSynced) {
-    char timeBuf[12];
-    formatCurrentTime(timeBuf, sizeof(timeBuf));
-    snprintf(buf, sizeof(buf), "%s  |  %s  %s  |  %s",
-             settings.deviceName, kbStr, msStr, timeBuf);
+  // --- Keyboard icon animation (matches nRF52) ---
+  if (!keyEnabled || scheduleSleeping) {
+    if (!lv_obj_has_flag(imgKbIcon, LV_OBJ_FLAG_HIDDEN))
+      lv_obj_add_flag(imgKbIcon, LV_OBJ_FLAG_HIDDEN);
   } else {
-    // Uptime with spaces between units
-    unsigned long upMs = millis() - startTime;
-    unsigned long secs = upMs / 1000;
-    unsigned long mins = secs / 60;
-    unsigned long hrs = mins / 60;
-    mins %= 60;
-    if (hrs > 0) {
-      snprintf(buf, sizeof(buf), "%s  |  %s  %s  |  %luh %02lum",
-               settings.deviceName, kbStr, msStr, hrs, mins);
-    } else {
-      secs %= 60;
-      snprintf(buf, sizeof(buf), "%s  |  %s  %s  |  %lum %02lus",
-               settings.deviceName, kbStr, msStr, mins, secs);
+    if (lv_obj_has_flag(imgKbIcon, LV_OBJ_FLAG_HIDDEN))
+      lv_obj_clear_flag(imgKbIcon, LV_OBJ_FLAG_HIDDEN);
+
+    // Switch between normal and pressed (depressed) keycap
+    const lv_image_dsc_t* kbImg = orch.keyDown ? &imgdKbPressed : &imgdKbNormal;
+    if (kbImg != prevKbImg) {
+      lv_image_set_src(imgKbIcon, kbImg);
+      prevKbImg = kbImg;
     }
   }
 
-  if (strcmp(buf, prevStatus) != 0) {
-    lv_label_set_text(lblStatus, buf);
-    strncpy(prevStatus, buf, sizeof(prevStatus) - 1);
-    prevStatus[sizeof(prevStatus) - 1] = '\0';
+  // --- Mouse icon animation (matches nRF52) ---
+  if (!mouseEnabled || scheduleSleeping) {
+    if (!lv_obj_has_flag(imgMsIcon, LV_OBJ_FLAG_HIDDEN))
+      lv_obj_add_flag(imgMsIcon, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    if (lv_obj_has_flag(imgMsIcon, LV_OBJ_FLAG_HIDDEN))
+      lv_obj_clear_flag(imgMsIcon, LV_OBJ_FLAG_HIDDEN);
+
+    // Priority: click > scroll > moving(nudge) > normal
+    const lv_image_dsc_t* msImg;
+    int nudge = 0;
+
+    if (now - orch.lastPhantomClickMs < 200) {
+      msImg = &imgdMsClick;
+    } else if (settings.scrollEnabled && (now - lastScrollTime < 200)) {
+      msImg = &imgdMsScroll;
+    } else {
+      msImg = &imgdMsNormal;
+      // Nudge left/right when mouse is actively moving
+      bool mouseMoving = (mouseState == MOUSE_JIGGLING) ||
+                         (orch.phase == PHASE_KB_MOUSE && orch.kbmsSubPhase == KBMS_MOUSE_SWIPE) ||
+                         (orch.phase == PHASE_MOUSE_KB && orch.mskbSubPhase == MSKB_MOUSE_DRAW);
+      if (mouseMoving) {
+        static const int8_t nudgeTable[] = {0, 1, 0, -1};
+        nudge = nudgeTable[(now / 150) % 4];
+      }
+    }
+
+    if (msImg != prevMsImg) {
+      lv_image_set_src(imgMsIcon, msImg);
+      prevMsImg = msImg;
+    }
+    // Apply nudge offset
+    if (nudge != prevMsNudge) {
+      lv_obj_align(imgMsIcon, LV_ALIGN_RIGHT_MID, nudge, 0);
+      prevMsNudge = nudge;
+    }
   }
 }
 
@@ -869,6 +1030,9 @@ static void showCorrectLayout() {
 void setupDisplay() {
   spiInit();
   hwReset();
+
+  // Convert nRF52 1-bit icon bitmaps to LVGL A8 format
+  initIconBitmaps();
 
   // Initialize LVGL
   lv_init();
