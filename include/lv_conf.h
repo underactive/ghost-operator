@@ -21,9 +21,9 @@
    STDLIB WRAPPER SETTINGS
  *=========================*/
 
-#define LV_USE_STDLIB_MALLOC    LV_STDLIB_BUILTIN
-#define LV_USE_STDLIB_STRING    LV_STDLIB_BUILTIN
-#define LV_USE_STDLIB_SPRINTF   LV_STDLIB_BUILTIN
+#define LV_USE_STDLIB_MALLOC    LV_STDLIB_CLIB
+#define LV_USE_STDLIB_STRING    LV_STDLIB_CLIB
+#define LV_USE_STDLIB_SPRINTF   LV_STDLIB_CLIB
 
 #define LV_STDINT_INCLUDE       <stdint.h>
 #define LV_STDDEF_INCLUDE       <stddef.h>
@@ -286,7 +286,7 @@
 #define LV_USE_LZ4_EXTERNAL  0
 
 /* Others */
-#define LV_USE_SNAPSHOT     0
+#define LV_USE_SNAPSHOT     1
 #define LV_USE_MONKEY       0
 #define LV_USE_GRIDNAV      0
 #define LV_USE_FRAGMENT     0

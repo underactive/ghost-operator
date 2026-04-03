@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <lvgl.h>
 #include "serial_cmd.h"
 #include "ble_uart.h"
 #include "state.h"
@@ -8,6 +9,97 @@
 #include "sim_data.h"
 #include "orchestrator.h"
 #include "platform_hal.h"
+
+// ============================================================================
+// Screenshot — captures LVGL screen as BMP, base64-encoded over serial
+// ============================================================================
+
+static const char B64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+static void b64Write(const uint8_t* data, size_t len) {
+  char out[4];
+  for (size_t i = 0; i < len; i += 3) {
+    uint32_t n = (uint32_t)data[i] << 16;
+    if (i + 1 < len) n |= (uint32_t)data[i + 1] << 8;
+    if (i + 2 < len) n |= data[i + 2];
+    out[0] = B64[(n >> 18) & 0x3F];
+    out[1] = B64[(n >> 12) & 0x3F];
+    out[2] = (i + 1 < len) ? B64[(n >> 6) & 0x3F] : '=';
+    out[3] = (i + 2 < len) ? B64[n & 0x3F] : '=';
+    Serial.write(out, 4);
+  }
+}
+
+// Render one row of the screen into a small draw buffer and return it.
+// Uses lv_snapshot_take_to_draw_buf with a 1-row-tall buffer to avoid
+// allocating the full 110KB framebuffer.
+// Fallback: allocate a smaller snapshot (half height) if full fails.
+
+static void takeScreenshot() {
+  const uint16_t w = 320;
+  const uint16_t h = 172;
+
+  Serial.print("[SCREENSHOT] "); Serial.print(w); Serial.print("x"); Serial.println(h);
+  Serial.print("[HEAP] Free: "); Serial.print(ESP.getFreeHeap());
+  Serial.print("  Max block: "); Serial.println(ESP.getMaxAllocHeap());
+
+  // Try full snapshot first — needs ~110KB contiguous
+  lv_draw_buf_t* snap = lv_snapshot_take(lv_screen_active(), LV_COLOR_FORMAT_RGB565);
+  if (!snap) {
+    Serial.println("[ERR] Snapshot failed — not enough contiguous RAM");
+    Serial.println("[HINT] Disconnect BLE first to free memory, then try again");
+    return;
+  }
+
+  uint32_t stride = snap->header.stride;
+  const uint8_t* pixels = snap->data;
+
+  // BMP file: 54-byte header + BGR888 pixel data (bottom-up)
+  uint32_t rowBytes = w * 3;
+  uint32_t rowPad = (4 - (rowBytes % 4)) % 4;
+  uint32_t pixelDataSize = (rowBytes + rowPad) * h;
+  uint32_t fileSize = 54 + pixelDataSize;
+
+  uint8_t bmpHdr[54];
+  memset(bmpHdr, 0, 54);
+  bmpHdr[0] = 'B'; bmpHdr[1] = 'M';
+  bmpHdr[2] = fileSize; bmpHdr[3] = fileSize >> 8;
+  bmpHdr[4] = fileSize >> 16; bmpHdr[5] = fileSize >> 24;
+  bmpHdr[10] = 54;
+  bmpHdr[14] = 40;
+  bmpHdr[18] = w; bmpHdr[19] = w >> 8;
+  bmpHdr[22] = h; bmpHdr[23] = h >> 8;
+  bmpHdr[26] = 1;
+  bmpHdr[28] = 24;
+  bmpHdr[34] = pixelDataSize; bmpHdr[35] = pixelDataSize >> 8;
+  bmpHdr[36] = pixelDataSize >> 16; bmpHdr[37] = pixelDataSize >> 24;
+
+  Serial.println("--- BMP START ---");
+  b64Write(bmpHdr, 54);
+
+  uint8_t rowBuf[960 + 4];  // 320*3 + 4 padding
+  static const uint8_t pad[4] = {0};
+
+  for (int y = h - 1; y >= 0; y--) {
+    const uint8_t* srcRow = pixels + y * stride;
+    for (int x = 0; x < w; x++) {
+      uint16_t px = ((uint16_t)srcRow[x * 2 + 1] << 8) | srcRow[x * 2];
+      uint8_t r5 = (px >> 11) & 0x1F;
+      uint8_t g6 = (px >> 5) & 0x3F;
+      uint8_t b5 = px & 0x1F;
+      rowBuf[x * 3 + 0] = (b5 << 3) | (b5 >> 2);
+      rowBuf[x * 3 + 1] = (g6 << 2) | (g6 >> 4);
+      rowBuf[x * 3 + 2] = (r5 << 3) | (r5 >> 2);
+    }
+    memcpy(rowBuf + rowBytes, pad, rowPad);
+    b64Write(rowBuf, rowBytes + rowPad);
+  }
+
+  Serial.println();
+  Serial.println("--- BMP END ---");
+  lv_draw_buf_destroy(snap);
+  Serial.println("[OK] Screenshot done");
+}
 
 // ============================================================================
 // Serial command handler for ESP32-C6
@@ -106,7 +198,11 @@ void handleSerialCommands() {
         Serial.println("d - Dump settings");
         Serial.println("t - Toggle status push");
         Serial.println("r - Reboot");
+        Serial.println("p - Screenshot (base64 BMP)");
         Serial.println("e - Easter egg (test)");
+        break;
+      case 'p':
+        takeScreenshot();
         break;
       case 's':
         printStatus();
