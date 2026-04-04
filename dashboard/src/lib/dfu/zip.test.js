@@ -33,6 +33,65 @@ describe('parseDfuZip', () => {
     const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
     expect(() => parseDfuZip(buf)).toThrow(/manifest\.json/)
   })
+
+  it('throws when manifest has no application entry', () => {
+    const manifest = { manifest: { bootloader: { dat_file: 'a.dat', bin_file: 'a.bin' } } }
+    const raw = zipSync({ 'manifest.json': strToU8(JSON.stringify(manifest)) })
+    const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
+    expect(() => parseDfuZip(buf)).toThrow(/no application entry/)
+  })
+
+  it('throws when manifest is missing dat_file or bin_file fields', () => {
+    const manifest = { manifest: { application: { bin_file: 'pkg.bin' } } }
+    const raw = zipSync({
+      'manifest.json': strToU8(JSON.stringify(manifest)),
+      'pkg.bin': new Uint8Array([0x01]),
+    })
+    const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
+    expect(() => parseDfuZip(buf)).toThrow(/dat_file or bin_file/)
+  })
+
+  it('throws when dat file referenced in manifest is not present in ZIP', () => {
+    const manifest = { manifest: { application: { dat_file: 'missing.dat', bin_file: 'pkg.bin' } } }
+    const raw = zipSync({
+      'manifest.json': strToU8(JSON.stringify(manifest)),
+      'pkg.bin': new Uint8Array([0x01]),
+    })
+    const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
+    expect(() => parseDfuZip(buf)).toThrow(/missing\.dat/)
+  })
+
+  it('throws when bin file referenced in manifest is not present in ZIP', () => {
+    const manifest = { manifest: { application: { dat_file: 'pkg.dat', bin_file: 'missing.bin' } } }
+    const raw = zipSync({
+      'manifest.json': strToU8(JSON.stringify(manifest)),
+      'pkg.dat': new Uint8Array([0xaa]),
+    })
+    const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
+    expect(() => parseDfuZip(buf)).toThrow(/missing\.bin/)
+  })
+
+  it('resolves dat and bin files stored under a subdirectory path', () => {
+    const manifest = {
+      manifest: {
+        application: {
+          dat_file: 'application/nrf52840_xxaa.dat',
+          bin_file: 'application/nrf52840_xxaa.bin',
+        },
+      },
+    }
+    const raw = zipSync({
+      'manifest.json': strToU8(JSON.stringify(manifest)),
+      'application/nrf52840_xxaa.dat': new Uint8Array([0xdd]),
+      'application/nrf52840_xxaa.bin': new Uint8Array([0xbb, 0xcc]),
+    })
+    const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
+    const { datFile, binFile } = parseDfuZip(buf)
+    expect(datFile).toBeInstanceOf(Uint8Array)
+    expect(binFile).toBeInstanceOf(Uint8Array)
+    expect(datFile).toEqual(new Uint8Array([0xdd]))
+    expect(binFile).toEqual(new Uint8Array([0xbb, 0xcc]))
+  })
 })
 
 describe('getDfuPackageInfo', () => {
