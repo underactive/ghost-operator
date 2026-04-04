@@ -299,13 +299,13 @@ function buildQuery(key, params) {
 /**
  * Build a set command in the appropriate format for the detected platform.
  */
-function buildSet(key, value) {
+export function buildSet(key, value) {
   if (platform.value === 'c6' || platform.value === 'nrf52') {
     // For JSON protocol, type the value appropriately
     let typedValue = value
     if (key === 'slots' || key === 'clickSlots') {
       typedValue = typeof value === 'string' ? value.split(',').map(Number) : value
-    } else if (typeof value === 'string' && !isNaN(value) && value !== '') {
+    } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(value)) {
       typedValue = Number(value)
     }
     return buildJsonSet({ [key]: typedValue })
