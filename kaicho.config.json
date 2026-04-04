@@ -1,0 +1,27 @@
+{
+    "agents": [
+      "claude",
+      "codex",
+      "cursor:composer-2"
+    ],
+    "models": {
+      "claude": "opus[1m]",
+      "codex": "gpt-5.4",
+      "cursor:composer-2": "composer-2"
+    },
+    "fixModels": {
+      "claude": "sonnet[1m]",
+      "codex": "gpt-5.4-mini",
+      "cursor": "composer-2-fast"
+    },
+    "reviewers": [
+      "gemini:gemini-2.5-flash",
+      "opencode:big-pickle",
+      "opencode:openrouter/qwen/qwen3-coder:free",
+      "opencode:openrouter/stepfun/step-3.5-flash:free",
+      "claude:claude-sonnet-4-6"
+    ],
+    "concurrency": 3,
+    "retention": 3,
+    "maxSweepRounds": 3
+  }
