@@ -144,7 +144,6 @@ export function isConnected() {
 function handleTxNotification(event) {
   const value = new TextDecoder().decode(event.target.value)
   rxBuffer += value
-  if (rxBuffer.length > 8192) { rxBuffer = '' }
 
   // Process complete lines
   let newlineIdx
@@ -154,6 +153,10 @@ function handleTxNotification(event) {
     if (line.length > 0 && onLineReceived) {
       onLineReceived(line)
     }
+  }
+
+  if (rxBuffer.length > 8192) {
+    rxBuffer = rxBuffer.slice(-8192)
   }
 }
 
