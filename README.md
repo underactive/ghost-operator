@@ -7,7 +7,7 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 
 ## Features
 
-- **BLE + USB HID Keyboard + Mouse + Consumer Control** - Works over Bluetooth and wired USB simultaneously
+- **BLE + USB HID Keyboard + Mouse + Consumer Control** - USB and BLE are both supported; by default, BLE stops when USB is connected. Enable **BT while USB** in settings to use both transports at once.
 - **Encoder Menu System** - Adjust all settings with single rotary encoder
 - **Flash Storage** - Settings survive sleep and power off (1MB onboard)
 - **Software Power Control** - Deep sleep mode (~3µA)
@@ -19,6 +19,24 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 - **Web Serial DFU** - Update firmware from the web dashboard via USB serial
 - **OTA DFU Mode** - Update firmware over Bluetooth via nRF Connect mobile app
 - **Build Automation** - Local build/flash via Makefile, GitHub Actions CI/CD for releases
+
+---
+
+## Building
+
+**Prerequisites:** Python 3 with pip (used by PlatformIO), and USB access for flashing. Run `make setup` once to install PlatformIO Core and `adafruit-nrfutil` into the project tooling.
+
+From a fresh clone:
+
+1. `make setup` — install PlatformIO + nrfutil (first time)
+2. `make build` — compile the default nRF52 firmware (`seeed_xiao_nrf52840`)
+3. `make flash` — build and flash over USB serial DFU
+
+Other Makefile targets (e.g. `make monitor`, `make release`) wrap `build.sh` and PlatformIO; see `Makefile` and `build.sh` for details. Optional ESP32 LCD environments `c6lcd` and `s3lcd` are defined in `platformio.ini`.
+
+**Dashboard (local dev):** `cd dashboard && npm install && npm run dev` — Vite dev server for the Vue 3 Web Serial dashboard.
+
+Release notes and version history: **[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 
@@ -85,7 +103,7 @@ A wireless Bluetooth device that prevents screen lock and idle timeout. Masquera
 
 ### UI Modes
 
-Eight modes, accessed via function button and menu actions:
+Ten UI modes, accessed via function button and menu actions (separate from **operation modes** — Simple/Simulation/Volume Control and built-in games — chosen in **MODE**):
 
 | Mode | Purpose |
 |------|---------|
@@ -95,8 +113,10 @@ Eight modes, accessed via function button and menu actions:
 | **NAME** | Device name editor; encoder cycles character, button advances position |
 | **DECOY** | BLE identity picker; choose from 10 commercial device presets |
 | **SCHEDULE** | Schedule editor; set mode, start/end times |
-| **MODE** | Operation mode picker (horizontal carousel); Simple/Simulation/Volume Control |
+| **MODE** | Operation mode picker (horizontal carousel); Simple/Simulation/Volume Control (and games where supported) |
 | **SET CLOCK** | Manual clock editor; set hours and minutes |
+| **CAROUSEL** | Full-screen carousel editors for selected settings (named options) |
+| **CLICK SLOTS** | 7-slot phantom click action editor (Left/Middle/Right/Btn4/Btn5/Wheel Up/Down/NONE) |
 
 ### Control Actions
 
@@ -325,7 +345,7 @@ Connect via USB at 115200 baud:
 
 ## Files
 
-PlatformIO splits firmware by target: **`src/common/`** (shared portable code), **`src/nrf52/`** (Seeed XIAO nRF52840 — `env:seeed_xiao_nrf52840`), and optional ESP32 LCD ports under **`src/esp32-c6-lcd-1.47/`** (`env:c6lcd`) and **`src/esp32-s3-lcd-1.47/`** (`env:s3lcd`).
+PlatformIO splits firmware by target: **`src/common/`** (shared portable code), **`src/nrf52/`** (Seeed XIAO nRF52840 — `env:seeed_xiao_nrf52840`; BLE, OLED, encoder, sleep, and related drivers are nRF-only and not built for ESP32 envs), and optional ESP32 LCD ports under **`src/esp32-c6-lcd-1.47/`** (`env:c6lcd`) and **`src/esp32-s3-lcd-1.47/`** (`env:s3lcd`).
 
 | File | Description |
 |------|-------------|
@@ -378,40 +398,12 @@ PlatformIO splits firmware by target: **`src/common/`** (shared portable code), 
 
 ## Version History
 
-| Version | Changes |
-|---------|---------|
-| **2.3.1** | **Simulation tuning dashboard (per-mode sliders for profile weights, phase timing, durations); sim tuning backup/restore in settings export; compressed job performance curve; slider responsiveness fix; stack overflow fix on sim data save; unified save flow** |
-| **2.3.0** | **7-slot click action system (Left/Middle/Right/Btn4/Btn5/Wheel Up/Down per slot); expanded function keys (F1–F20); redesigned pixel art icons; clearer menu labels; Snake game mode; game-specific boot splashes; configurable shift/lunch duration; dashboard settings export/import; work mode timer fix; K+M/M+K phase fixes; Breakout hardening** |
-| **2.2.2** | **Configurable Volume Control buttons (D2/D7 actions); lunch enforcement and keystroke keepalive floor in Simulation mode; unified D3 function button across all modes; carousel callback fix; orchestrator time sync fix; keepalive sound/hold fixes** |
-| **2.2.1** | **Carousel settings page (9 named-option settings as full-screen carousels); system sounds (BLE connect/disconnect alerts); dashboard Bluetooth transport; ISR volatility fix; sleep timeout safety; heap fragmentation elimination; array bounds hardening** |
-| **2.2.0** | **Volume Control operation mode (media controller with 3 display themes); mode picker horizontal carousel with smooth scrolling; mode-specific splash screens; HID consumer control report** |
-| 2.1.0 | Piezo buzzer keyboard sounds (5 profiles with live preview); job performance scaling (0–11); job start time (decoupled from schedule); manual clock setting mode; display optimization (dirty flag, shadow buffer, 20 Hz refresh) |
-| 2.0.0 | Simulation mode: realistic human work patterns (keystroke bursting, mutual KB/mouse exclusion, phantom clicks, window switching, job-specific day schedules); hardware watchdog (WDT); two-stage sleep (light/deep); click type setting; mode picker UI; pixel art icons; dashboard simulation support |
-| 1.10.1 | LiPo discharge curve, BLE idle power management, die temperature, dashboard battery chart, protocol hardening |
-| 1.10.0 | BLE identity presets (decoy masquerade), timed schedule (auto-sleep / full auto) |
-| 1.9.1 | Dashboard smart default (On, auto-off after 3 boots), USB descriptor customization |
-| 1.9.0 | USB HID wired mode, BT while USB, scroll wheel, build automation, real-time dashboard |
-| 1.8.2 | Mute indicator on progress bars, custom name in header, narrower screensaver bars |
-| 1.8.1 | Pac-Man easter egg redesign: power pellet narrative with tunnel transition |
-| 1.8.0 | Mouse movement styles (Bezier/Brownian), compact uptime, activity-aware animation |
-| 1.7.2 | Web Serial DFU — browser-based firmware updates via USB |
-| 1.7.1 | OTA DFU mode via nRF Connect mobile app |
-| 1.7.0 | BLE UART config protocol, Vue 3 web dashboard (USB serial) |
-| 1.6.0 | Modular codebase (15 module pairs), configurable status animation (6 styles), Display/Device menu split |
-| 1.5.0 | Adjustable mouse amplitude (1-5px), inertial movement, reset defaults |
-| 1.4.0 | Scrollable settings menu, display brightness, data-driven menu architecture |
-| 1.3.1 | Fix encoder unresponsive after boot, hybrid ISR+polling, bitmap splash |
-| 1.3.0 | Screensaver mode for OLED burn-in prevention |
-| 1.2.1 | Fix encoder initial state sync bug |
-| 1.2.0 | Multi-key slots, timing profiles (LAZY/NORMAL/BUSY), SLOTS mode |
-| 1.1.1 | Icon-based status, ECG pulse, KB/MS combo cycling |
-| 1.1.0 | Display overhaul, BT icon, HID keycode fix |
-| 1.0.0 | Initial hardware release - encoder menu, flash storage, BLE HID |
+Per-release notes are maintained in **[CHANGELOG.md](CHANGELOG.md)** (canonical version history).
 
 ---
 
 ## License
 
-Do what you want. TARS Industrial Technical Solutions takes no responsibility for angry IT departments.
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**. You may use and share it for **noncommercial** purposes; **commercial** use requires a separate agreement. You must preserve **copyright and license notices** when distributing copies. The full terms are in **[LICENSE](LICENSE)**; the official license text is at [polyformproject.org/licenses/noncommercial/1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0).
 
 *"Fewer parts, more flash"*
