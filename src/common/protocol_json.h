@@ -1,0 +1,6 @@
+#ifndef GHOST_PROTOCOL_JSON_H
+#define GHOST_PROTOCOL_JSON_H
+
+#define JSON_RESP_BUF 1536
+
+#endif

@@ -11,14 +11,12 @@
 #include "orchestrator.h"
 #include "platform_hal.h"
 #include "display.h"
+#include "protocol_json.h"
 
 // ============================================================================
 // JSON config protocol for ESP32-S3
 // Lines starting with '{' are dispatched here from processCommand().
 // ============================================================================
-
-// Response buffer size
-#define JSON_RESP_BUF 1024
 
 // Forward declarations
 static void jsonQueryStatus(JsonDocument& resp);

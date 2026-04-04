@@ -10,6 +10,7 @@
 #include "sim_data.h"
 #include "orchestrator.h"
 #include "platform_hal.h"
+#include "protocol_json.h"
 
 // PlatformIO's nordicnrf52 builder adds -Wl,--wrap=realloc, but the Adafruit
 // nRF52 framework only provides __wrap_malloc/__wrap_free (heap_3.c). ArduinoJson
@@ -23,9 +24,6 @@ extern "C" void* __wrap_realloc(void* ptr, size_t size) {
 // JSON config protocol for nRF52
 // Lines starting with '{' are dispatched here from processCommand().
 // ============================================================================
-
-// Response buffer size — settings response is ~900 bytes; leave headroom for future fields
-#define JSON_RESP_BUF 1536
 
 // Forward declarations
 static void jsonQueryStatus(JsonDocument& resp);
