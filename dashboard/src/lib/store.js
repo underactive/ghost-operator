@@ -868,8 +868,8 @@ export async function importSettings(file) {
   let data
   try {
     data = JSON.parse(text)
-  } catch {
-    throw new Error('Invalid JSON file')
+  } catch (err) {
+    throw new Error(`Invalid JSON file: ${err.message}`)
   }
 
   if (!data.ghost_operator || !data.ghost_operator.settings) {
