@@ -211,18 +211,28 @@ async function restoreFromDfuBackup(delay) {
   }
 
   if (restored) {
-    await sendAndWait(buildAction('save'))
-    // Re-fetch to update UI with restored values
-    await activeTransport.send(buildQuery('settings'))
-    await sleep(delay)
-    await activeTransport.send(buildQuery('status'))
-    statusMessage.value = 'Restored from pre-update backup'
-    setTimeout(() => {
-      if (statusMessage.value === 'Restored from pre-update backup') statusMessage.value = ''
-    }, 4000)
+    try {
+      await sendAndWait(buildAction('save'))
+      await activeTransport.send(buildQuery('settings'))
+      await sleep(delay)
+      await activeTransport.send(buildQuery('status'))
+      statusMessage.value = 'Restored from pre-update backup'
+      setTimeout(() => {
+        if (statusMessage.value === 'Restored from pre-update backup') statusMessage.value = ''
+      }, 4000)
+      clearDfuBackup()
+    } catch (e) {
+      const msg = e.message === 'timeout'
+        ? 'Restore failed: device did not confirm save'
+        : e.message === 'disconnected'
+          ? 'Restore failed: disconnected'
+          : `Restore failed: ${e.message}`
+      statusMessage.value = msg
+      setTimeout(() => { if (statusMessage.value === msg) statusMessage.value = '' }, 4000)
+    }
+  } else {
+    clearDfuBackup()
   }
-
-  clearDfuBackup()
 }
 
 // Battery history (up to 720 entries = 1 hour at 5s polling)
@@ -561,14 +571,26 @@ export async function setSetting(key, value) {
 export async function saveToFlash() {
   saving.value = true
   statusMessage.value = 'Saving...'
-  await sendAndWait(buildAction('save'))
-  cancelSettingsDirtyCompare()
-  savedSnapshot = JSON.stringify({ ...settings })
-  dirty.value = false
-  simDataDirty.value = false
-  saving.value = false
-  statusMessage.value = 'Saved'
-  setTimeout(() => { if (statusMessage.value === 'Saved') statusMessage.value = '' }, 2000)
+  try {
+    await sendAndWait(buildAction('save'))
+    cancelSettingsDirtyCompare()
+    savedSnapshot = JSON.stringify({ ...settings })
+    dirty.value = false
+    simDataDirty.value = false
+    statusMessage.value = 'Saved'
+    setTimeout(() => { if (statusMessage.value === 'Saved') statusMessage.value = '' }, 2000)
+  } catch (e) {
+    const msg = e.message === 'timeout'
+      ? 'Save failed: timeout'
+      : e.message === 'disconnected'
+        ? 'Save failed: disconnected'
+        : `Save failed: ${e.message}`
+    statusMessage.value = msg
+    setTimeout(() => { if (statusMessage.value === msg) statusMessage.value = '' }, 4000)
+    throw e
+  } finally {
+    saving.value = false
+  }
 }
 
 /**
@@ -576,12 +598,21 @@ export async function saveToFlash() {
  */
 export async function resetDefaults() {
   statusMessage.value = 'Resetting...'
-  await sendAndWait(buildAction('defaults'))
-  // Re-fetch settings to reflect defaults
-  await sleep(100)
-  await activeTransport.send(buildQuery('settings'))
-  statusMessage.value = 'Defaults restored'
-  setTimeout(() => { if (statusMessage.value === 'Defaults restored') statusMessage.value = '' }, 2000)
+  try {
+    await sendAndWait(buildAction('defaults'))
+    await sleep(100)
+    await activeTransport.send(buildQuery('settings'))
+    statusMessage.value = 'Defaults restored'
+    setTimeout(() => { if (statusMessage.value === 'Defaults restored') statusMessage.value = '' }, 2000)
+  } catch (e) {
+    const msg = e.message === 'timeout'
+      ? 'Reset failed: timeout'
+      : e.message === 'disconnected'
+        ? 'Reset failed: disconnected'
+        : `Reset failed: ${e.message}`
+    statusMessage.value = msg
+    setTimeout(() => { if (statusMessage.value === msg) statusMessage.value = '' }, 4000)
+  }
 }
 
 /**
@@ -732,36 +763,63 @@ export async function setWorkModeTiming(modeIdx, profileIdx, timing) {
  * Save sim data to flash on device.
  */
 export async function saveSimDataToFlash() {
-  await sendAndWait(buildAction('savesim'))
-  simDataDirty.value = false
-  statusMessage.value = 'Sim data saved'
-  setTimeout(() => { if (statusMessage.value === 'Sim data saved') statusMessage.value = '' }, 2000)
+  try {
+    await sendAndWait(buildAction('savesim'))
+    simDataDirty.value = false
+    statusMessage.value = 'Sim data saved'
+    setTimeout(() => { if (statusMessage.value === 'Sim data saved') statusMessage.value = '' }, 2000)
+  } catch (e) {
+    const msg = e.message === 'timeout'
+      ? 'Sim data save failed: timeout'
+      : e.message === 'disconnected'
+        ? 'Sim data save failed: disconnected'
+        : `Sim data save failed: ${e.message}`
+    statusMessage.value = msg
+    setTimeout(() => { if (statusMessage.value === msg) statusMessage.value = '' }, 4000)
+  }
 }
 
 /**
  * Reset all work modes to factory defaults.
  */
 export async function resetSimDataToDefaults() {
-  await sendAndWait(buildAction('resetsim'))
-  await sleep(100)
-  await fetchSimData()
-  statusMessage.value = 'Sim data reset to defaults'
-  setTimeout(() => { if (statusMessage.value === 'Sim data reset to defaults') statusMessage.value = '' }, 2000)
+  try {
+    await sendAndWait(buildAction('resetsim'))
+    await sleep(100)
+    await fetchSimData()
+    statusMessage.value = 'Sim data reset to defaults'
+    setTimeout(() => { if (statusMessage.value === 'Sim data reset to defaults') statusMessage.value = '' }, 2000)
+  } catch (e) {
+    const msg = e.message === 'timeout'
+      ? 'Sim data reset failed: timeout'
+      : e.message === 'disconnected'
+        ? 'Sim data reset failed: disconnected'
+        : `Sim data reset failed: ${e.message}`
+    statusMessage.value = msg
+    setTimeout(() => { if (statusMessage.value === msg) statusMessage.value = '' }, 4000)
+  }
 }
 
 // --- Internal helpers ---
 
 function sendAndWait(cmd) {
-  return new Promise((resolve) => {
-    const entry = { resolve }
+  return new Promise((resolve, reject) => {
+    const entry = {
+      resolve: (parsed) => {
+        if (parsed.type === 'error') {
+          reject(new Error(parsed.data?.message || 'error'))
+        } else {
+          resolve(parsed)
+        }
+      },
+    }
     pendingQueue.push(entry)
     activeTransport.send(cmd)
-    // Timeout fallback
     setTimeout(() => {
       const idx = pendingQueue.indexOf(entry)
       if (idx !== -1) {
         pendingQueue.splice(idx, 1)
-        resolve({ type: 'error', data: { message: 'timeout' } })
+        reject(new Error('timeout'))
       }
     }, 3000)
   })
