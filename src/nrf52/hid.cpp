@@ -13,6 +13,16 @@
 static unsigned long keystrokePressMs = 0;  // 0=idle; nonzero=press timestamp
 static uint16_t keystrokeHoldMs = 0;
 
+// Non-blocking mouse click release state
+static unsigned long clickPressMs = 0;
+static uint16_t clickHoldMs = 0;
+
+// Non-blocking window switch state machine (0=idle, 1=mod_down, 2=tab_down, 3=tab_up)
+static uint8_t wswState = 0;
+static unsigned long wswMs = 0;
+static uint16_t wswDelay = 0;
+static uint8_t wswModifier = 0;
+
 static inline void flashKbLed() {
   if (!settings.activityLeds) return;
   digitalWrite(LED_BLUE, LOW);  // active LOW
@@ -39,6 +49,34 @@ void tickActivityLeds() {
     uint8_t keycodes[6] = {0};
     dualKeyboardReport(0, keycodes);
     keystrokePressMs = 0;
+  }
+  if (clickPressMs && now - clickPressMs >= clickHoldMs) {
+    if (deviceConnected) {
+      bool ok = blehid.mouseButtonRelease();
+      trackBleNotify(ok);
+    }
+    if (TinyUSBDevice.mounted() && usb_hid.ready()) {
+      usb_hid.mouseReport(RID_MOUSE, 0, 0, 0, 0, 0);
+    }
+    clickPressMs = 0;
+  }
+  if (wswState && now - wswMs >= wswDelay) {
+    uint8_t keycodes[6] = {0};
+    if (wswState == 1) {
+      keycodes[0] = HID_KEY_TAB;
+      dualKeyboardReport(wswModifier, keycodes);
+      wswMs = now;
+      wswDelay = (uint16_t)(50 + random(70));
+      wswState = 2;
+    } else if (wswState == 2) {
+      dualKeyboardReport(wswModifier, keycodes);  // Tab up, modifier still held
+      wswMs = now;
+      wswDelay = (uint16_t)(20 + random(30));
+      wswState = 3;
+    } else {
+      dualKeyboardReport(0, keycodes);  // modifier up
+      wswState = 0;
+    }
   }
 }
 
@@ -204,17 +242,17 @@ void sendKeyUp() {
 }
 
 // ============================================================================
-// PHANTOM MIDDLE-CLICK (blocking — infrequent, ~50-150ms)
+// PHANTOM MOUSE CLICK (non-blocking — release handled by tickActivityLeds)
 // ============================================================================
 
 void sendMouseClick(uint8_t button, uint16_t holdMs) {
   if (!rfCalOk()) return;
+  if (clickPressMs) return;  // click already pending
   markHidActivity();
   flashMouseLed();
   stats.totalMouseClicks++;
   statsDirty = true;
 
-  // Press
   if (deviceConnected) {
     bool ok = blehid.mouseButtonPress(button);
     trackBleNotify(ok);
@@ -223,16 +261,8 @@ void sendMouseClick(uint8_t button, uint16_t holdMs) {
     usb_hid.mouseReport(RID_MOUSE, button, 0, 0, 0, 0);
   }
 
-  delay(holdMs);
-
-  // Release
-  if (deviceConnected) {
-    bool ok = blehid.mouseButtonRelease();
-    trackBleNotify(ok);
-  }
-  if (TinyUSBDevice.mounted() && usb_hid.ready()) {
-    usb_hid.mouseReport(RID_MOUSE, 0, 0, 0, 0, 0);
-  }
+  clickHoldMs = holdMs;
+  clickPressMs = millis();
 }
 
 // ============================================================================
@@ -242,34 +272,18 @@ void sendMouseClick(uint8_t button, uint16_t holdMs) {
 void sendWindowSwitch() {
   if (!settings.windowSwitching) return;
   if (!rfCalOk()) return;
+  if (wswState) return;  // already in progress
   markHidActivity();
   flashKbLed();
 
   uint8_t keycodes[6] = {0};
-  uint8_t modifier;
+  wswModifier = (settings.switchKeys == SWITCH_KEYS_CMD_TAB)
+      ? KEYBOARD_MODIFIER_LEFTGUI : KEYBOARD_MODIFIER_LEFTALT;
 
-  if (settings.switchKeys == SWITCH_KEYS_CMD_TAB) {
-    modifier = KEYBOARD_MODIFIER_LEFTGUI;  // Cmd (Mac)
-  } else {
-    modifier = KEYBOARD_MODIFIER_LEFTALT;  // Alt (Win/Linux, default)
-  }
-
-  // Press modifier
-  dualKeyboardReport(modifier, keycodes);
-  delay(30 + random(30));
-
-  // Press Tab
-  keycodes[0] = HID_KEY_TAB;
-  dualKeyboardReport(modifier, keycodes);
-  delay(50 + random(70));
-
-  // Release Tab
-  keycodes[0] = 0;
-  dualKeyboardReport(modifier, keycodes);
-  delay(20 + random(30));
-
-  // Release modifier
-  dualKeyboardReport(0, keycodes);
+  dualKeyboardReport(wswModifier, keycodes);
+  wswMs = millis();
+  wswDelay = (uint16_t)(30 + random(30));
+  wswState = 1;
 }
 
 // ============================================================================
