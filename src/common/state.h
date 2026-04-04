@@ -104,7 +104,6 @@ extern int8_t currentMouseDx;
 extern int8_t currentMouseDy;
 extern int32_t mouseNetX;
 extern int32_t mouseNetY;
-extern int32_t mouseReturnTotal;
 
 // Scroll state
 extern unsigned long lastScrollTime;

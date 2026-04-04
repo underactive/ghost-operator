@@ -102,7 +102,6 @@ int8_t currentMouseDx = 0;
 int8_t currentMouseDy = 0;
 int32_t mouseNetX = 0;
 int32_t mouseNetY = 0;
-int32_t mouseReturnTotal = 0;
 
 // Scroll state
 unsigned long lastScrollTime = 0;

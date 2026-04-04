@@ -90,7 +90,6 @@ void exitLightSleep() {
   mouseState = MOUSE_IDLE;
   mouseNetX = 0;
   mouseNetY = 0;
-  mouseReturnTotal = 0;
   scheduleNextKey();
   scheduleNextMouseState();
 

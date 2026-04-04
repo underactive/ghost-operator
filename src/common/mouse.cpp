@@ -192,7 +192,6 @@ void handleMouseStateMachine(unsigned long now) {
       }
       if (elapsed >= currentMouseJiggle) {
         mouseState = MOUSE_RETURNING;
-        mouseReturnTotal = abs(mouseNetX) + abs(mouseNetY);
         lastMouseStateChange = now;
         lastMouseStep = now;
         markDisplayDirty();

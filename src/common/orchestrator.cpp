@@ -310,7 +310,6 @@ static void startPhase(ActivityPhase phase, unsigned long now) {
     currentMouseIdle = 0;  // start jiggling immediately (orchestrator owns phase timing)
     mouseNetX = 0;
     mouseNetY = 0;
-    mouseReturnTotal = 0;
     scheduleNextMouseState();
   }
 

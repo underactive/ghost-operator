@@ -113,7 +113,6 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     mouseState = MOUSE_IDLE;
     mouseNetX = 0;
     mouseNetY = 0;
-    mouseReturnTotal = 0;
     scheduleNextKey();
     scheduleNextMouseState();
     lastModeActivity = now;  // wake screensaver on BLE connect

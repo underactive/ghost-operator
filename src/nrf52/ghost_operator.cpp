@@ -432,7 +432,6 @@ void loop() {
     mouseState = MOUSE_IDLE;
     mouseNetX = 0;
     mouseNetY = 0;
-    mouseReturnTotal = 0;
     scheduleNextMouseState();
   }
 
@@ -547,7 +546,6 @@ void loop() {
     mouseState = MOUSE_IDLE;
     mouseNetX = 0;
     mouseNetY = 0;
-    mouseReturnTotal = 0;
     scheduleNextKey();
     scheduleNextMouseState();
     markDisplayDirty();

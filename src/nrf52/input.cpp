@@ -1205,7 +1205,6 @@ void handleButtons() {
         mouseState = MOUSE_IDLE;
         mouseNetX = 0;
         mouseNetY = 0;
-        mouseReturnTotal = 0;
         scheduleNextMouseState();
       }
       // Wake BLE from idle mode on unmute to ensure Mac's HID stack is active
