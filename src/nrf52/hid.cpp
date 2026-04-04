@@ -58,8 +58,9 @@ static inline void trackBleNotify(bool ok) {
 // Track HID activity and request active BLE params if exiting idle mode
 static inline void markHidActivity() {
   lastHidActivity = millis();
-  if (bleIdleMode && deviceConnected) {
-    BLEConnection* conn = Bluefruit.Connection(bleConnHandle);
+  uint16_t handle = bleConnHandle;
+  if (bleIdleMode && deviceConnected && handle != BLE_CONN_HANDLE_INVALID) {
+    BLEConnection* conn = Bluefruit.Connection(handle);
     if (conn) {
       conn->requestConnectionParameter(BLE_INTERVAL_ACTIVE);
       bleIdleMode = false;

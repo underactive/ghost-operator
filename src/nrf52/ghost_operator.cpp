@@ -577,10 +577,11 @@ void loop() {
 
   // BLE idle mode: switch to relaxed connection params after 5s of no HID activity
   static unsigned long lastBleIdleCheck = 0;
-  if (deviceConnected && !bleIdleMode && (now - lastBleIdleCheck >= BLE_IDLE_CHECK_MS)) {
+  uint16_t bleHandle = bleConnHandle;
+  if (deviceConnected && bleHandle != BLE_CONN_HANDLE_INVALID && !bleIdleMode && (now - lastBleIdleCheck >= BLE_IDLE_CHECK_MS)) {
     lastBleIdleCheck = now;
     if (now - lastHidActivity >= BLE_IDLE_THRESHOLD_MS) {
-      BLEConnection* conn = Bluefruit.Connection(bleConnHandle);
+      BLEConnection* conn = Bluefruit.Connection(bleHandle);
       if (conn) {
         conn->requestConnectionParameter(BLE_INTERVAL_IDLE, BLE_SLAVE_LATENCY_IDLE);
         bleIdleMode = true;
