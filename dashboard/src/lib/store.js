@@ -180,10 +180,11 @@ async function restoreFromDfuBackup(delay) {
   let restored = false
 
   // Restore stats — use max(device, backup) so we never lose data
+  const bs = backup.stats ?? {}
   const statsToRestore = {
-    totalKeys: Math.max(status.totalKeys, backup.stats.totalKeys),
-    totalMousePx: Math.max(status.totalMousePx, backup.stats.totalMousePx),
-    totalClicks: Math.max(status.totalClicks, backup.stats.totalClicks),
+    totalKeys: Math.max(status.totalKeys, bs.totalKeys ?? 0),
+    totalMousePx: Math.max(status.totalMousePx, bs.totalMousePx ?? 0),
+    totalClicks: Math.max(status.totalClicks, bs.totalClicks ?? 0),
   }
   if (statsToRestore.totalKeys > status.totalKeys ||
       statsToRestore.totalMousePx > status.totalMousePx ||
@@ -425,6 +426,11 @@ export function handleLine(line) {
     }
   } else if (parsed.type === 'ok' || parsed.type === 'error') {
     if (pendingQueue.length > 0) {
+      const head = pendingQueue[0]
+      if (head.absorbOne) {
+        pendingQueue.shift()
+        return
+      }
       const { resolve } = pendingQueue.shift()
       resolve(parsed)
     }
@@ -456,8 +462,9 @@ async function connectWithTransport(transport, type) {
       stopPolling()
       // Drain pending queue with error responses
       while (pendingQueue.length > 0) {
-        const { resolve } = pendingQueue.shift()
-        resolve({ type: 'error', data: { message: 'disconnected' } })
+        const item = pendingQueue.shift()
+        if (item.absorbOne) continue
+        item.resolve({ type: 'error', data: { message: 'disconnected' } })
       }
       statusMessage.value = 'Disconnected'
     })
@@ -717,16 +724,19 @@ export async function fetchSimData() {
   if (!activeTransport || !activeTransport.isConnected()) return
   simDataLoading.value = true
   const delay = transportType.value === 'ble' ? 150 : 50
-  for (let i = 0; i < 11; i++) {
-    await activeTransport.send(buildQuery('wmode', { i }))
-    await sleep(delay)
+  try {
+    for (let i = 0; i < 11; i++) {
+      await activeTransport.send(buildQuery('wmode', { i }))
+      await sleep(delay)
+    }
+    for (let j = 0; j < 3; j++) {
+      await activeTransport.send(buildQuery('simblocks', { i: j }))
+      await sleep(delay)
+    }
+    simDataDirty.value = false
+  } finally {
+    simDataLoading.value = false
   }
-  for (let j = 0; j < 3; j++) {
-    await activeTransport.send(buildQuery('simblocks', { i: j }))
-    await sleep(delay)
-  }
-  simDataLoading.value = false
-  simDataDirty.value = false
 }
 
 /**
@@ -807,8 +817,20 @@ export async function resetSimDataToDefaults() {
 
 function sendAndWait(cmd) {
   return new Promise((resolve, reject) => {
+    if (!activeTransport) {
+      reject(new Error('disconnected'))
+      return
+    }
+    let timeoutId = null
+    const clearTimer = () => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+    }
     const entry = {
       resolve: (parsed) => {
+        clearTimer()
         if (parsed.type === 'error') {
           reject(new Error(parsed.data?.message || 'error'))
         } else {
@@ -817,14 +839,27 @@ function sendAndWait(cmd) {
       },
     }
     pendingQueue.push(entry)
-    activeTransport.send(cmd)
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
+      timeoutId = null
       const idx = pendingQueue.indexOf(entry)
       if (idx !== -1) {
-        pendingQueue.splice(idx, 1)
+        pendingQueue.splice(idx, 1, { absorbOne: true })
         reject(new Error('timeout'))
       }
     }, 3000)
+
+    void (async () => {
+      try {
+        await activeTransport.send(cmd)
+      } catch (e) {
+        const idx = pendingQueue.indexOf(entry)
+        if (idx !== -1) {
+          pendingQueue.splice(idx, 1)
+          clearTimer()
+          reject(e)
+        }
+      }
+    })()
   })
 }
 
