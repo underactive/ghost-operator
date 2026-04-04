@@ -123,7 +123,15 @@ async function readLoop() {
         if (done) break
 
         rxBuffer += decoder.decode(value, { stream: true })
-        if (rxBuffer.length > 8192) { rxBuffer = '' }
+        if (rxBuffer.length > 8192) {
+          const lastNl = rxBuffer.lastIndexOf('\n')
+          if (lastNl >= 0) {
+            rxBuffer = rxBuffer.substring(lastNl + 1)
+          }
+          if (rxBuffer.length > 8192) {
+            rxBuffer = rxBuffer.substring(rxBuffer.length - 8192)
+          }
+        }
 
         // Process complete lines
         let newlineIdx
