@@ -325,7 +325,7 @@ function buildAction(action) {
 
 // --- Line handler ---
 
-function handleLine(line) {
+export function handleLine(line) {
   let parsed
   if (line.startsWith('{')) {
     // JSON response (from C6)
