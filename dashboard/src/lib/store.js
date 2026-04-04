@@ -232,6 +232,20 @@ let lastBatteryDevice = ''
 
 // Snapshot of last-saved settings for dirty detection
 let savedSnapshot = ''
+let dirtyCompareRaf = null
+function scheduleSettingsDirtyCompare() {
+  if (dirtyCompareRaf !== null) return
+  dirtyCompareRaf = requestAnimationFrame(() => {
+    dirtyCompareRaf = null
+    dirty.value = JSON.stringify(settings) !== savedSnapshot
+  })
+}
+function cancelSettingsDirtyCompare() {
+  if (dirtyCompareRaf !== null) {
+    cancelAnimationFrame(dirtyCompareRaf)
+    dirtyCompareRaf = null
+  }
+}
 
 // Status polling interval
 let pollInterval = null
@@ -348,6 +362,7 @@ export function handleLine(line) {
       const s = parseSettings(parsed.data)
       Object.assign(settings, s)
     }
+    cancelSettingsDirtyCompare()
     savedSnapshot = JSON.stringify({ ...settings })
     dirty.value = false
     // Update device name from settings (serial doesn't provide it at connect time)
@@ -536,7 +551,7 @@ export async function setSetting(key, value) {
   } else if (key in settings) {
     settings[key] = typeof settings[key] === 'number' ? Number(value) : value
   }
-  dirty.value = JSON.stringify(settings) !== savedSnapshot
+  scheduleSettingsDirtyCompare()
 }
 
 /**
@@ -546,6 +561,7 @@ export async function saveToFlash() {
   saving.value = true
   statusMessage.value = 'Saving...'
   await sendAndWait(buildAction('save'))
+  cancelSettingsDirtyCompare()
   savedSnapshot = JSON.stringify({ ...settings })
   dirty.value = false
   simDataDirty.value = false
