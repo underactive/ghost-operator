@@ -37,7 +37,7 @@ void loadDefaults() {
   settings.scheduleEnd = 204;    // 17:00 (204 * 5min = 1020min = 17h)
   settings.invertDial = 0;
   // Simulation mode defaults
-  settings.operationMode = OP_SIMULATION;
+  settings.operationMode = OP_SIMPLE;
   settings.jobSimulation = 0;     // Staff
   settings.jobPerformance = 5;    // Baseline (50%)
   settings.jobStartTime = 96;    // 8:00 (96 * 5min = 480min = 8h)
