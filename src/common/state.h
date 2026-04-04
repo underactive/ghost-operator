@@ -121,8 +121,8 @@ extern float batteryVoltage;
 extern bool batteryCharging;
 
 // LED timing
-extern unsigned long ledKbOffMs;
-extern unsigned long ledMouseOffMs;
+extern unsigned long ledKbOnMs;
+extern unsigned long ledMouseOnMs;
 
 // Serial status push (toggle with 't' command)
 extern bool serialStatusPush;

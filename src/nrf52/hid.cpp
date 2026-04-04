@@ -9,27 +9,36 @@
 // Activity LED flash duration
 #define LED_FLASH_MS 50
 
+// Non-blocking keystroke release state (Simple mode press/release state machine)
+static unsigned long keystrokePressMs = 0;  // 0=idle; nonzero=press timestamp
+static uint16_t keystrokeHoldMs = 0;
+
 static inline void flashKbLed() {
   if (!settings.activityLeds) return;
   digitalWrite(LED_BLUE, LOW);  // active LOW
-  ledKbOffMs = millis() + LED_FLASH_MS;
+  ledKbOnMs = millis();
 }
 
 static inline void flashMouseLed() {
   if (!settings.activityLeds) return;
   digitalWrite(LED_GREEN, LOW);  // active LOW
-  ledMouseOffMs = millis() + LED_FLASH_MS;
+  ledMouseOnMs = millis();
 }
 
 void tickActivityLeds() {
   unsigned long now = millis();
-  if (ledKbOffMs && (now >= ledKbOffMs || !settings.activityLeds)) {
+  if (ledKbOnMs && (now - ledKbOnMs >= LED_FLASH_MS || !settings.activityLeds)) {
     digitalWrite(LED_BLUE, HIGH);
-    ledKbOffMs = 0;
+    ledKbOnMs = 0;
   }
-  if (ledMouseOffMs && (now >= ledMouseOffMs || !settings.activityLeds)) {
+  if (ledMouseOnMs && (now - ledMouseOnMs >= LED_FLASH_MS || !settings.activityLeds)) {
     digitalWrite(LED_GREEN, HIGH);
-    ledMouseOffMs = 0;
+    ledMouseOnMs = 0;
+  }
+  if (keystrokePressMs && now - keystrokePressMs >= keystrokeHoldMs) {
+    uint8_t keycodes[6] = {0};
+    dualKeyboardReport(0, keycodes);
+    keystrokePressMs = 0;
   }
 }
 
@@ -150,15 +159,14 @@ void sendKeystroke() {
     uint8_t mod = 1 << (key.keycode - HID_KEY_CONTROL_LEFT);
     dualKeyboardReport(mod & gain, keycodes);
     playKeySound();
-    delay(30);
-    dualKeyboardReport(0, keycodes);
+    keystrokePressMs = millis();
+    keystrokeHoldMs = 30;
   } else {
     keycodes[0] = key.keycode & gain;
     dualKeyboardReport(0, keycodes);
     playKeySound();
-    delay(50);
-    keycodes[0] = 0;
-    dualKeyboardReport(0, keycodes);
+    keystrokePressMs = millis();
+    keystrokeHoldMs = 50;
   }
 
   pickNextKey();

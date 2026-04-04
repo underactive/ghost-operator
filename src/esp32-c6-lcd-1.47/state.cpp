@@ -118,8 +118,8 @@ float batteryVoltage = 5.0;
 bool batteryCharging = false;
 
 // LED timing
-unsigned long ledKbOffMs = 0;
-unsigned long ledMouseOffMs = 0;
+unsigned long ledKbOnMs = 0;
+unsigned long ledMouseOnMs = 0;
 
 // Serial status push (off by default)
 bool serialStatusPush = false;
