@@ -45,6 +45,9 @@ void invalidateDisplayShadow() { shadowValid = false; }
 
 // Send a contiguous range of SSD1306 pages via I2C (0-indexed, inclusive)
 static void sendPages(uint8_t startPage, uint8_t endPage) {
+  static uint8_t i2cFailCount = 0;
+  extern void i2cBusRecovery();  // defined in ghost_operator.cpp
+
   display.ssd1306_command(SSD1306_PAGEADDR);
   display.ssd1306_command(startPage);
   display.ssd1306_command(endPage);
@@ -61,7 +64,19 @@ static void sendPages(uint8_t startPage, uint8_t endPage) {
     uint16_t chunk = min((uint16_t)I2C_DATA_CHUNK, (uint16_t)(len - i));
     Wire.write(buf + i, chunk);
     i += chunk;
-    Wire.endTransmission();
+    uint8_t err = Wire.endTransmission();
+    if (err) {
+      if (++i2cFailCount >= 3) {
+        i2cFailCount = 0;
+        i2cBusRecovery();
+        Wire.begin();
+        Wire.setClock(400000);
+        displayInitialized = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+        invalidateDisplayShadow();
+      }
+      return;
+    }
+    i2cFailCount = 0;
   }
 }
 
