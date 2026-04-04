@@ -50,32 +50,11 @@
 ## Architecture
 
 ### Core Files
-Modular architecture — 23 `.h/.cpp` module pairs + lean `.ino` entry point, all in `src/`:
+Firmware is split between **`src/common/`** (portable) and **`src/nrf52/`** (Seeed XIAO nRF52840). The `seeed_xiao_nrf52840` environment in `platformio.ini` compiles only those trees (`build_src_filter = +<common/> +<nrf52/>`) and uses `-Isrc/common` and `-Isrc/nrf52`.
 
-- `src/ghost_operator.ino` - Entry point: setup(), loop(), BLE + USB HID setup/callbacks
-- `src/config.h` - All `#define` constants, enums, structs (header-only)
-- `src/keys.h/.cpp` - Const data tables (AVAILABLE_KEYS, MENU_ITEMS, names)
-- `src/icons.h/.cpp` - PROGMEM bitmaps (splash, BT icon, USB icon, arrows)
-- `src/state.h/.cpp` - All ~60 mutable globals as `extern` declarations
-- `src/settings.h/.cpp` - Flash persistence + value accessors
-- `src/timing.h/.cpp` - Profiles, scheduling, formatting
-- `src/encoder.h/.cpp` - ISR + polling quadrature decode
-- `src/battery.h/.cpp` - ADC battery reading + charge status
-- `src/hid.h/.cpp` - Keystroke + mouse + scroll sending (BLE + USB dual-transport)
-- `src/mouse.h/.cpp` - Mouse state machine with sine easing
-- `src/sleep.h/.cpp` - Deep sleep sequence
-- `src/screenshot.h/.cpp` - PNG encoder + base64 serial output
-- `src/serial_cmd.h/.cpp` - Serial debug commands + status
-- `src/input.h/.cpp` - Encoder dispatch, buttons, name editor
-- `src/display.h/.cpp` - All rendering (dirty flag, shadow buffer page redraw, ~2900 lines, largest module)
-- `src/ble_uart.h/.cpp` - BLE UART (NUS) + transport-agnostic config protocol
-- `src/sound.h/.cpp` - Piezo buzzer keyboard sound profiles (5 types) with live preview; `canPlayGameSound()` shared by game modules
-- `src/orchestrator.h/.cpp` - Simulation activity orchestrator (phase cycling, mutual exclusion, job performance scaling)
-- `src/sim_data.h/.cpp` - Simulation data tables (job templates, work modes, phase timing)
-- `src/schedule.h/.cpp` - Timed schedule (auto-sleep/full auto, light/deep sleep, time sync)
-- `src/breakout.h/.cpp` - Breakout arcade game (ball physics, paddle, bricks)
-- `src/snake.h/.cpp` - Classic snake game (grid-based, configurable walls)
-- `src/racer.h/.cpp` - Ghost Racer side-scrolling racing game
+**Portable (`src/common/`):** `config.h` — `#define` constants, enums, structs; `keys.h` / `keys.cpp` — AVAILABLE_KEYS, MENU_ITEMS, names; `timing.h` / `timing.cpp` — profiles, scheduling, formatting; `mouse.h` / `mouse.cpp` — mouse state machine with sine easing; `schedule.h` / `schedule.cpp` — timed schedule logic; `orchestrator.h` / `orchestrator.cpp` — simulation activity orchestrator; `sim_data.h` / `sim_data.cpp` — job templates, work modes, phase timing; `settings.h`, `settings_pure.h` / `settings_common.cpp` — `loadDefaults()`, `getSettingValue()`, `setSettingValue()`, `formatMenuValue()`; `state.h` — portable globals; `hid_keycodes.h`; `platform_hal.h`.
+
+**nRF52 (`src/nrf52/`):** `ghost_operator.cpp` — entry (`setup()`, `loop()`, BLE + USB HID setup/callbacks); `settings_nrf52.cpp` — `loadSettings()` / `saveSettings()` and flash I/O; `schedule_nrf52.cpp` — platform hooks; `sim_data_flash.cpp` — flash-backed sim data; `state.h` / `state.cpp` — includes portable `state.h`, adds hardware/BLE/USB objects and game macros; paired `.h` / `.cpp` modules — `icons` (PROGMEM bitmaps including splash), `encoder`, `battery`, `hid`, `sleep`, `screenshot`, `serial_cmd`, `input`, `display` (~2900 lines, largest module), `ble_uart` (NUS + config protocol), `sound`, `protocol`, `breakout`, `snake`, `racer`.
 
 ### Dependencies
 - Adafruit Bluefruit (built into Seeed nRF52 core)
@@ -291,7 +270,7 @@ WEB → DEVICE                    DEVICE → WEB
 - Text protocol: `?` = query, `=` = set, `!` = action, pipe-delimited responses
 - Settings changes apply to in-memory struct immediately (like encoder); flash save on `!save`
 - BLE path: 20-byte chunked writes via `bleWrite()` for default MTU compatibility
-- Serial path: `serialWrite()` in `src/serial_cmd.cpp` — line-buffered, dispatches `?/=/!` prefixed lines to `processCommand()`
+- Serial path: `serialWrite()` in `src/nrf52/serial_cmd.cpp` — line-buffered, dispatches `?/=/!` prefixed lines to `processCommand()`
 - `pushSerialStatus()` proactively sends `?status` response on state changes (key sent, profile/mode toggle, mouse transition) — guarded by `serialStatusPush` flag (default OFF; dashboard enables via `=statusPush:1` on connect; serial `t` command toggles manually)
 - NUS not added to advertising packet (would overflow 31 bytes); discovered via `optionalServices`
 - Web dashboard (Vue 3 + Vite) in `dashboard/` connects via Chrome Web Serial API (USB)
@@ -352,7 +331,7 @@ See [docs/CLAUDE.md/version-history.md](docs/CLAUDE.md/version-history.md) for f
 - **Optimization:** `build_unflags = -Ofast` overrides PlatformIO's default; uses `-Os` to match Arduino IDE behavior. `-Ofast` can cause subtle issues with USB/BLE init.
 - **`lib_archive = no`:** Critical — prevents PlatformIO from archiving libraries into `.a` files. TinyUSB uses indirect function pointer driver tables that the linker strips from archives. Without this, USB CDC/HID doesn't work.
 - **`extra_script.py`:** Adds the CC310 crypto library path (`libnrf_cc310_0.9.13-no-interrupts.a`) that PlatformIO's framework builder doesn't include.
-- **Settings magic number:** `SETTINGS_MAGIC` in `src/config.h` encodes the settings struct schema version. Bump it when the `Settings` struct layout changes to trigger a safe `loadDefaults()` reset instead of reading corrupt data from flash.
+- **Settings magic number:** `SETTINGS_MAGIC` in `src/common/config.h` encodes the settings struct schema version. Bump it when the `Settings` struct layout changes to trigger a safe `loadDefaults()` reset instead of reading corrupt data from flash.
 - **DFU ZIP generation:** The Seeed nRF52 toolchain automatically generates a `.zip` DFU package alongside the `.hex` during compilation (via `adafruit-nrfutil`). No extra build step required.
 - **CI mirror:** Release workflow mirrors DFU artifacts from the private `ghost-operator-v2` repo to the public `ghost-operator` repo for distribution.
 
@@ -367,7 +346,7 @@ The custom board JSON (`boards/seeed_xiao_nrf52840.json`) requires several field
 
 ### Environment Variables
 
-No environment variables are used in local builds. Configuration is sourced entirely from `src/config.h` preprocessor defines and git tags.
+No environment variables are used in local builds. Configuration is sourced entirely from `src/common/config.h` preprocessor defines and git tags.
 
 **CI/CD (GitHub Actions) secrets:**
 
@@ -401,7 +380,7 @@ No formal linting or formatting tools are configured (no `.clang-format`, `.edit
 - `volatile` for ISR-accessed variables; `const` for immutable data
 - Struct-based data (C idiom), not C++ classes
 - `extern` declarations in headers; definitions in `.cpp`
-- Game state macros: `gBrk` (breakout), `gSnk` (snake), `gRcr` (racer) — defined in `src/state.h` as `#define gBrk (gameState.brk)` etc., accessing the shared `GameState` union
+- Game state macros: `gBrk` (breakout), `gSnk` (snake), `gRcr` (racer) — defined in `src/nrf52/state.h` as `#define gBrk (gameState.brk)` etc., accessing the shared `GameState` union
 
 **Vue/JS dashboard specifics:**
 - Vue 3 Composition API with `<script setup>` syntax
@@ -409,7 +388,7 @@ No formal linting or formatting tools are configured (no `.clang-format`, `.edit
 - Scoped styles with `<style scoped>`
 - CSS custom properties at `:root` for theming
 
-For new contributions, follow the patterns in the largest modules (`src/display.cpp`, `src/settings.cpp`, `src/keys.cpp`, `App.vue`, `store.js`).
+For new contributions, follow the patterns in the largest modules (`src/nrf52/display.cpp`, `src/common/settings_common.cpp`, `src/nrf52/settings_nrf52.cpp`, `src/common/keys.cpp`, `App.vue`, `store.js`).
 
 ---
 
@@ -429,7 +408,7 @@ For new contributions, follow the patterns in the largest modules (`src/display.
 
 ### WebUSB (Firmware)
 - **What:** Auto-launches the web dashboard when the device is plugged in via USB
-- **Loaded via:** `Adafruit_USBD_WebUSB` class in `src/ghost_operator.ino`
+- **Loaded via:** `Adafruit_USBD_WebUSB` class in `src/nrf52/ghost_operator.cpp`
 - **Lifecycle:** Registered before USB stack init; Chrome navigates to landing URL on device connect
 - **Environment gating:** Only active when `dashboardEnabled` setting is on. Smart default: auto-disables after 3 boots if user never interacts with it; any explicit toggle pins it permanently.
 - **Landing URL:** `tarsindustrial.tech/ghost-operator/dashboard?welcome`
@@ -449,7 +428,7 @@ For new contributions, follow the patterns in the largest modules (`src/display.
 4. **Custom board definition required** - The Seeed XIAO nRF52840 is not in PlatformIO's board registry. The custom board JSON in `boards/` and framework override in `platformio.ini` must be kept in sync with the Seeed Arduino core version. See "PlatformIO Board JSON Gotchas" in Build Configuration for required fields.
 5. **`lib_archive = no` is mandatory** - PlatformIO's default library archiving strips TinyUSB's indirect driver table references, breaking USB CDC/HID. Do not remove this setting from `platformio.ini`.
 5. **D0/D1 (A0/A1) are analog-capable** - `analogRead()` on these pins disconnects the digital input buffer, breaking encoder reads. Use `NRF_FICR->DEVICEADDR` or other sources for entropy.
-6. **SoftDevice register access** - When the SoftDevice (BLE stack) is active, do NOT write directly to `NRF_POWER->GPREGRET` or other SoftDevice-owned registers. Use the `sd_power_*()` SVCall API instead. Direct access causes a hard fault. This affects `enterOTADfu()` from `wiring.h` — use `resetToDfu()` from `src/ble_uart.h` instead.
+6. **SoftDevice register access** - When the SoftDevice (BLE stack) is active, do NOT write directly to `NRF_POWER->GPREGRET` or other SoftDevice-owned registers. Use the `sd_power_*()` SVCall API instead. Direct access causes a hard fault. This affects `enterOTADfu()` from `wiring.h` — use `resetToDfu()` from `src/nrf52/ble_uart.h` instead.
 
 ---
 
@@ -470,7 +449,7 @@ BLE UART and USB serial maintain line buffers (`uartBuf`, `serialBuf`) that accu
 On the nRF52's 256KB RAM with no heap compaction, repeated `String +=` causes heap fragmentation that accumulates over weeks of uptime. Use `snprintf()` into stack-allocated `char[]` buffers for protocol responses (`cmdQueryStatus`, `cmdQuerySettings`) and any function called more than once per second. Reserve `String` for one-shot or display-only code where allocation lifetime is short.
 
 ### 5. Use symbolic constants for menu indices
-Never hardcode `menuCursor = N` — use the `MENU_IDX_*` defines from `src/keys.h` (`MENU_IDX_KEY_SLOTS`, `MENU_IDX_SCHEDULE`, `MENU_IDX_BLE_IDENTITY`). These must match `MENU_ITEMS[]` order in `src/keys.cpp`. When reordering or inserting menu items, update both the array and the index defines together.
+Never hardcode `menuCursor = N` — use the `MENU_IDX_*` defines from `src/common/keys.h` (`MENU_IDX_KEY_SLOTS`, `MENU_IDX_SCHEDULE`, `MENU_IDX_BLE_IDENTITY`). These must match `MENU_ITEMS[]` order in `src/common/keys.cpp`. When reordering or inserting menu items, update both the array and the index defines together.
 
 ### 6. Throttle event-driven output
 `pushSerialStatus()` has a 200ms minimum interval guard to prevent BLE stack saturation. Any new function that sends data in response to frequent events (keystroke, mouse transition, timer tick) must implement similar throttling. The BLE UART's 20-byte chunked writes amplify the cost — a single 200-byte status response requires ~10 BLE write operations.
@@ -591,19 +570,19 @@ After audit findings have been addressed, update the `implementation.md` file in
 ## Common Modifications
 
 ### Version bumps
-Version string appears in 8 files: `src/config.h` (firmware `VERSION` define), `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `App.vue`, `USER_MANUAL.md` (x2 — header + footer), `dashboard/package.json`, and `dashboard/package-lock.json` (x2).
+Version string appears in 8 files: `src/common/config.h` (firmware `VERSION` define), `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `App.vue`, `USER_MANUAL.md` (x2 — header + footer), `dashboard/package.json`, and `dashboard/package-lock.json` (x2).
 
 **Dashboard version is kept in sync with the firmware version.** Always bump `App.vue`, `dashboard/package.json`, and `dashboard/package-lock.json` alongside the other version files during any version bump.
 
 ### Add a new keystroke option
-1. Add entry to `AVAILABLE_KEYS[]` array in `src/keys.cpp`
+1. Add entry to `AVAILABLE_KEYS[]` array in `src/common/keys.cpp`
 2. Include HID keycode and display name
 3. Set `isModifier` flag appropriately
-4. Update `NUM_KEYS` in `src/config.h`
-5. Add 3-char short name to `SHORT_NAMES[]` in `slotName()` function in `src/display.cpp`
+4. Update `NUM_KEYS` in `src/common/config.h`
+5. Add 3-char short name to `SHORT_NAMES[]` in `slotName()` function in `src/nrf52/display.cpp`
 
 ### Change timing range
-Modify these defines in `src/config.h`:
+Modify these defines in `src/common/config.h`:
 ```cpp
 #define VALUE_MIN_MS          500UL    // 0.5 seconds
 #define VALUE_MAX_KEY_MS      30000UL  // 30 seconds (keyboard)
@@ -612,23 +591,23 @@ Modify these defines in `src/config.h`:
 ```
 
 ### Change mouse randomness
-In `src/config.h`:
+In `src/common/config.h`:
 ```cpp
 #define RANDOMNESS_PERCENT 20  // ±20%
 ```
 
 ### Change mouse amplitude range
-Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `src/keys.cpp` (minVal/maxVal currently 1–5). Only applies to Brownian mode — Bezier uses random sweep radius and ignores `mouseAmplitude`. The JIGGLING case in `src/mouse.cpp` applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
+Modify `MENU_ITEMS[]` entry for `SET_MOUSE_AMP` in `src/common/keys.cpp` (minVal/maxVal currently 1–5). Only applies to Brownian mode — Bezier uses random sweep radius and ignores `mouseAmplitude`. The JIGGLING case in `src/common/mouse.cpp` applies `mouseAmplitude` per-step via sine easing (`amp = mouseAmplitude * sin(π × progress)`). `pickNewDirection()` stores unit vectors only (-1/0/+1). The return phase clamps at `min(5, remaining)` per axis, so amplitudes above 5 would require updating the return logic.
 
 ### Add new menu setting
-1. Add `SettingId` enum entry in `src/config.h`
-2. Add field to `Settings` struct in `src/config.h` (before `checksum`)
-3. Set default in `loadDefaults()` in `src/settings.cpp`, add bounds check in `loadSettings()`
-4. Add `MenuItem` entry to `MENU_ITEMS[]` array in `src/keys.cpp` (update `MENU_ITEM_COUNT` in `src/config.h`)
-5. Add cases to `getSettingValue()` and `setSettingValue()` in `src/settings.cpp` — **use `clampVal()` in `setSettingValue()`** to enforce bounds
+1. Add `SettingId` enum entry in `src/common/config.h`
+2. Add field to `Settings` struct in `src/common/config.h` (before `checksum`)
+3. Set default in `loadDefaults()` in `src/common/settings_common.cpp`, add bounds check in `loadSettings()` in `src/nrf52/settings_nrf52.cpp`
+4. Add `MenuItem` entry to `MENU_ITEMS[]` array in `src/common/keys.cpp` (update `MENU_ITEM_COUNT` in `src/common/config.h`)
+5. Add cases to `getSettingValue()` and `setSettingValue()` in `src/common/settings_common.cpp` — **use `clampVal()` in `setSettingValue()`** to enforce bounds
 6. If the setting uses an array-indexed format (e.g., `FMT_ANIM_NAME`), add a bounds guard in `formatMenuValue()`: `(val < COUNT) ? NAMES[val] : "???"`
-7. If the new item changes existing `MENU_ITEMS[]` positions, update `MENU_IDX_*` defines in `src/keys.h`
-8. If adding a protocol `=key:value` command, add the case in `cmdSetValue()` in `src/ble_uart.cpp`
+7. If the new item changes existing `MENU_ITEMS[]` positions, update `MENU_IDX_*` defines in `src/common/keys.h`
+8. If adding a protocol `=key:value` command, add the case in `cmdSetValue()` in `src/nrf52/ble_uart.cpp`
 9. `calcChecksum()` auto-adapts (loops `sizeof(Settings) - 1`)
 
 ### Change device name
@@ -643,31 +622,35 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 
 | File | Purpose |
 |------|---------|
-| `src/ghost_operator.ino` | Entry point: setup(), loop(), BLE + USB HID setup/callbacks |
-| `src/config.h` | Constants, enums, structs (header-only) |
-| `src/keys.h/.cpp` | Const data tables (keys, menu items, names) |
-| `src/icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, USB icon, arrows) |
-| `src/state.h/.cpp` | All mutable globals (extern declarations) |
-| `src/settings.h/.cpp` | Flash persistence + value accessors |
-| `src/timing.h/.cpp` | Profiles, scheduling, formatting |
-| `src/encoder.h/.cpp` | ISR + polling quadrature decode |
-| `src/battery.h/.cpp` | ADC battery reading |
-| `src/hid.h/.cpp` | Keystroke + mouse + scroll sending (BLE + USB dual-transport) |
-| `src/mouse.h/.cpp` | Mouse state machine with sine easing |
-| `src/sleep.h/.cpp` | Deep sleep sequence |
-| `src/screenshot.h/.cpp` | PNG encoder + base64 serial output |
-| `src/serial_cmd.h/.cpp` | Serial debug commands + status |
-| `src/input.h/.cpp` | Encoder dispatch, buttons, name editor |
-| `src/display.h/.cpp` | All rendering (~2900 lines, largest module) |
-| `src/ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
-| `src/sound.h/.cpp` | Piezo buzzer keyboard sound profiles (5 types) |
-| `src/orchestrator.h/.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
-| `src/sim_data.h/.cpp` | Simulation data tables (job templates, work modes, phase timing) |
-| `src/schedule.h/.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |
-| `src/breakout.h/.cpp` | Breakout arcade game (ball physics, paddle, bricks) |
-| `src/snake.h/.cpp` | Classic snake game (grid-based, configurable walls) |
-| `src/racer.h/.cpp` | Ghost Racer side-scrolling racing game |
-| `src/ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit raw) |
+| `src/common/config.h` | Constants, enums, structs (header-only) |
+| `src/common/keys.h` / `keys.cpp` | Const data tables (keys, menu items, names) |
+| `src/common/timing.h` / `timing.cpp` | Profiles, scheduling, formatting |
+| `src/common/mouse.h` / `mouse.cpp` | Mouse state machine with sine easing |
+| `src/common/schedule.h` / `schedule.cpp` | Timed schedule (shared logic) |
+| `src/common/orchestrator.h` / `orchestrator.cpp` | Simulation activity orchestrator |
+| `src/common/sim_data.h` / `sim_data.cpp` | Simulation data tables (job templates, work modes, phase timing) |
+| `src/common/settings.h`, `settings_pure.h` / `settings_common.cpp` | Shared settings API (`loadDefaults()`, getters/setters, `formatMenuValue()`) |
+| `src/common/state.h` | Portable globals |
+| `src/nrf52/ghost_operator.cpp` | Entry point: setup(), loop(), BLE + USB HID setup/callbacks |
+| `src/nrf52/settings_nrf52.cpp` | Flash-backed `loadSettings()` / `saveSettings()` |
+| `src/nrf52/schedule_nrf52.cpp` | nRF52 schedule hooks |
+| `src/nrf52/sim_data_flash.cpp` | Flash-backed simulation data |
+| `src/nrf52/state.h` / `state.cpp` | nRF52 globals, hardware handles, game macros |
+| `src/nrf52/icons.h` / `icons.cpp` | PROGMEM bitmaps (splash, BT icon, USB icon, arrows) |
+| `src/nrf52/encoder.h` / `encoder.cpp` | ISR + polling quadrature decode |
+| `src/nrf52/battery.h` / `battery.cpp` | ADC battery reading |
+| `src/nrf52/hid.h` / `hid.cpp` | Keystroke + mouse + scroll sending (BLE + USB dual-transport) |
+| `src/nrf52/sleep.h` / `sleep.cpp` | Deep sleep sequence |
+| `src/nrf52/screenshot.h` / `screenshot.cpp` | PNG encoder + base64 serial output |
+| `src/nrf52/serial_cmd.h` / `serial_cmd.cpp` | Serial debug commands + status |
+| `src/nrf52/input.h` / `input.cpp` | Encoder dispatch, buttons, name editor |
+| `src/nrf52/display.h` / `display.cpp` | All rendering (~2900 lines, largest module) |
+| `src/nrf52/ble_uart.h` / `ble_uart.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `src/nrf52/sound.h` / `sound.cpp` | Piezo buzzer keyboard sound profiles (5 types) |
+| `src/nrf52/protocol.h` / `protocol.cpp` | JSON config protocol (ArduinoJson; `processCommand` lines starting with `{`) |
+| `src/nrf52/breakout.h` / `breakout.cpp` | Breakout arcade game |
+| `src/nrf52/snake.h` / `snake.cpp` | Classic snake game |
+| `src/nrf52/racer.h` / `racer.cpp` | Ghost Racer side-scrolling racing game |
 | `platformio.ini` | PlatformIO build configuration (board, deps, flags) |
 | `extra_script.py` | PlatformIO build hook (adds CC310 crypto library path) |
 | `boards/seeed_xiao_nrf52840.json` | Custom PlatformIO board definition (SoftDevice S140 v7.3.0) |
