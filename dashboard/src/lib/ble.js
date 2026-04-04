@@ -51,7 +51,7 @@ export async function connect() {
     acceptAllDevices: true,
     optionalServices: [NUS_SERVICE_UUID],
   })
-  return await connectToDevice(d)
+  return await connectToDevice(d, 30000)
 }
 
 /**
