@@ -1,5 +1,9 @@
 # Testing Checklist
 
+**Manual QA:** The checklist items below are run by hand on device; they are not executed automatically.
+
+**Automated coverage (CI):** On `v*` tags, [`.github/workflows/release.yml`](../../../.github/workflows/release.yml) builds firmware (PlatformIO), builds the dashboard, and runs **`npm run test`** (Vitest) in `dashboard/` — covering `src/lib/*.test.js` and `src/lib/dfu/*.test.js` (protocol, store, DFU ZIP/SLIP/CRC helpers). **Firmware** behavior is not covered by unit tests in CI (`test_ignore = *` for the nRF52 env in [`platformio.ini`](../../../platformio.ini)).
+
 - [ ] Display initializes and shows splash screen
 - [ ] BLE advertises as "GhostOperator"
 - [ ] Pairs with computer
