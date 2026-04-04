@@ -111,7 +111,7 @@ void loadSettings() {
         if (settings.headerDisplay > 1) settings.headerDisplay = 0;
         if (settings.soundEnabled > 1) settings.soundEnabled = 0;
         if (settings.soundType >= KB_SOUND_COUNT) settings.soundType = 0;
-        if (settings.systemSoundEnabled > 1) settings.systemSoundEnabled = 1;
+        if (settings.systemSoundEnabled > 1) settings.systemSoundEnabled = 0;
         // Volume control bounds
         if (settings.volumeTheme >= VOLUME_THEME_COUNT) settings.volumeTheme = 0;
         if (settings.encButtonAction >= ENC_BTN_ACTION_COUNT) settings.encButtonAction = 0;
