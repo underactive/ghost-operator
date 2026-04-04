@@ -34,6 +34,13 @@
   #define HAS_ENCODER       0
   #define HAS_TOUCH         0
   #define HAS_NEOPIXEL      1
+#elif defined(GHOST_PLATFORM_S3)
+  #define HAS_BATTERY       0
+  #define HAS_SOUND         0
+  #define HAS_USB_HID       1
+  #define HAS_ENCODER       0
+  #define HAS_TOUCH         0
+  #define HAS_NEOPIXEL      1
 #elif defined(GHOST_PLATFORM_CYD)
   #define HAS_BATTERY       0
   #define HAS_SOUND         0
@@ -53,7 +60,7 @@
 // ============================================================================
 // DISPLAY CONFIGURATION
 // ============================================================================
-#ifdef GHOST_PLATFORM_C6
+#if defined(GHOST_PLATFORM_C6) || defined(GHOST_PLATFORM_S3)
   #define SCREEN_WIDTH  320
   #define SCREEN_HEIGHT 172
 #elif defined(GHOST_PLATFORM_CYD)
@@ -77,6 +84,14 @@
   #define PIN_LCD_RST       21
   #define PIN_LCD_BL        22
   #define PIN_NEOPIXEL      8
+#elif defined(GHOST_PLATFORM_S3)
+  #define PIN_LCD_MOSI      45
+  #define PIN_LCD_SCLK      40
+  #define PIN_LCD_CS        42
+  #define PIN_LCD_DC        41
+  #define PIN_LCD_RST       39
+  #define PIN_LCD_BL        48
+  #define PIN_NEOPIXEL      38
 #elif !defined(GHOST_PLATFORM_CYD)
   // nRF52 pins
   #define PIN_ENCODER_A    0   // D0 - Encoder A (interrupt)
@@ -292,8 +307,8 @@ enum WorkModeId {
 };
 enum OperationMode { OP_SIMPLE, OP_SIMULATION, OP_VOLUME, OP_BREAKOUT, OP_SNAKE, OP_RACER, OP_MODE_COUNT };
 
-// Platform-specific op mode limit (C6 supports only Simple + Simulation)
-#ifdef GHOST_PLATFORM_C6
+// Platform-specific op mode limit (C6/S3 support only Simple + Simulation)
+#if defined(GHOST_PLATFORM_C6) || defined(GHOST_PLATFORM_S3)
   #define OP_MODE_MAX OP_SIMULATION
 #else
   #define OP_MODE_MAX (OP_MODE_COUNT - 1)
