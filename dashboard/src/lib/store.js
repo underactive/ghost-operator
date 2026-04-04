@@ -286,7 +286,7 @@ function pushBatterySample(pct, mv) {
  * Before platform detection, uses text protocol (universally supported).
  */
 function buildQuery(key, params) {
-  if (platform.value === 'c6') {
+  if (platform.value === 'c6' || platform.value === 'nrf52') {
     return buildJsonQuery(key, params)
   }
   // Text protocol — params.i for indexed queries like ?wmode:0
@@ -300,7 +300,7 @@ function buildQuery(key, params) {
  * Build a set command in the appropriate format for the detected platform.
  */
 function buildSet(key, value) {
-  if (platform.value === 'c6') {
+  if (platform.value === 'c6' || platform.value === 'nrf52') {
     // For JSON protocol, type the value appropriately
     let typedValue = value
     if (key === 'slots' || key === 'clickSlots') {
@@ -317,7 +317,7 @@ function buildSet(key, value) {
  * Build an action command in the appropriate format for the detected platform.
  */
 function buildAction(action) {
-  if (platform.value === 'c6') {
+  if (platform.value === 'c6' || platform.value === 'nrf52') {
     return buildJsonCommand(action)
   }
   return `!${action}`
@@ -368,7 +368,8 @@ function handleLine(line) {
       const p = isJson ? parsed.data.platform : parsed.data?.platform
       if (p === 'c6') platform.value = 'c6'
       else if (p === 'cyd') platform.value = 'cyd'
-      else platform.value = 'nrf52'
+      else if (p === 'nrf52') platform.value = 'nrf52'
+      else platform.value = 'nrf52'  // default fallback
     }
   } else if (parsed.type === 'keys') {
     availableKeys.value = isJson ? parsed.data : parsed.data

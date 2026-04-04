@@ -59,6 +59,9 @@ extern GameState gameState;
 #define gSnk (gameState.snk)
 #define gRcr (gameState.rcr)
 
+// JSON push mode (set when statusPush enabled via JSON protocol)
+extern bool jsonPushMode;
+
 // Deferred sound playback (set in BLE callbacks, consumed in loop())
 extern volatile bool connectSoundPending;
 extern volatile bool disconnectSoundPending;

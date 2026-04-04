@@ -112,6 +112,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   easterEggActive = false;
   bleIdleMode = false;
   resetBleUartBuffer();  // discard stale partial commands
+  jsonPushMode = false;  // reset connection-scoped JSON push flag
   disconnectSoundPending = true;  // deferred to loop() — BLE callback context is unsafe for I2C/GPIO
   markDisplayDirty();
 }
@@ -546,6 +547,8 @@ void loop() {
   }
   // USB unmount edge
   if (!usbConnected && wasUsbConnected) {
+    jsonPushMode = false;       // reset connection-scoped JSON push flag
+    serialStatusPush = false;   // stop push on USB disconnect
     markDisplayDirty();
   }
 

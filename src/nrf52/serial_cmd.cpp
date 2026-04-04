@@ -1,5 +1,6 @@
 #include "serial_cmd.h"
 #include "ble_uart.h"
+#include "protocol.h"
 #include "state.h"
 #include "keys.h"
 #include "timing.h"
@@ -11,9 +12,9 @@
 #include "snake.h"
 
 // Line buffer for protocol commands (?/=/!) arriving over USB serial
-#define SERIAL_BUF_SIZE 128
+#define SERIAL_BUF_SIZE 512
 static char serialBuf[SERIAL_BUF_SIZE];
-static uint8_t serialBufPos = 0;
+static uint16_t serialBufPos = 0;
 static bool serialBufOverflow = false;
 
 // Serial response writer — plain println, no chunking needed for USB
@@ -27,7 +28,11 @@ void pushSerialStatus() {
   unsigned long now = millis();
   if (now - lastPush < 200) return;  // 200ms throttle — max 5 updates/sec
   lastPush = now;
-  processCommand("?status", serialWrite);
+  if (jsonPushMode) {
+    pushJsonStatus(serialWrite);
+  } else {
+    processCommand("?status", serialWrite);
+  }
 }
 
 void printStatus() {
@@ -98,7 +103,7 @@ void handleSerialCommands() {
     }
 
     // First character — decide: protocol command or single-char debug?
-    if (c == '?' || c == '=' || c == '!') {
+    if (c == '?' || c == '=' || c == '!' || c == '{') {
       serialBuf[0] = c;
       serialBufPos = 1;
       continue;

@@ -1,4 +1,5 @@
 #include "ble_uart.h"
+#include "protocol.h"
 #include "config.h"
 #include "state.h"
 #include "keys.h"
@@ -9,10 +10,10 @@
 #include "sim_data.h"
 #include "orchestrator.h"
 
-// Line buffer for accumulating UART bytes
-#define UART_BUF_SIZE 128
+// Line buffer for accumulating UART bytes (512 for JSON payloads)
+#define UART_BUF_SIZE 512
 static char uartBuf[UART_BUF_SIZE];
-static uint8_t uartBufPos = 0;
+static uint16_t uartBufPos = 0;
 static bool uartBufOverflow = false;
 
 // File-scoped writer pointer — set by processCommand(), used by cmd*() helpers
@@ -115,6 +116,12 @@ void processCommand(const char* line, ResponseWriter writer) {
     Serial.println(line);
   }
 
+  // Auto-detect JSON commands (starts with '{')
+  if (line[0] == '{') {
+    processJsonCommand(line, writer);
+    return;
+  }
+
   if (line[0] == '?') {
     // Query commands
     const char* cmd = line + 1;
@@ -176,7 +183,7 @@ static void cmdQueryStatus() {
   char buf[340];
   int len = snprintf(buf, sizeof(buf),
     "!status|connected=%d|usb=%d|kb=%d|ms=%d|bat=%d|batMv=%d|profile=%d|mode=%d"
-    "|mouseState=%d|uptime=%lu|kbNext=%s|timeSynced=%d|schedSleeping=%d",
+    "|mouseState=%d|uptime=%lu|kbNext=%s|timeSynced=%d|schedSleeping=%d|platform=nrf52",
     deviceConnected ? 1 : 0, usbConnected ? 1 : 0,
     keyEnabled ? 1 : 0, mouseEnabled ? 1 : 0,
     batteryPercent, (int)(batteryVoltage * 1000),
