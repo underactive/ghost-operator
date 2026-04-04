@@ -639,6 +639,9 @@ static void sendJsonOk(ResponseWriter writer) {
 
 static void sendJsonError(const char* msg, ResponseWriter writer) {
   char buf[128];
-  snprintf(buf, sizeof(buf), "{\"t\":\"err\",\"m\":\"%s\"}", msg);
+  JsonDocument doc;
+  doc["t"] = "err";
+  doc["m"] = msg;
+  serializeJson(doc, buf, sizeof(buf));
   writer(buf);
 }
