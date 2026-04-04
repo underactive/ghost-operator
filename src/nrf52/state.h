@@ -66,4 +66,7 @@ extern bool jsonPushMode;
 extern volatile bool connectSoundPending;
 extern volatile bool disconnectSoundPending;
 
+// Deferred mouse state reset (set in connect_callback, consumed in loop())
+extern volatile bool mouseResetPending;
+
 #endif // GHOST_NRF52_STATE_H

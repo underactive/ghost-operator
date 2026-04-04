@@ -207,6 +207,9 @@ GameState gameState = {};
 volatile bool connectSoundPending = false;
 volatile bool disconnectSoundPending = false;
 
+// Deferred mouse state reset (set in connect_callback, consumed in loop())
+volatile bool mouseResetPending = false;
+
 // Deferred settings save
 bool settingsDirty = false;
 unsigned long settingsDirtyMs = 0;

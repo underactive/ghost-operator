@@ -83,16 +83,12 @@ void connect_callback(uint16_t conn_handle) {
   deviceConnected = true;
   bleHidFailCount = 0;
 
-  // Reset timers so progress bars start fresh (not stale from pre-connection)
-  unsigned long now = millis();
-  lastKeyTime = now;
-  lastMouseStateChange = now;
-  mouseState = MOUSE_IDLE;
-  mouseNetX = 0;
-  mouseNetY = 0;
-  mouseReturnTotal = 0;
+  // Reset keyboard timer so first keystroke doesn't fire immediately on connect
+  lastKeyTime = millis();
   scheduleNextKey();
-  scheduleNextMouseState();
+  // Multi-step mouse state reset deferred to loop() — callback runs in SWI context and
+  // can race with handleMouseStateMachine() reading mouseState/mouseNetX/mouseNetY mid-operation
+  mouseResetPending = true;
 
   conn->requestConnectionParameter(BLE_INTERVAL_ACTIVE);
   lastHidActivity = millis();
@@ -427,6 +423,18 @@ void loop() {
   // Deferred sound from BLE callbacks — safe to play in loop() context
   if (connectSoundPending) { connectSoundPending = false; playConnectSound(); }
   if (disconnectSoundPending) { disconnectSoundPending = false; playDisconnectSound(); }
+
+  // Deferred mouse state reset from connect_callback — applied atomically from main loop
+  if (mouseResetPending) {
+    mouseResetPending = false;
+    unsigned long resetNow = millis();
+    lastMouseStateChange = resetNow;
+    mouseState = MOUSE_IDLE;
+    mouseNetX = 0;
+    mouseNetY = 0;
+    mouseReturnTotal = 0;
+    scheduleNextMouseState();
+  }
 
   updateSoundPreview();
 
