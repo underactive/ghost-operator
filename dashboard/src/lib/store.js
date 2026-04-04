@@ -881,15 +881,20 @@ function startPolling() {
     if (!pollingActive) return
     pollInterval = setTimeout(async () => {
       pollInterval = null
-      if (activeTransport && activeTransport.isConnected()) {
-        await activeTransport.send(buildQuery('status'))
-        pollCount++
-        // Re-sync time every 5 minutes (60 polls * 5s = 300s)
-        if (pollCount % 60 === 0) {
-          await syncTimeToDevice()
+      try {
+        if (activeTransport && activeTransport.isConnected()) {
+          await activeTransport.send(buildQuery('status'))
+          pollCount++
+          // Re-sync time every 5 minutes (60 polls * 5s = 300s)
+          if (pollCount % 60 === 0) {
+            await syncTimeToDevice()
+          }
         }
+      } catch {
+        // transport disconnected during send — polling will stop naturally
+      } finally {
+        if (pollingActive) scheduleNext()
       }
-      if (pollingActive) scheduleNext()
     }, 5000)
   }
   scheduleNext()
@@ -981,7 +986,7 @@ export function exportSettings() {
   a.href = url
   a.download = `${name}_backup_${date}.json`
   a.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 
   statusMessage.value = 'Settings exported'
   setTimeout(() => { if (statusMessage.value === 'Settings exported') statusMessage.value = '' }, 2000)
