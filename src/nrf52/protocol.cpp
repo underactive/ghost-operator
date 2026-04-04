@@ -404,7 +404,56 @@ static const SettingKeyMap SETTING_MAP[] = {
 };
 static const int SETTING_MAP_COUNT = sizeof(SETTING_MAP) / sizeof(SETTING_MAP[0]);
 
+static const char* jsonValidateSetObject(JsonObject data) {
+  for (JsonPair kv : data) {
+    const char* key = kv.key().c_str();
+
+    if (strcmp(key, "name") == 0) {
+      const char* val = kv.value().as<const char*>();
+      if (!val) return "name must be string";
+      for (const char* p = val; *p; p++) {
+        if (*p < 0x20 || *p > 0x7E) return "invalid name chars";
+      }
+      continue;
+    }
+
+    if (strcmp(key, "decoy") == 0) continue;
+
+    if (strcmp(key, "slots") == 0) {
+      if (kv.value().as<JsonArray>().isNull()) return "slots must be array";
+      continue;
+    }
+
+    if (strcmp(key, "clickSlots") == 0) {
+      if (kv.value().as<JsonArray>().isNull()) return "clickSlots must be array";
+      continue;
+    }
+
+    if (strcmp(key, "time") == 0) continue;
+    if (strcmp(key, "totalKeys") == 0) continue;
+    if (strcmp(key, "totalMousePx") == 0) continue;
+    if (strcmp(key, "totalClicks") == 0) continue;
+    if (strcmp(key, "statusPush") == 0) continue;
+
+    bool found = false;
+    for (int i = 0; i < SETTING_MAP_COUNT; i++) {
+      if (strcmp(key, SETTING_MAP[i].key) == 0) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) return "unknown key";
+  }
+  return nullptr;
+}
+
 static void jsonHandleSet(JsonObject data, ResponseWriter writer) {
+  const char* verr = jsonValidateSetObject(data);
+  if (verr) {
+    sendJsonError(verr, writer);
+    return;
+  }
+
   bool needReschedule = false;
 
   for (JsonPair kv : data) {
