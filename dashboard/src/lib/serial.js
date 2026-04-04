@@ -49,14 +49,16 @@ export async function connect() {
 export async function disconnect() {
   readLoopActive = false
 
+  const p = port
+
   if (reader) {
     try { await reader.cancel() } catch {}
     try { reader.releaseLock() } catch {}
     reader = null
   }
 
-  if (port) {
-    try { await port.close() } catch {}
+  if (p) {
+    try { await p.close() } catch {}
     port = null
   }
 
