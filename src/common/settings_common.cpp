@@ -1,4 +1,5 @@
 #include "settings.h"
+#include "settings_pure.h"
 #include "state.h"
 #include "keys.h"
 #include "timing.h"
@@ -76,12 +77,7 @@ void loadDefaults() {
 }
 
 uint8_t calcChecksum() {
-  uint8_t sum = 0;
-  uint8_t* p = (uint8_t*)&settings;
-  for (size_t i = 0; i < offsetof(Settings, checksum); i++) {
-    sum ^= p[i];
-  }
-  return sum;
+  return ghost_xor_checksum_bytes((const uint8_t*)&settings, offsetof(Settings, checksum));
 }
 
 uint32_t getSettingValue(uint8_t settingId) {
@@ -142,11 +138,8 @@ uint32_t getSettingValue(uint8_t settingId) {
   }
 }
 
-// Clamp helper — returns value constrained to [lo, hi]
 static uint32_t clampVal(uint32_t value, uint32_t lo, uint32_t hi) {
-  if (value < lo) return lo;
-  if (value > hi) return hi;
-  return value;
+  return ghost_clamp_u32(value, lo, hi);
 }
 
 void setSettingValue(uint8_t settingId, uint32_t value) {

@@ -1,4 +1,4 @@
-.PHONY: build release flash setup clean monitor help
+.PHONY: build release flash setup clean monitor test help
 
 build:        ## Compile firmware, report sizes
 	./build.sh
@@ -17,6 +17,9 @@ clean:        ## Remove build artifacts
 
 monitor:      ## Open serial monitor at 115200 baud
 	pio device monitor
+
+test:         ## Run host-side PlatformIO unit tests (native)
+	pio test -e native
 
 help:         ## Show available targets
 	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*## /\t/' | column -t -s '	'
