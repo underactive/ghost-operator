@@ -50,11 +50,17 @@
 ## Architecture
 
 ### Core Files
-Firmware is split between **`src/common/`** (portable) and **`src/nrf52/`** (Seeed XIAO nRF52840). The `seeed_xiao_nrf52840` environment in `platformio.ini` compiles only those trees (`build_src_filter = +<common/> +<nrf52/>`) and uses `-Isrc/common` and `-Isrc/nrf52`.
+Firmware is **not** a flat `src/` layout and there is no root `*.ino`; each PlatformIO environment in `platformio.ini` selects its own trees and entrypoint.
+
+- **`seeed_xiao_nrf52840`:** `src/common/` + `src/nrf52/` (`build_src_filter = +<common/> +<nrf52/>`, `-Isrc/common`, `-Isrc/nrf52`). Entry: **`src/nrf52/ghost_operator.cpp`** (`setup()`, `loop()`).
+- **`s3lcd` / `c6lcd`:** `src/common/` plus **`src/esp32-s3-lcd-1.47/`** or **`src/esp32-c6-lcd-1.47/`** (filters `+<common/> +<esp32-s3-lcd-1.47/>` and `+<common/> +<esp32-c6-lcd-1.47/>`). Entry: **`main.cpp`** in that platform directory.
+- **`native`:** Host Unity tests using `src/common/` and `test/` (see `env:native`).
 
 **Portable (`src/common/`):** `config.h` — `#define` constants, enums, structs; `keys.h` / `keys.cpp` — AVAILABLE_KEYS, MENU_ITEMS, names; `timing.h` / `timing.cpp` — profiles, scheduling, formatting; `mouse.h` / `mouse.cpp` — mouse state machine with sine easing; `schedule.h` / `schedule.cpp` — timed schedule logic; `orchestrator.h` / `orchestrator.cpp` — simulation activity orchestrator; `sim_data.h` / `sim_data.cpp` — job templates, work modes, phase timing; `settings.h`, `settings_pure.h` / `settings_common.cpp` — `loadDefaults()`, `getSettingValue()`, `setSettingValue()`, `formatMenuValue()`; `state.h` — portable globals; `hid_keycodes.h`; `platform_hal.h`.
 
-**nRF52 (`src/nrf52/`):** `ghost_operator.cpp` — entry (`setup()`, `loop()`, BLE + USB HID setup/callbacks); `settings_nrf52.cpp` — `loadSettings()` / `saveSettings()` and flash I/O; `schedule_nrf52.cpp` — platform hooks; `sim_data_flash.cpp` — flash-backed sim data; `state.h` / `state.cpp` — includes portable `state.h`, adds hardware/BLE/USB objects and game macros; paired `.h` / `.cpp` modules — `icons` (PROGMEM bitmaps including splash), `encoder`, `battery`, `hid`, `sleep`, `screenshot`, `serial_cmd`, `input`, `display` (~2900 lines, largest module), `ble_uart` (NUS + config protocol), `sound`, `protocol`, `breakout`, `snake`, `racer`.
+**nRF52 (`src/nrf52/`):** `settings_nrf52.cpp` — `loadSettings()` / `saveSettings()` and flash I/O; `schedule_nrf52.cpp` — platform hooks; `sim_data_flash.cpp` — flash-backed sim data; `state.h` / `state.cpp` — includes portable `state.h`, adds hardware/BLE/USB objects and game macros; paired `.h` / `.cpp` modules — `icons` (PROGMEM bitmaps including splash), `encoder`, `battery`, `hid`, `sleep`, `screenshot`, `serial_cmd`, `input`, `display` (~2900 lines, largest module), `ble_uart` (NUS + config protocol), `sound`, `protocol`, `breakout`, `snake`, `racer`.
+
+**ESP32 LCD (`src/esp32-s3-lcd-1.47/`, `src/esp32-c6-lcd-1.47/`):** `main.cpp` entry; platform `state`, `display`, `ble` / `ble_uart`, `hid`, `settings_*`, `sim_data_nvs`, and related modules (LVGL UI; NimBLE).
 
 ### Dependencies
 - Adafruit Bluefruit (built into Seeed nRF52 core)
@@ -651,6 +657,8 @@ Configurable via menu: Device → "Device name" action item opens a character ed
 | `src/nrf52/breakout.h` / `breakout.cpp` | Breakout arcade game |
 | `src/nrf52/snake.h` / `snake.cpp` | Classic snake game |
 | `src/nrf52/racer.h` / `racer.cpp` | Ghost Racer side-scrolling racing game |
+| `src/esp32-s3-lcd-1.47/` | ESP32-S3 + LCD firmware (`s3lcd` env); entry `main.cpp` |
+| `src/esp32-c6-lcd-1.47/` | ESP32-C6 + LCD firmware (`c6lcd` env); entry `main.cpp` |
 | `platformio.ini` | PlatformIO build configuration (board, deps, flags) |
 | `extra_script.py` | PlatformIO build hook (adds CC310 crypto library path) |
 | `boards/seeed_xiao_nrf52840.json` | Custom PlatformIO board definition (SoftDevice S140 v7.3.0) |
