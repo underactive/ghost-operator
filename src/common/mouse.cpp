@@ -1,4 +1,5 @@
 #include "mouse.h"
+#include "mouse_pure.h"
 #include "state.h"
 #include "keys.h"
 #include "timing.h"
@@ -137,9 +138,8 @@ static void evaluateBezierStep() {
   float t = timeToParam(progress);
 
   // Quadratic Bezier: B(t) = (1-t)^2*P0 + 2(1-t)t*P1 + t^2*P2
-  float omt = 1.0f - t;
-  int32_t curX = (int32_t)(omt * omt * bzP0x + 2.0f * omt * t * bzP1x + t * t * bzP2x);
-  int32_t curY = (int32_t)(omt * omt * bzP0y + 2.0f * omt * t * bzP1y + t * t * bzP2y);
+  int32_t curX = mouse_bezier_eval(bzP0x, bzP1x, bzP2x, t);
+  int32_t curY = mouse_bezier_eval(bzP0y, bzP1y, bzP2y, t);
 
   // Delta from last position (still in fixed-point)
   int32_t deltaX = curX - bzLastX;
@@ -147,9 +147,9 @@ static void evaluateBezierStep() {
   bzLastX = curX;
   bzLastY = curY;
 
-  // Convert from fixed-point to integer pixels (round)
-  int8_t dx = (int8_t)((deltaX + 128) >> 8);
-  int8_t dy = (int8_t)((deltaY + 128) >> 8);
+  // Convert from fixed-point to integer pixels (round half away from zero)
+  int8_t dx = mouse_fp8_round(deltaX);
+  int8_t dy = mouse_fp8_round(deltaY);
 
   if (dx != 0 || dy != 0) {
     sendMouseMove(dx, dy);
@@ -236,8 +236,7 @@ void handleMouseStateMachine(unsigned long now) {
           if (random(100) < 15) pickNewDirection();
           // Ease-in-out: sine curve ramps amplitude 0 -> peak -> 0
           float progress = (float)elapsed / (float)currentMouseJiggle;
-          float ease = sinf(PI * progress);
-          int8_t amp = (int8_t)(settings.mouseAmplitude * ease + 0.5f);
+          int8_t amp = (int8_t)(mouse_brownian_amp(settings.mouseAmplitude, progress) + 0.5f);
           if (amp > 0) {
             int8_t dx = currentMouseDx * amp;
             int8_t dy = currentMouseDy * amp;
@@ -264,11 +263,8 @@ void handleMouseStateMachine(unsigned long now) {
           easterEggFrame = 0;
         }
       } else if (now - lastMouseStep >= MOUSE_MOVE_STEP_MS) {
-        int8_t dx = 0, dy = 0;
-        if (mouseNetX > 0) { dx = -min((int32_t)5, mouseNetX); mouseNetX += dx; }
-        else if (mouseNetX < 0) { dx = min((int32_t)5, -mouseNetX); mouseNetX += dx; }
-        if (mouseNetY > 0) { dy = -min((int32_t)5, mouseNetY); mouseNetY += dy; }
-        else if (mouseNetY < 0) { dy = min((int32_t)5, -mouseNetY); mouseNetY += dy; }
+        int8_t dx = mouse_return_step(mouseNetX); mouseNetX += dx;
+        int8_t dy = mouse_return_step(mouseNetY); mouseNetY += dy;
         if (dx != 0 || dy != 0) sendMouseMove(dx, dy);
         lastMouseStep = now;
       }
