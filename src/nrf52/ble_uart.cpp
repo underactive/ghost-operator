@@ -66,7 +66,16 @@ void resetBleUartBuffer() {
 // Called from loop() in ghost_operator.ino
 // ----------------------------------------------------------------------------
 void handleBleUart() {
+  if (bleUartResetPending) {
+    bleUartResetPending = false;
+    resetBleUartBuffer();
+  }
   while (bleuart.available()) {
+    if (bleUartResetPending) {
+      bleUartResetPending = false;
+      resetBleUartBuffer();
+      break;
+    }
     char c = (char)bleuart.read();
     if (c == '\n' || c == '\r') {
       if (uartBufPos > 0) {

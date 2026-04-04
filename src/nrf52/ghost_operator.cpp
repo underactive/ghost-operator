@@ -105,7 +105,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   deviceConnected = false;
   easterEggActive = false;
   bleIdleMode = false;
-  resetBleUartBuffer();  // discard stale partial commands
+  bleUartResetPending = true;
   jsonPushMode = false;  // reset connection-scoped JSON push flag
   disconnectSoundPending = true;  // deferred to loop() — BLE callback context is unsafe for I2C/GPIO
   markDisplayDirty();
@@ -563,8 +563,9 @@ void loop() {
   if (usbConnected && !settings.btWhileUsb && !bleDisabledForUsb) {
     Bluefruit.Advertising.restartOnDisconnect(false);
     Bluefruit.Advertising.stop();
-    if (deviceConnected && bleConnHandle != BLE_CONN_HANDLE_INVALID) {
-      Bluefruit.disconnect(bleConnHandle);
+    uint16_t handle = bleConnHandle;
+    if (deviceConnected && handle != BLE_CONN_HANDLE_INVALID) {
+      Bluefruit.disconnect(handle);
     }
     bleDisabledForUsb = true;
     markDisplayDirty();

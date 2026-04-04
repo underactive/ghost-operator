@@ -210,6 +210,9 @@ volatile bool disconnectSoundPending = false;
 // Deferred mouse state reset (set in connect_callback, consumed in loop())
 volatile bool mouseResetPending = false;
 
+// Deferred BLE UART buffer reset (set in disconnect_callback, consumed in handleBleUart())
+volatile bool bleUartResetPending = false;
+
 // Deferred settings save
 bool settingsDirty = false;
 unsigned long settingsDirtyMs = 0;

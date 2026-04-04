@@ -69,4 +69,7 @@ extern volatile bool disconnectSoundPending;
 // Deferred mouse state reset (set in connect_callback, consumed in loop())
 extern volatile bool mouseResetPending;
 
+// Deferred BLE UART line buffer reset (set in disconnect_callback, consumed in handleBleUart())
+extern volatile bool bleUartResetPending;
+
 #endif // GHOST_NRF52_STATE_H
