@@ -437,6 +437,7 @@ void loop() {
   }
 
   updateSoundPreview();
+  updateAlertSound();
 
   // Auto-return to NORMAL mode after timeout
   // Skip timeout when viewing read-only About items (Uptime, Die temp, Version)

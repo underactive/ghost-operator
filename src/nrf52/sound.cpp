@@ -84,18 +84,17 @@ void playKeySound() {
   playOnce(settings.soundType);
 }
 
-void playConnectSound() {
-  if (!settings.systemSoundEnabled) return;
-  // Lo-hi two-tone alert (~200ms total)
-  // Low tone (~600Hz, ~80ms)
+// Alert tone primitives (~80ms each)
+static void playLowTone() {
   for (uint8_t i = 0; i < 48; i++) {
     digitalWrite(PIN_SOUND, HIGH);
     delayMicroseconds(833);
     digitalWrite(PIN_SOUND, LOW);
     delayMicroseconds(833);
   }
-  delay(40);
-  // High tone (~1.2kHz, ~80ms)
+}
+
+static void playHighTone() {
   for (uint8_t i = 0; i < 96; i++) {
     digitalWrite(PIN_SOUND, HIGH);
     delayMicroseconds(417);
@@ -104,23 +103,36 @@ void playConnectSound() {
   }
 }
 
+// Non-blocking two-tone alert state (phases: 0=idle, 1=tone1, 2=tone2)
+static uint8_t alertPhase = 0;
+static bool alertIsConnect = false;
+static unsigned long alertNextMs = 0;
+
+void playConnectSound() {
+  if (!settings.systemSoundEnabled) return;
+  alertIsConnect = true;
+  alertPhase = 1;
+  alertNextMs = 0;
+}
+
 void playDisconnectSound() {
   if (!settings.systemSoundEnabled) return;
-  // Hi-lo two-tone alert (~200ms total)
-  // High tone (~1.2kHz, ~80ms)
-  for (uint8_t i = 0; i < 96; i++) {
-    digitalWrite(PIN_SOUND, HIGH);
-    delayMicroseconds(417);
-    digitalWrite(PIN_SOUND, LOW);
-    delayMicroseconds(417);
-  }
-  delay(40);
-  // Low tone (~600Hz, ~80ms)
-  for (uint8_t i = 0; i < 48; i++) {
-    digitalWrite(PIN_SOUND, HIGH);
-    delayMicroseconds(833);
-    digitalWrite(PIN_SOUND, LOW);
-    delayMicroseconds(833);
+  alertIsConnect = false;
+  alertPhase = 1;
+  alertNextMs = 0;
+}
+
+void updateAlertSound() {
+  if (alertPhase == 0) return;
+  unsigned long now = millis();
+  if (now < alertNextMs) return;
+  if (alertPhase == 1) {
+    if (alertIsConnect) playLowTone(); else playHighTone();
+    alertPhase = 2;
+    alertNextMs = millis() + 40;
+  } else {
+    if (alertIsConnect) playHighTone(); else playLowTone();
+    alertPhase = 0;
   }
 }
 

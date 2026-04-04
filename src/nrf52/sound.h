@@ -19,5 +19,6 @@ void playDisconnectSound();
 void startSoundPreview(uint8_t soundType);
 void stopSoundPreview();
 void updateSoundPreview();
+void updateAlertSound();
 
 #endif // GHOST_SOUND_H
