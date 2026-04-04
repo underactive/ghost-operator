@@ -150,12 +150,6 @@ static void bleWrite(const char* msg) {
 void processCommand(const char* line, ResponseWriter writer) {
   currentWriter = writer;
 
-  // Echo BLE commands to serial for debugging
-  if (writer == bleWrite) {
-    Serial.print("[UART] RX: ");
-    Serial.println(line);
-  }
-
   // Auto-detect JSON commands
   if (line[0] == '{') {
     processJsonCommand(line, writer);
