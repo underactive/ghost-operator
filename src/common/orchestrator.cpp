@@ -47,10 +47,10 @@ static unsigned long jitter(unsigned long base) {
 static unsigned long scaleByPerformance(unsigned long value, bool scaleUp) {
   uint8_t level = settings.jobPerformance;
   if (scaleUp) {
-    return value * level * 7 / 55;  // level 0→0, level 11→1.4x
+    return (uint64_t)value * level * 7 / 55;  // level 0→0, level 11→1.4x
   }
-  if (level == 0) return value * 10;  // 10x idle at zero performance
-  return value * 55 / (level * 7);   // level 1→7.86x idle, level 11→0.71x idle
+  if (level == 0) return (uint64_t)value * 10;  // 10x idle at zero performance
+  return (uint64_t)value * 55 / (level * 7);   // level 1→7.86x idle, level 11→0.71x idle
 }
 
 // Scale a burst count by job performance level (compressed curve).
