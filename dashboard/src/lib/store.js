@@ -517,8 +517,16 @@ async function connectWithTransport(transport, type) {
 
     startPolling()
   } catch (err) {
+    stopPolling()
+    try {
+      await transport.disconnect()
+    } catch {
+    }
     activeTransport = null
     transportType.value = null
+    connectionState.connected = false
+    connectionState.deviceName = ''
+    platform.value = null
     connectionState.error = err.message
     statusMessage.value = 'Connection failed'
   } finally {
