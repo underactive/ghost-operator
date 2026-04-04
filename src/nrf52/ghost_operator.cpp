@@ -77,10 +77,8 @@ WEBUSB_URL_DEF(landingPage, 1 /*https*/, "tarsindustrial.tech/ghost-operator/das
 
 void connect_callback(uint16_t conn_handle) {
   BLEConnection* conn = Bluefruit.Connection(conn_handle);
-  char central_name[32] = {0};
-  conn->getPeerName(central_name, sizeof(central_name));
-  Serial.print("Connected to: ");
-  Serial.println(central_name);
+  Serial.print("Connected, handle=");
+  Serial.println(conn_handle);
   bleConnHandle = conn_handle;
   deviceConnected = true;
   bleHidFailCount = 0;
