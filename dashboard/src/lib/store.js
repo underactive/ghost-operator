@@ -249,6 +249,7 @@ function cancelSettingsDirtyCompare() {
 
 // Status polling interval
 let pollInterval = null
+let pollingActive = false
 
 // Pending response queue (FIFO — supports concurrent sendAndWait calls)
 const pendingQueue = []
@@ -771,21 +772,29 @@ let pollCount = 0
 function startPolling() {
   stopPolling()
   pollCount = 0
-  pollInterval = setInterval(async () => {
-    if (activeTransport && activeTransport.isConnected()) {
-      await activeTransport.send(buildQuery('status'))
-      pollCount++
-      // Re-sync time every 5 minutes (60 polls * 5s = 300s)
-      if (pollCount % 60 === 0) {
-        await syncTimeToDevice()
+  pollingActive = true
+  const scheduleNext = () => {
+    if (!pollingActive) return
+    pollInterval = setTimeout(async () => {
+      pollInterval = null
+      if (activeTransport && activeTransport.isConnected()) {
+        await activeTransport.send(buildQuery('status'))
+        pollCount++
+        // Re-sync time every 5 minutes (60 polls * 5s = 300s)
+        if (pollCount % 60 === 0) {
+          await syncTimeToDevice()
+        }
       }
-    }
-  }, 5000)
+      if (pollingActive) scheduleNext()
+    }, 5000)
+  }
+  scheduleNext()
 }
 
 function stopPolling() {
+  pollingActive = false
   if (pollInterval) {
-    clearInterval(pollInterval)
+    clearTimeout(pollInterval)
     pollInterval = null
   }
 }
