@@ -252,6 +252,66 @@ export function parseWorkMode(data) {
   }
 }
 
+export function normalizeWorkModeFromJson(data) {
+  const timingFromJson = (t) => {
+    const z = () => ({
+      burstKeysMin: 0, burstKeysMax: 0,
+      interKeyMinMs: 0, interKeyMaxMs: 0,
+      burstGapMinMs: 0, burstGapMaxMs: 0,
+      keyHoldMinMs: 0, keyHoldMaxMs: 0,
+      mouseDurMinMs: 0, mouseDurMaxMs: 0,
+      idleDurMinMs: 0, idleDurMaxMs: 0,
+    })
+    if (!t || typeof t !== 'object') return z()
+    if (t.burstKeysMin != null || t.burstKeysMax != null) {
+      return {
+        burstKeysMin: Number(t.burstKeysMin) || 0,
+        burstKeysMax: Number(t.burstKeysMax) || 0,
+        interKeyMinMs: Number(t.interKeyMinMs) || 0,
+        interKeyMaxMs: Number(t.interKeyMaxMs) || 0,
+        burstGapMinMs: Number(t.burstGapMinMs) || 0,
+        burstGapMaxMs: Number(t.burstGapMaxMs) || 0,
+        keyHoldMinMs: Number(t.keyHoldMinMs) || 0,
+        keyHoldMaxMs: Number(t.keyHoldMaxMs) || 0,
+        mouseDurMinMs: Number(t.mouseDurMinMs) || 0,
+        mouseDurMaxMs: Number(t.mouseDurMaxMs) || 0,
+        idleDurMinMs: Number(t.idleDurMinMs) || 0,
+        idleDurMaxMs: Number(t.idleDurMaxMs) || 0,
+      }
+    }
+    return {
+      burstKeysMin: Number(t.bkMin) || 0,
+      burstKeysMax: Number(t.bkMax) || 0,
+      interKeyMinMs: Number(t.ikMin) || 0,
+      interKeyMaxMs: Number(t.ikMax) || 0,
+      burstGapMinMs: Number(t.bgMin) || 0,
+      burstGapMaxMs: Number(t.bgMax) || 0,
+      keyHoldMinMs: Number(t.khMin) || 0,
+      keyHoldMaxMs: Number(t.khMax) || 0,
+      mouseDurMinMs: Number(t.mdMin) || 0,
+      mouseDurMaxMs: Number(t.mdMax) || 0,
+      idleDurMinMs: Number(t.idMin) || 0,
+      idleDurMaxMs: Number(t.idMax) || 0,
+    }
+  }
+  const w = data.weights || {}
+  const wL = data.wL != null ? Number(data.wL) : (Number(w.L) || 0)
+  const wN = data.wN != null ? Number(data.wN) : (Number(w.N) || 0)
+  const wB = data.wB != null ? Number(data.wB) : (Number(w.B) || 0)
+  const timingArr = Array.isArray(data.timing) ? data.timing : []
+  return {
+    idx: Number(data.idx) || 0,
+    name: data.name || '???',
+    kb: Number(data.kb) || 0,
+    wL, wN, wB,
+    timing: [0, 1, 2].map((i) => timingFromJson(timingArr[i])),
+    dMin: Number(data.dMin) || 0,
+    dMax: Number(data.dMax) || 0,
+    pMin: Number(data.pMin) || 0,
+    pMax: Number(data.pMax) || 0,
+  }
+}
+
 /**
  * Parse a ?simblocks:N response into an array of block objects.
  * Response: !simblocks|job=N|b0=AM Email,0,30,0:40,1:40,4:20|b1=...

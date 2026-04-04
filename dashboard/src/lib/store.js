@@ -7,7 +7,10 @@ import * as serialTransport from './serial.js'
 import * as bleTransport from './ble.js'
 import * as dfuSerial from './dfu/serial.js'
 import { performDfu } from './dfu/dfu.js'
-import { parseResponse, parseSettings, parseStatus, parseWorkMode, parseSimBlocks } from './protocol.js'
+import {
+  parseResponse, parseSettings, parseStatus, parseWorkMode, parseSimBlocks,
+  normalizeWorkModeFromJson,
+} from './protocol.js'
 import { buildJsonQuery, buildJsonSet, buildJsonCommand, parseJsonLine } from './protocol_json.js'
 
 // --- Reactive state ---
@@ -403,7 +406,7 @@ export function handleLine(line) {
     decoyNames.value = isJson ? parsed.data : parsed.data
   } else if (parsed.type === 'wmode') {
     if (isJson) {
-      simModes[parsed.data.idx] = parsed.data
+      simModes[parsed.data.idx] = normalizeWorkModeFromJson(parsed.data)
     } else {
       const mode = parseWorkMode(parsed.data)
       simModes[mode.idx] = mode
