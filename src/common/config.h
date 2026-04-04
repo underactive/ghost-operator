@@ -84,6 +84,7 @@
   #define PIN_LCD_RST       21
   #define PIN_LCD_BL        22
   #define PIN_NEOPIXEL      8
+  #define GHOST_LCD_SPI_HOST FSPI
 #elif defined(GHOST_PLATFORM_S3)
   #define PIN_LCD_MOSI      45
   #define PIN_LCD_SCLK      40
@@ -92,6 +93,7 @@
   #define PIN_LCD_RST       39
   #define PIN_LCD_BL        48
   #define PIN_NEOPIXEL      38
+  #define GHOST_LCD_SPI_HOST HSPI
 #elif !defined(GHOST_PLATFORM_CYD)
   // nRF52 pins
   #define PIN_ENCODER_A    0   // D0 - Encoder A (interrupt)
