@@ -64,6 +64,7 @@ void scheduleNextMouseState() {
 
 unsigned long saverTimeoutMs() {
   if (settings.saverTimeout == 0) return 0;  // Never
+  if (settings.saverTimeout >= SAVER_TIMEOUT_COUNT) return 0;
   return (unsigned long)SAVER_MINUTES[settings.saverTimeout] * 60000UL;
 }
 
