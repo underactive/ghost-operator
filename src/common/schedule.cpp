@@ -26,18 +26,19 @@ void syncTime(uint32_t daySeconds) {
   }
 }
 
+static void reanchorWallClock() {
+  unsigned long elapsed = millis() - wallClockSyncMs;
+  uint32_t elapsedSecs = elapsed / 1000;
+  if (elapsedSecs >= 86400) {
+    wallClockDaySecs = (wallClockDaySecs + elapsedSecs) % 86400;
+    wallClockSyncMs = millis();
+  }
+}
+
 uint32_t currentDaySeconds() {
   if (!timeSynced) return 0xFFFFFFFF;
   unsigned long elapsed = millis() - wallClockSyncMs;
   uint32_t elapsedSecs = elapsed / 1000;
-  // Re-anchor every 24h to prevent millis() wrap drift
-  // NOTE: Re-anchoring mutates wallClockDaySecs/wallClockSyncMs as a side effect —
-  // callers should not assume this function is pure/const.
-  if (elapsedSecs >= 86400) {
-    wallClockDaySecs = (wallClockDaySecs + elapsedSecs) % 86400;
-    wallClockSyncMs = millis();
-    elapsedSecs = 0;
-  }
   return (wallClockDaySecs + elapsedSecs) % 86400;
 }
 
@@ -76,13 +77,16 @@ bool isScheduleActive() {
 }
 
 void checkSchedule() {
-  if (settings.scheduleMode == SCHED_OFF) return;
   if (!timeSynced) return;
-  if (currentMode == MODE_SCHEDULE) return;  // don't act while user is editing
 
   unsigned long now = millis();
   if (now - lastScheduleCheck < SCHEDULE_CHECK_MS) return;
   lastScheduleCheck = now;
+
+  reanchorWallClock();
+
+  if (settings.scheduleMode == SCHED_OFF) return;
+  if (currentMode == MODE_SCHEDULE) return;  // don't act while user is editing
 
   bool active = isScheduleActive();
 
