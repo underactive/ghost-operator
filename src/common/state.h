@@ -99,7 +99,7 @@ extern unsigned long currentMouseJiggle;
 extern unsigned long currentMouseIdle;
 
 // Mouse state machine
-extern MouseState mouseState;
+extern volatile MouseState mouseState;
 extern int8_t currentMouseDx;
 extern int8_t currentMouseDy;
 extern int32_t mouseNetX;

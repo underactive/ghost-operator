@@ -109,7 +109,7 @@ unsigned long currentMouseJiggle = 15000;
 unsigned long currentMouseIdle = 30000;
 
 // Mouse state machine
-MouseState mouseState = MOUSE_IDLE;
+volatile MouseState mouseState = MOUSE_IDLE;
 int8_t currentMouseDx = 0;
 int8_t currentMouseDy = 0;
 int32_t mouseNetX = 0;
