@@ -16,15 +16,15 @@ BUILD_DIR=".pio/build/$PIO_ENV"
 die()  { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "── $*"; }
 
-# Extract version from src/config.h
+# Extract version from src/common/config.h
 get_version() {
     local ver
-    ver=$(grep -E '^#define VERSION "' src/config.h | sed 's/.*"\(.*\)".*/\1/')
-    [[ -n "$ver" ]] || die "Could not extract VERSION from src/config.h"
+    ver=$(grep -E '^#define VERSION "' src/common/config.h | sed 's/.*"\(.*\)".*/\1/')
+    [[ -n "$ver" ]] || die "Could not extract VERSION from src/common/config.h"
     echo "$ver"
 }
 
-# If HEAD is an exact git tag, validate it matches src/config.h version
+# If HEAD is an exact git tag, validate it matches src/common/config.h version
 validate_git_tag() {
     local ver="$1"
     local tag
@@ -32,9 +32,9 @@ validate_git_tag() {
     if [[ -n "$tag" ]]; then
         local tag_ver="${tag#v}"  # strip v prefix
         if [[ "$tag_ver" != "$ver" ]]; then
-            die "Git tag '$tag' (version $tag_ver) does not match src/config.h version '$ver'"
+            die "Git tag '$tag' (version $tag_ver) does not match src/common/config.h version '$ver'"
         fi
-        info "Git tag $tag matches src/config.h version"
+        info "Git tag $tag matches src/common/config.h version"
     fi
 }
 
