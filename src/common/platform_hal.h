@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 // Platform HAL — Cross-platform function signatures
-// Declared here, implemented per-platform (src/nrf52/, src/c6/, src/cyd/).
+// Declared here, implemented per-platform (src/nrf52/, src/esp32-c6-lcd-1.47/, src/esp32-s3-lcd-1.47/).
 // Resolved at link time — no vtable overhead.
 //
 // Functions already declared in other common headers are NOT repeated here:
