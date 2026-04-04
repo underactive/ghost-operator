@@ -325,29 +325,42 @@ Connect via USB at 115200 baud:
 
 ## Files
 
+PlatformIO splits firmware by target: **`src/common/`** (shared portable code), **`src/nrf52/`** (Seeed XIAO nRF52840 — `env:seeed_xiao_nrf52840`), and optional ESP32 LCD ports under **`src/esp32-c6-lcd-1.47/`** (`env:c6lcd`) and **`src/esp32-s3-lcd-1.47/`** (`env:s3lcd`).
+
 | File | Description |
 |------|-------------|
-| `src/ghost_operator.ino` | Main entry point: setup(), loop(), BLE + USB HID callbacks |
-| `src/config.h` | Constants, enums, structs (header-only) |
-| `src/keys.h/.cpp` | Const data tables (keys, menu items, names) |
-| `src/icons.h/.cpp` | PROGMEM bitmaps (splash, BT icon, arrows) |
-| `src/state.h/.cpp` | All mutable globals (extern declarations) |
-| `src/settings.h/.cpp` | Flash persistence + value accessors |
-| `src/timing.h/.cpp` | Profiles, scheduling, formatting |
-| `src/encoder.h/.cpp` | ISR + polling quadrature decode |
-| `src/battery.h/.cpp` | ADC battery reading |
-| `src/hid.h/.cpp` | Keystroke sending + key selection |
-| `src/mouse.h/.cpp` | Mouse state machine |
-| `src/sleep.h/.cpp` | Deep sleep sequence |
-| `src/screenshot.h/.cpp` | PNG encoder + base64 serial output |
-| `src/serial_cmd.h/.cpp` | Serial debug commands + status |
-| `src/input.h/.cpp` | Encoder dispatch, buttons, name editor |
-| `src/display.h/.cpp` | All rendering (~2900 lines) |
-| `src/ble_uart.h/.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
-| `src/orchestrator.h/.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
-| `src/sim_data.h/.cpp` | Simulation data tables (job templates, work modes, phase timing) |
-| `src/schedule.h/.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |
-| `src/ghost_operator_splash.bin` | Splash screen bitmap (128x64, 1-bit) |
+| `src/common/config.h` | Constants, enums, structs (header-only) |
+| `src/common/keys.h`, `keys.cpp` | Const data tables (keys, menu items, names) |
+| `src/common/timing.h`, `timing.cpp` | Profiles, scheduling, formatting |
+| `src/common/mouse.h`, `mouse_pure.h`, `mouse.cpp` | Mouse movement logic (shared) |
+| `src/common/orchestrator.h`, `orchestrator.cpp` | Simulation activity orchestrator (phase cycling, mutual exclusion) |
+| `src/common/sim_data.h`, `sim_data.cpp` | Simulation data tables (job templates, work modes, phase timing) |
+| `src/common/schedule.h`, `schedule.cpp` | Timed schedule (auto-sleep/full auto, light/deep sleep, time sync) |
+| `src/common/settings.h`, `settings_pure.h`, `settings_common.cpp` | Settings model + shared accessors |
+| `src/common/state.h` | Portable shared state (settings, UI, orchestrator, etc.) |
+| `src/common/hid_keycodes.h` | HID keycode definitions |
+| `src/common/platform_hal.h` | Platform hooks (implemented per target) |
+| `src/nrf52/ghost_operator.cpp` | Main entry point: setup(), loop(), BLE + USB HID callbacks |
+| `src/nrf52/state.h`, `state.cpp` | nRF52 globals and hardware handles (includes `common/state.h`) |
+| `src/nrf52/icons.h`, `icons.cpp` | PROGMEM bitmaps (splash, BT/USB icons, arrows) |
+| `src/nrf52/settings_nrf52.cpp` | Flash persistence + nRF52 value accessors |
+| `src/nrf52/schedule_nrf52.cpp` | Schedule integration on nRF52 |
+| `src/nrf52/sim_data_flash.cpp` | Simulation data persistence (flash) |
+| `src/nrf52/encoder.h`, `encoder.cpp` | ISR + polling quadrature decode |
+| `src/nrf52/battery.h`, `battery.cpp` | ADC battery reading |
+| `src/nrf52/hid.h`, `hid.cpp` | Keystroke + mouse + scroll (BLE + USB) |
+| `src/nrf52/sleep.h`, `sleep.cpp` | Deep sleep sequence |
+| `src/nrf52/screenshot.h`, `screenshot.cpp` | PNG encoder + base64 serial output |
+| `src/nrf52/serial_cmd.h`, `serial_cmd.cpp` | Serial debug commands + status |
+| `src/nrf52/input.h`, `input.cpp` | Encoder dispatch, buttons, name editor |
+| `src/nrf52/display.h`, `display.cpp` | All rendering (~2900 lines) |
+| `src/nrf52/ble_uart.h`, `ble_uart.cpp` | BLE UART (NUS) + transport-agnostic config protocol |
+| `src/nrf52/sound.h`, `sound.cpp` | Piezo buzzer keyboard sounds |
+| `src/nrf52/protocol.h`, `protocol.cpp` | Config protocol helpers |
+| `src/nrf52/breakout.h`, `breakout.cpp` | Breakout game |
+| `src/nrf52/snake.h`, `snake.cpp` | Snake game |
+| `src/nrf52/racer.h`, `racer.cpp` | Ghost Racer game |
+| `src/esp32-c6-lcd-1.47/`, `src/esp32-s3-lcd-1.47/` | Optional ESP32 LCD firmware (LVGL, NimBLE); see `platformio.ini` `c6lcd` / `s3lcd` |
 | `platformio.ini` | PlatformIO build configuration (board, deps, flags) |
 | `boards/` | Custom board definition + variant files for Seeed XIAO nRF52840 |
 | `dashboard/` | Vue 3 web dashboard (USB serial config + Web Serial DFU) |
