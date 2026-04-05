@@ -36,14 +36,11 @@ static uint16_t adcDriftCalibrate(const char* ref) {
 void saveSettings() {
   settings.checksum = calcChecksum();
 
-  if (InternalFS.exists(SETTINGS_FILE)) {
-    InternalFS.remove(SETTINGS_FILE);
-  }
-
-  settingsFile.open(SETTINGS_FILE, FILE_O_WRITE);
+  settingsFile.open("/settings.tmp", FILE_O_WRITE);
   if (settingsFile) {
     settingsFile.write((uint8_t*)&settings, sizeof(Settings));
     settingsFile.close();
+    InternalFS.rename("/settings.tmp", SETTINGS_FILE);
     Serial.println("Settings saved to flash");
   } else {
     Serial.println("Failed to save settings");
@@ -171,15 +168,12 @@ void saveStats() {
   stats.magic = STATS_MAGIC;
   stats.checksum = calcStatsChecksum();
 
-  if (InternalFS.exists(STATS_FILE)) {
-    InternalFS.remove(STATS_FILE);
-  }
-
   File statsFile(InternalFS);
-  statsFile.open(STATS_FILE, FILE_O_WRITE);
+  statsFile.open("/stats.tmp", FILE_O_WRITE);
   if (statsFile) {
     statsFile.write((uint8_t*)&stats, sizeof(Stats));
     statsFile.close();
+    InternalFS.rename("/stats.tmp", STATS_FILE);
   }
 }
 
