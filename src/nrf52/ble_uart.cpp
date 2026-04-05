@@ -584,17 +584,17 @@ static void cmdSetValue(const char* body) {
   // Lifetime stats restore (dashboard sends these after DFU wipes flash)
   // Only advance stats — never allow lowering them via the protocol.
   } else if (strcmp(key, "totalKeys") == 0) {
-    uint32_t v = (uint32_t)strtoul(valStr, NULL, 10);
+    uint32_t v = min((uint32_t)1000000000UL, (uint32_t)strtoul(valStr, NULL, 10));
     if (v > stats.totalKeystrokes) { stats.totalKeystrokes = v; statsDirty = true; }
     currentWriter("+ok");
     return;
   } else if (strcmp(key, "totalMousePx") == 0) {
-    uint32_t v = (uint32_t)strtoul(valStr, NULL, 10);
+    uint32_t v = min((uint32_t)1000000000UL, (uint32_t)strtoul(valStr, NULL, 10));
     if (v > stats.totalMousePixels) { stats.totalMousePixels = v; statsDirty = true; }
     currentWriter("+ok");
     return;
   } else if (strcmp(key, "totalClicks") == 0) {
-    uint32_t v = (uint32_t)strtoul(valStr, NULL, 10);
+    uint32_t v = min((uint32_t)1000000000UL, (uint32_t)strtoul(valStr, NULL, 10));
     if (v > stats.totalMouseClicks) { stats.totalMouseClicks = v; statsDirty = true; }
     currentWriter("+ok");
     return;
