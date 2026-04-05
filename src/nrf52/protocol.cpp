@@ -464,6 +464,7 @@ static void jsonHandleSet(JsonObject data, ResponseWriter writer) {
     if (strcmp(key, "name") == 0) {
       const char* val = kv.value().as<const char*>();
       if (!val) { sendJsonError("name must be string", writer); return; }
+      if (strlen(val) > NAME_MAX_LEN) { sendJsonError("name too long", writer); return; }
       for (const char* p = val; *p; p++) {
         if (*p < 0x20 || *p > 0x7E) {
           sendJsonError("invalid name chars", writer);
