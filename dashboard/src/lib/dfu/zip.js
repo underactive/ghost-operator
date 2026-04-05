@@ -51,22 +51,20 @@ export function parseDfuZip(arrayBuffer) {
   }
 
   // Validate firmware integrity: the last 2 bytes of the init packet are the
-  // CRC16-CCITT of the firmware binary. 0xFFFF means no CRC check (Nordic
-  // convention). This must pass before any transfer that triggers flash erase.
+  // CRC16-CCITT of the firmware binary. This must pass before any transfer
+  // that triggers flash erase.
   if (datFile.length < 2) {
     throw new Error('Invalid DFU package: init packet too short')
   }
   const datView = new DataView(datFile.buffer, datFile.byteOffset, datFile.byteLength)
   const expectedCrc = datView.getUint16(datFile.length - 2, true)
-  if (expectedCrc !== 0xFFFF) {
-    const actualCrc = crc16(binFile)
-    if (actualCrc !== expectedCrc) {
-      throw new Error(
-        `DFU package integrity check failed: firmware CRC mismatch ` +
-        `(expected 0x${expectedCrc.toString(16).toUpperCase().padStart(4, '0')}, ` +
-        `got 0x${actualCrc.toString(16).toUpperCase().padStart(4, '0')})`
-      )
-    }
+  const actualCrc = crc16(binFile)
+  if (actualCrc !== expectedCrc) {
+    throw new Error(
+      `DFU package integrity check failed: firmware CRC mismatch ` +
+      `(expected 0x${expectedCrc.toString(16).toUpperCase().padStart(4, '0')}, ` +
+      `got 0x${actualCrc.toString(16).toUpperCase().padStart(4, '0')})`
+    )
   }
 
   return { manifest, datFile, binFile }
