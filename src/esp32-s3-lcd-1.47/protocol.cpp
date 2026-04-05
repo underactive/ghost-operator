@@ -440,20 +440,20 @@ static void jsonHandleSet(JsonObject data, ResponseWriter writer) {
     }
 
     if (strcmp(key, "totalKeys") == 0) {
-      stats.totalKeystrokes = kv.value().as<uint32_t>();
-      statsDirty = true;
+      uint32_t v = kv.value().as<uint32_t>();
+      if (v > stats.totalKeystrokes) { stats.totalKeystrokes = v; statsDirty = true; }
       continue;
     }
 
     if (strcmp(key, "totalMousePx") == 0) {
-      stats.totalMousePixels = kv.value().as<uint32_t>();
-      statsDirty = true;
+      uint32_t v = kv.value().as<uint32_t>();
+      if (v > stats.totalMousePixels) { stats.totalMousePixels = v; statsDirty = true; }
       continue;
     }
 
     if (strcmp(key, "totalClicks") == 0) {
-      stats.totalMouseClicks = kv.value().as<uint32_t>();
-      statsDirty = true;
+      uint32_t v = kv.value().as<uint32_t>();
+      if (v > stats.totalMouseClicks) { stats.totalMouseClicks = v; statsDirty = true; }
       continue;
     }
 
