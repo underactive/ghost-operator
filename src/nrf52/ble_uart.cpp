@@ -527,12 +527,16 @@ static void cmdSetValue(const char* body) {
       int v = atoi(fVal); mode.profileWeights.busyPct = (uint8_t)max(0, min(100, v));
     } else if (strcmp(field, "dMin") == 0) {
       mode.modeDurMinSec = (uint16_t)min(65535, max(10, atoi(fVal)));
+      if (mode.modeDurMaxSec < mode.modeDurMinSec) mode.modeDurMaxSec = mode.modeDurMinSec;
     } else if (strcmp(field, "dMax") == 0) {
       mode.modeDurMaxSec = (uint16_t)min(65535, max(10, atoi(fVal)));
+      if (mode.modeDurMinSec > mode.modeDurMaxSec) mode.modeDurMinSec = mode.modeDurMaxSec;
     } else if (strcmp(field, "pMin") == 0) {
       mode.profileStintMinSec = (uint16_t)max(5, atoi(fVal));
+      if (mode.profileStintMaxSec < mode.profileStintMinSec) mode.profileStintMaxSec = mode.profileStintMinSec;
     } else if (strcmp(field, "pMax") == 0) {
       mode.profileStintMaxSec = (uint16_t)max(5, atoi(fVal));
+      if (mode.profileStintMinSec > mode.profileStintMaxSec) mode.profileStintMinSec = mode.profileStintMaxSec;
     } else if (field[0] == 't' && field[1] >= '0' && field[1] <= '2' && field[2] == '\0') {
       // t0, t1, t2 = profile timing (12 CSV values)
       uint8_t pIdx = field[1] - '0';
@@ -549,17 +553,17 @@ static void cmdSetValue(const char* body) {
         else if (i < 11) { currentWriter("-err:wmode timing needs 12 values"); return; }
       }
       t.burstKeysMin = (uint8_t)vals[0];
-      t.burstKeysMax = (uint8_t)vals[1];
+      t.burstKeysMax = (uint8_t)max((uint32_t)t.burstKeysMin, vals[1]);
       t.interKeyMinMs = (uint16_t)vals[2];
-      t.interKeyMaxMs = (uint16_t)vals[3];
+      t.interKeyMaxMs = (uint16_t)max((uint32_t)t.interKeyMinMs, vals[3]);
       t.burstGapMinMs = vals[4];
-      t.burstGapMaxMs = vals[5];
+      t.burstGapMaxMs = max(t.burstGapMinMs, vals[5]);
       t.keyHoldMinMs = (uint16_t)vals[6];
-      t.keyHoldMaxMs = (uint16_t)vals[7];
+      t.keyHoldMaxMs = (uint16_t)max((uint32_t)t.keyHoldMinMs, vals[7]);
       t.mouseDurMinMs = vals[8];
-      t.mouseDurMaxMs = vals[9];
+      t.mouseDurMaxMs = max(t.mouseDurMinMs, vals[9]);
       t.idleDurMinMs = vals[10];
-      t.idleDurMaxMs = vals[11];
+      t.idleDurMaxMs = max(t.idleDurMinMs, vals[11]);
     } else {
       currentWriter("-err:unknown wmode field");
       return;
