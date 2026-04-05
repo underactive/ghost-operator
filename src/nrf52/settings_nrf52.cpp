@@ -1,4 +1,5 @@
 #include "settings.h"
+#include "settings_pure.h"
 #include "state.h"
 #include <nrf_soc.h>
 
@@ -156,12 +157,7 @@ void loadSettings() {
 // ============================================================================
 
 static uint8_t calcStatsChecksum() {
-  uint8_t sum = 0;
-  uint8_t* p = (uint8_t*)&stats;
-  for (size_t i = 0; i < offsetof(Stats, checksum); i++) {
-    sum ^= p[i];
-  }
-  return sum;
+  return ghost_xor_checksum_bytes((const uint8_t*)&stats, offsetof(Stats, checksum));
 }
 
 void saveStats() {

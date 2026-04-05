@@ -5,11 +5,14 @@
 #include <stdint.h>
 
 inline uint8_t ghost_xor_checksum_bytes(const uint8_t* p, size_t len) {
-  uint8_t sum = 0;
+  uint8_t crc = 0;
   for (size_t i = 0; i < len; i++) {
-    sum ^= p[i];
+    crc ^= p[i];
+    for (int b = 0; b < 8; b++) {
+      crc = (crc & 0x80) ? ((crc << 1) ^ 0x07) : (crc << 1);
+    }
   }
-  return sum;
+  return crc;
 }
 
 inline uint32_t ghost_clamp_u32(uint32_t value, uint32_t lo, uint32_t hi) {
