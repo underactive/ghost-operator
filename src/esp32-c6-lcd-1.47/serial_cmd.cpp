@@ -67,8 +67,8 @@ static void takeScreenshot() {
   bmpHdr[4] = fileSize >> 16; bmpHdr[5] = fileSize >> 24;
   bmpHdr[10] = 54;
   bmpHdr[14] = 40;
-  bmpHdr[18] = w; bmpHdr[19] = w >> 8;
-  bmpHdr[22] = h; bmpHdr[23] = h >> 8;
+  bmpHdr[18] = (uint8_t)w; bmpHdr[19] = (uint8_t)(w >> 8);
+  bmpHdr[22] = (uint8_t)h; bmpHdr[23] = (uint8_t)(h >> 8);
   bmpHdr[26] = 1;
   bmpHdr[28] = 24;
   bmpHdr[34] = pixelDataSize; bmpHdr[35] = pixelDataSize >> 8;

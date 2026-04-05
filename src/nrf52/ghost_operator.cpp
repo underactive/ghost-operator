@@ -202,7 +202,6 @@ void setupBLE() {
   Bluefruit.configAttrTableSize(2048);
 
   Bluefruit.begin();
-  Bluefruit.Security.setSecureConn(true);
   Bluefruit.setTxPower(4);
   // Resolve BLE name: preset decoy identity or custom device name
   if (settings.decoyIndex > 0 && settings.decoyIndex <= DECOY_COUNT) {

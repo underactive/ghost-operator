@@ -23,6 +23,10 @@ static unsigned long wswMs = 0;
 static uint16_t wswDelay = 0;
 static uint8_t wswModifier = 0;
 
+// Forward declarations for static helpers used in tickActivityLeds()
+static void dualKeyboardReport(uint8_t modifier, uint8_t keycodes[6]);
+static inline void trackBleNotify(bool ok);
+
 static inline void flashKbLed() {
   if (!settings.activityLeds) return;
   digitalWrite(LED_BLUE, LOW);  // active LOW
