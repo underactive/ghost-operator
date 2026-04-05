@@ -466,6 +466,10 @@ async function connectWithTransport(transport, type) {
         if (item.absorbOne) continue
         item.resolve({ type: 'error', data: { message: 'disconnected' } })
       }
+      dirty.value = false
+      saving.value = false
+      simDataDirty.value = false
+      simDataLoading.value = false
       statusMessage.value = 'Disconnected'
     })
 
