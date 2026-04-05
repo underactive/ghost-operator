@@ -123,6 +123,7 @@ export const simModes = reactive([])      // Array of 11 parsed work mode object
 export const simBlocks = reactive([])     // Array of block arrays per job (3 jobs)
 export const simDataDirty = ref(false)
 export const simDataLoading = ref(false)
+export const simDataError = ref(false)
 
 // Active transport module (serial or ble)
 let activeTransport = null
@@ -422,6 +423,7 @@ export function handleLine(line) {
       }))
     } else {
       const jobIdx = parseInt(parsed.data.job) || 0
+      if (jobIdx < 0 || jobIdx >= 3) return
       simBlocks[jobIdx] = parseSimBlocks(parsed.data)
     }
   } else if (parsed.type === 'ok' || parsed.type === 'error') {
@@ -735,17 +737,30 @@ async function syncTimeToDevice() {
 export async function fetchSimData() {
   if (!activeTransport || !activeTransport.isConnected()) return
   simDataLoading.value = true
+  simDataError.value = false
+  simModes.length = 0
+  simBlocks.length = 0
   const delay = transportType.value === 'ble' ? 150 : 50
+  let failed = false
   try {
     for (let i = 0; i < 11; i++) {
-      await activeTransport.send(buildQuery('wmode', { i }))
-      await sleep(delay)
+      try {
+        await activeTransport.send(buildQuery('wmode', { i }))
+        await sleep(delay)
+      } catch {
+        failed = true
+      }
     }
     for (let j = 0; j < 3; j++) {
-      await activeTransport.send(buildQuery('simblocks', { i: j }))
-      await sleep(delay)
+      try {
+        await activeTransport.send(buildQuery('simblocks', { i: j }))
+        await sleep(delay)
+      } catch {
+        failed = true
+      }
     }
-    simDataDirty.value = false
+    if (!failed) simDataDirty.value = false
+    simDataError.value = failed
   } finally {
     simDataLoading.value = false
   }
