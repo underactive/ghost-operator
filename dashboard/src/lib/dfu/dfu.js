@@ -73,9 +73,12 @@ async function sendPacket(payload) {
       }
     } catch (err) {
       if (err.message?.startsWith('DFU ACK')) throw err
-      // Timeout — reset sequence number (matches Python's get_ack_nr timeout handler)
-      seqNo = 0
-      return
+      if (err.message === 'Serial read timeout' || err.name === 'TimeoutError') {
+        // Timeout — reset sequence number (matches Python's get_ack_nr timeout handler)
+        seqNo = 0
+        return
+      }
+      throw err
     }
   }
 }
