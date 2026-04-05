@@ -412,7 +412,7 @@ static const char* jsonValidateSetObject(JsonObject data) {
       const char* val = kv.value().as<const char*>();
       if (!val) return "name must be string";
       for (const char* p = val; *p; p++) {
-        if (*p < 0x20 || *p > 0x7E) return "invalid name chars";
+        if (*p < 0x20 || *p > 0x7E || *p == '|' || *p == '=') return "invalid name chars";
       }
       continue;
     }
@@ -466,7 +466,7 @@ static void jsonHandleSet(JsonObject data, ResponseWriter writer) {
       if (!val) { sendJsonError("name must be string", writer); return; }
       if (strlen(val) > NAME_MAX_LEN) { sendJsonError("name too long", writer); return; }
       for (const char* p = val; *p; p++) {
-        if (*p < 0x20 || *p > 0x7E) {
+        if (*p < 0x20 || *p > 0x7E || *p == '|' || *p == '=') {
           sendJsonError("invalid name chars", writer);
           return;
         }

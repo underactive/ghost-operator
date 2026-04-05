@@ -405,7 +405,7 @@ static void cmdSetValue(const char* body) {
     // Device name — up to 14 printable ASCII chars
     if (strlen(valStr) > NAME_MAX_LEN) { currentWriter("-err:name too long"); return; }
     for (const char* p = valStr; *p; p++) {
-      if (*p < 0x20 || *p > 0x7E) {
+      if (*p < 0x20 || *p > 0x7E || *p == '|' || *p == '=') {
         currentWriter("-err:invalid name chars");
         return;
       }
