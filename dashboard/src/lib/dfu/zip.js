@@ -40,6 +40,20 @@ export function parseDfuZip(arrayBuffer) {
     throw new Error('Invalid DFU package: missing dat_file or bin_file in manifest')
   }
 
+  const validFilename = name =>
+    typeof name === 'string' &&
+    name.length > 0 &&
+    !name.includes('/') &&
+    !name.includes('\\') &&
+    Object.prototype.hasOwnProperty.call(files, name)
+
+  if (!validFilename(datName)) {
+    throw new Error(`Invalid DFU package: dat_file '${datName}' is invalid or not found in ZIP`)
+  }
+  if (!validFilename(binName)) {
+    throw new Error(`Invalid DFU package: bin_file '${binName}' is invalid or not found in ZIP`)
+  }
+
   const datFile = files[datName]
   const binFile = files[binName]
 
