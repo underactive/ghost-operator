@@ -208,6 +208,7 @@ static void cmdQueryStatus() {
 
   if (timeSynced) {
     len += snprintf(buf + len, sizeof(buf) - len, "|daySecs=%lu", (unsigned long)currentDaySeconds());
+    if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
   }
 
   // Lifetime stats (live from RAM)
@@ -216,6 +217,7 @@ static void cmdQueryStatus() {
     (unsigned long)stats.totalKeystrokes,
     (unsigned long)stats.totalMousePixels,
     (unsigned long)stats.totalMouseClicks);
+  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
 
   // Mode-specific status
   if (settings.operationMode == OP_RACER) {
@@ -239,6 +241,7 @@ static void cmdQueryStatus() {
       "|simBlock=%d|simMode=%d|simPhase=%d|simProfile=%d",
       orch.blockIdx, (int)orch.modeId, (int)orch.phase, (int)orch.autoProfile);
   }
+  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
 
   currentWriter(buf);
 }
@@ -268,15 +271,18 @@ static void cmdQuerySettings() {
 
   // Slots as comma-separated indices
   len += snprintf(buf + len, sizeof(buf) - len, "|slots=");
+  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
   for (int i = 0; i < NUM_SLOTS; i++) {
     len += snprintf(buf + len, sizeof(buf) - len, "%s%d",
                     (i > 0) ? "," : "", settings.keySlots[i]);
+    if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
   }
 
   // Sound settings
   len += snprintf(buf + len, sizeof(buf) - len,
     "|sound=%d|soundType=%d|sysSounds=%d",
     settings.soundEnabled, settings.soundType, settings.systemSoundEnabled);
+  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
 
   // Simulation mode settings + volume control
   len += snprintf(buf + len, sizeof(buf) - len,
@@ -294,12 +300,15 @@ static void cmdQuerySettings() {
     settings.snakeSpeed, settings.snakeWalls, settings.snakeHighScore,
     settings.racerSpeed, settings.racerHighScore,
     settings.shiftDuration, settings.lunchDuration);
+  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
 
   // Click slots as comma-separated indices
   len += snprintf(buf + len, sizeof(buf) - len, "|clickSlots=");
+  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
   for (int i = 0; i < NUM_CLICK_SLOTS; i++) {
     len += snprintf(buf + len, sizeof(buf) - len, "%s%d",
                     (i > 0) ? "," : "", settings.clickSlots[i]);
+    if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
   }
 
   // Lifetime stats (read-only, from separate stats file)
@@ -308,6 +317,7 @@ static void cmdQuerySettings() {
     (unsigned long)stats.totalKeystrokes,
     (unsigned long)stats.totalMousePixels,
     (unsigned long)stats.totalMouseClicks);
+  if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
 
   currentWriter(buf);
 }
@@ -553,14 +563,14 @@ static void cmdSetValue(const char* body) {
         if (*pp == ',') pp++;
         else if (i < 11) { currentWriter("-err:wmode timing needs 12 values"); return; }
       }
-      t.burstKeysMin = (uint8_t)vals[0];
-      t.burstKeysMax = (uint8_t)max((uint32_t)t.burstKeysMin, vals[1]);
-      t.interKeyMinMs = (uint16_t)vals[2];
-      t.interKeyMaxMs = (uint16_t)max((uint32_t)t.interKeyMinMs, vals[3]);
+      t.burstKeysMin = (uint8_t)min((uint32_t)255, vals[0]);
+      t.burstKeysMax = (uint8_t)min((uint32_t)255, max((uint32_t)t.burstKeysMin, vals[1]));
+      t.interKeyMinMs = (uint16_t)min((uint32_t)65535, vals[2]);
+      t.interKeyMaxMs = (uint16_t)min((uint32_t)65535, max((uint32_t)t.interKeyMinMs, vals[3]));
       t.burstGapMinMs = vals[4];
       t.burstGapMaxMs = max(t.burstGapMinMs, vals[5]);
-      t.keyHoldMinMs = (uint16_t)vals[6];
-      t.keyHoldMaxMs = (uint16_t)max((uint32_t)t.keyHoldMinMs, vals[7]);
+      t.keyHoldMinMs = (uint16_t)min((uint32_t)65535, vals[6]);
+      t.keyHoldMaxMs = (uint16_t)min((uint32_t)65535, max((uint32_t)t.keyHoldMinMs, vals[7]));
       t.mouseDurMinMs = vals[8];
       t.mouseDurMaxMs = max(t.mouseDurMinMs, vals[9]);
       t.idleDurMinMs = vals[10];
@@ -572,19 +582,20 @@ static void cmdSetValue(const char* body) {
     currentWriter("+ok");
     return;
   // Lifetime stats restore (dashboard sends these after DFU wipes flash)
+  // Only advance stats — never allow lowering them via the protocol.
   } else if (strcmp(key, "totalKeys") == 0) {
-    stats.totalKeystrokes = (uint32_t)strtoul(valStr, NULL, 10);
-    statsDirty = true;
+    uint32_t v = (uint32_t)strtoul(valStr, NULL, 10);
+    if (v > stats.totalKeystrokes) { stats.totalKeystrokes = v; statsDirty = true; }
     currentWriter("+ok");
     return;
   } else if (strcmp(key, "totalMousePx") == 0) {
-    stats.totalMousePixels = (uint32_t)strtoul(valStr, NULL, 10);
-    statsDirty = true;
+    uint32_t v = (uint32_t)strtoul(valStr, NULL, 10);
+    if (v > stats.totalMousePixels) { stats.totalMousePixels = v; statsDirty = true; }
     currentWriter("+ok");
     return;
   } else if (strcmp(key, "totalClicks") == 0) {
-    stats.totalMouseClicks = (uint32_t)strtoul(valStr, NULL, 10);
-    statsDirty = true;
+    uint32_t v = (uint32_t)strtoul(valStr, NULL, 10);
+    if (v > stats.totalMouseClicks) { stats.totalMouseClicks = v; statsDirty = true; }
     currentWriter("+ok");
     return;
   } else {
@@ -678,9 +689,11 @@ static void cmdQuerySimBlocks(uint8_t jobIdx) {
     const TimeBlock& block = tmpl.blocks[b];
     len += snprintf(buf + len, sizeof(buf) - len,
       "|b%d=%s,%d,%d", b, block.name, block.startMinutes, block.durationMinutes);
+    if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
     for (int m = 0; m < block.numModes; m++) {
       len += snprintf(buf + len, sizeof(buf) - len,
         ",%d:%d", block.modes[m].modeId, block.modes[m].weight);
+      if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
     }
   }
 
