@@ -207,6 +207,8 @@ static void jsonQuerySettings(JsonDocument& resp) {
   d["saverBright"] = settings.saverBrightness;
   d["saverTimeout"] = settings.saverTimeout;
   d["animStyle"] = settings.animStyle;
+  d["dispFlip"] = settings.displayFlip;
+  d["activityLeds"] = settings.activityLeds;
 
   // Device
   d["name"] = settings.deviceName;
@@ -372,6 +374,8 @@ static const SettingKeyMap SETTING_MAP[] = {
   { "saverBright", SET_SAVER_BRIGHT },
   { "saverTimeout",SET_SAVER_TIMEOUT },
   { "animStyle",   SET_ANIMATION },
+  { "dispFlip",    SET_DISPLAY_FLIP },
+  { "activityLeds", SET_ACTIVITY_LEDS },
   { "btWhileUsb",  SET_BT_WHILE_USB },
   { "scroll",      SET_SCROLL },
   { "dashboard",   SET_DASHBOARD },
