@@ -330,6 +330,7 @@ static void cmdQueryKeys() {
   int len = snprintf(buf, sizeof(buf), "!keys");
   for (int i = 0; i < NUM_KEYS; i++) {
     len += snprintf(buf + len, sizeof(buf) - len, "|%s", AVAILABLE_KEYS[i].name);
+    if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
   }
   currentWriter(buf);
 }
@@ -342,6 +343,7 @@ static void cmdQueryDecoys() {
   int len = snprintf(buf, sizeof(buf), "!decoys");
   for (int i = 0; i < DECOY_COUNT; i++) {
     len += snprintf(buf + len, sizeof(buf) - len, "|%s", DECOY_NAMES[i]);
+    if (len >= (int)sizeof(buf)) len = (int)sizeof(buf) - 1;
   }
   currentWriter(buf);
 }
@@ -498,10 +500,8 @@ static void cmdSetValue(const char* body) {
     int slot = 0;
     const char* p = valStr;
     while (slot < NUM_SLOTS && *p) {
-      settings.keySlots[slot] = (uint8_t)atoi(p);
-      if (settings.keySlots[slot] >= NUM_KEYS) {
-        settings.keySlots[slot] = NUM_KEYS - 1;
-      }
+      uint8_t v = (uint8_t)atoi(p);
+      settings.keySlots[slot] = (v >= NUM_KEYS) ? (NUM_KEYS - 1) : v;
       slot++;
       // Advance past this number and the comma
       while (*p && *p != ',') p++;
