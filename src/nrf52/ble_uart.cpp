@@ -621,9 +621,23 @@ static void cmdSave() {
 }
 
 // ----------------------------------------------------------------------------
+// Returns true only when the current BLE connection is encrypted (paired/bonded).
+// ----------------------------------------------------------------------------
+static bool bleConnectionSecured() {
+  uint16_t handle = bleConnHandle;
+  if (handle == BLE_CONN_HANDLE_INVALID) return false;
+  BLEConnection* conn = Bluefruit.Connection(handle);
+  return conn && conn->secured();
+}
+
+// ----------------------------------------------------------------------------
 // !defaults — reset all settings to factory defaults
 // ----------------------------------------------------------------------------
 static void cmdDefaults() {
+  if (currentWriter == bleWrite && !bleConnectionSecured()) {
+    currentWriter("-err:requires pairing");
+    return;
+  }
   loadDefaults();
   scheduleNextKey();
   scheduleNextMouseState();
@@ -637,6 +651,10 @@ static void cmdDefaults() {
 // !reboot — restart the device
 // ----------------------------------------------------------------------------
 static void cmdReboot() {
+  if (currentWriter == bleWrite && !bleConnectionSecured()) {
+    currentWriter("-err:requires pairing");
+    return;
+  }
   currentWriter("+ok");
   Serial.flush();
   delay(100);  // Let the response transmit
@@ -736,6 +754,10 @@ void resetToDfu() {
 // !dfu — reboot into OTA DFU bootloader mode
 // ----------------------------------------------------------------------------
 static void cmdDfu() {
+  if (currentWriter == bleWrite && !bleConnectionSecured()) {
+    currentWriter("-err:requires pairing");
+    return;
+  }
   currentWriter("+ok:dfu");
   Serial.flush();
   delay(100);  // Let the response transmit
@@ -777,6 +799,10 @@ void resetToSerialDfu() {
 // !serialdfu — reboot into Serial DFU bootloader mode (USB CDC)
 // ----------------------------------------------------------------------------
 static void cmdSerialDfu() {
+  if (currentWriter == bleWrite && !bleConnectionSecured()) {
+    currentWriter("-err:requires pairing");
+    return;
+  }
   currentWriter("+ok:serialdfu");
   Serial.flush();
   delay(100);  // Let the response transmit
