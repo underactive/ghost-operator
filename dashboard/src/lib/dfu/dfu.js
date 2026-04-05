@@ -17,7 +17,7 @@
  *   DFU_DATA_PACKET       = 4
  *   DFU_STOP_DATA_PACKET  = 5
  */
-import { buildHciPacket, slipDecode } from './slip.js'
+import { buildHciPacket, slipDecode, parseAck } from './slip.js'
 import * as serial from './serial.js'
 
 // DFU opcodes — these are NOT sequential (matches adafruit-nrfutil exactly)
@@ -49,32 +49,34 @@ const PAGE_SIZE = 4096
  */
 let seqNo = 0
 
-/**
- * Send a packet and drain the ACK response from the bootloader.
- *
- * Matches adafruit-nrfutil's send_packet() behavior exactly:
- * - Send the packet once
- * - Read the ACK response (to drain the serial buffer)
- * - Do NOT validate the ACK — just move on
- * - On timeout (1s), reset sequence number to 0 (matches Python)
- *
- * The Python code never retries or validates ACKs. It sends each packet
- * once and reads the response purely to keep the serial buffer clear.
- */
+const MAX_RETRIES = 3
+
 async function sendPacket(payload) {
   // Pre-increment sequence number (matches Python HciPacket.__init__)
   seqNo = (seqNo + 1) % 8
+  const expected = (seqNo + 1) % 8
 
-  const packet = buildHciPacket(seqNo, payload)
-  await serial.write(packet)
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const packet = buildHciPacket(seqNo, payload)
+    await serial.write(packet)
 
-  // Drain the ACK response (1s timeout, matching Python's ACK_PACKET_TIMEOUT)
-  try {
-    const frame = await serial.readFrame(1000)
-    slipDecode(frame)
-  } catch {
-    // Timeout — reset sequence number (matches Python's get_ack_nr timeout handler)
-    seqNo = 0
+    try {
+      const frame = await serial.readFrame(1000)
+      const decoded = slipDecode(frame)
+      const ackNo = parseAck(decoded)
+      if (ackNo === expected) return
+      console.warn(`DFU ACK mismatch (attempt ${attempt + 1}/${MAX_RETRIES}): expected ${expected}, got ${ackNo}`)
+      if (attempt < MAX_RETRIES - 1) {
+        await sleep(50 * (attempt + 1))
+      } else {
+        throw new Error(`DFU ACK mismatch after ${MAX_RETRIES} attempts: expected ${expected}, got ${ackNo}`)
+      }
+    } catch (err) {
+      if (err.message?.startsWith('DFU ACK')) throw err
+      // Timeout — reset sequence number (matches Python's get_ack_nr timeout handler)
+      seqNo = 0
+      return
+    }
   }
 }
 
