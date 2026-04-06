@@ -1,6 +1,11 @@
 import { strToU8, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import { getDfuPackageInfo, parseDfuZip } from './zip.js'
+import { crc16 } from './crc16.js'
+
+const TEST_BIN = new Uint8Array([0x01, 0x02, 0x03, 0x04])
+const TEST_BIN_CRC = crc16(TEST_BIN)
+const TEST_DAT = new Uint8Array([TEST_BIN_CRC & 0xFF, (TEST_BIN_CRC >> 8) & 0xFF])
 
 function makeMinimalDfuZip() {
   const manifest = {
@@ -13,8 +18,8 @@ function makeMinimalDfuZip() {
   }
   const zipBytes = zipSync({
     'manifest.json': strToU8(JSON.stringify(manifest)),
-    'pkg.dat': new Uint8Array([0xaa, 0xbb]),
-    'pkg.bin': new Uint8Array([0x01, 0x02, 0x03, 0x04]),
+    'pkg.dat': TEST_DAT,
+    'pkg.bin': TEST_BIN,
   })
   return zipBytes.buffer.slice(zipBytes.byteOffset, zipBytes.byteOffset + zipBytes.byteLength)
 }
@@ -24,8 +29,8 @@ describe('parseDfuZip', () => {
     const { manifest, datFile, binFile } = parseDfuZip(makeMinimalDfuZip())
     expect(manifest.manifest.application.dat_file).toBe('pkg.dat')
     expect(manifest.manifest.application.bin_file).toBe('pkg.bin')
-    expect(datFile).toEqual(new Uint8Array([0xaa, 0xbb]))
-    expect(binFile).toEqual(new Uint8Array([0x01, 0x02, 0x03, 0x04]))
+    expect(datFile).toEqual(TEST_DAT)
+    expect(binFile).toEqual(TEST_BIN)
   })
 
   it('throws when manifest.json is missing', () => {
@@ -72,6 +77,9 @@ describe('parseDfuZip', () => {
   })
 
   it('resolves dat and bin files stored under a subdirectory path', () => {
+    const subBin = new Uint8Array([0xbb, 0xcc])
+    const subCrc = crc16(subBin)
+    const subDat = new Uint8Array([subCrc & 0xFF, (subCrc >> 8) & 0xFF])
     const manifest = {
       manifest: {
         application: {
@@ -82,15 +90,15 @@ describe('parseDfuZip', () => {
     }
     const raw = zipSync({
       'manifest.json': strToU8(JSON.stringify(manifest)),
-      'application/nrf52840_xxaa.dat': new Uint8Array([0xdd]),
-      'application/nrf52840_xxaa.bin': new Uint8Array([0xbb, 0xcc]),
+      'application/nrf52840_xxaa.dat': subDat,
+      'application/nrf52840_xxaa.bin': subBin,
     })
     const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
     const { datFile, binFile } = parseDfuZip(buf)
     expect(datFile).toBeInstanceOf(Uint8Array)
     expect(binFile).toBeInstanceOf(Uint8Array)
-    expect(datFile).toEqual(new Uint8Array([0xdd]))
-    expect(binFile).toEqual(new Uint8Array([0xbb, 0xcc]))
+    expect(datFile).toEqual(subDat)
+    expect(binFile).toEqual(subBin)
   })
 })
 

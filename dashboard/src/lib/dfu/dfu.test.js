@@ -1,15 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as serial from './serial.js'
 import { performDfu } from './dfu.js'
-import { slipDecode } from './slip.js'
+import { slipDecode, slipEncode } from './slip.js'
 
 vi.mock('./serial.js', () => ({
   write: vi.fn(),
   readFrame: vi.fn(),
 }))
 
-// Minimal valid SLIP frame: two SLIP_END bytes → decodes to empty Uint8Array
-const ACK_FRAME = new Uint8Array([0xc0, 0xc0])
+// Build a valid SLIP-encoded HCI ACK frame for a given ack number.
+// parseAck extracts bits [3:5] of byte 0; needs at least 4 bytes.
+function makeAckFrame(ackNo) {
+  const b0 = (ackNo & 0x07) << 3
+  return slipEncode(new Uint8Array([b0, 0, 0, (~b0 + 1) & 0xFF]))
+}
+
+// Dynamic mock: reads the last sent packet's seqNo, returns matching ACK
+function autoAck() {
+  const lastCall = serial.write.mock.calls[serial.write.mock.calls.length - 1]
+  if (!lastCall) return Promise.resolve(makeAckFrame(0))
+  const decoded = slipDecode(lastCall[0])
+  const sentSeq = decoded[0] & 0x07
+  return Promise.resolve(makeAckFrame((sentSeq + 1) % 8))
+}
 
 // Decode a SLIP-encoded HCI packet to its inner bytes:
 // [4-byte header][payload bytes][2-byte CRC]
@@ -35,7 +48,7 @@ function payloadSize(pkt) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  serial.readFrame.mockResolvedValue(ACK_FRAME)
+  serial.readFrame.mockImplementation(autoAck)
   vi.useFakeTimers()
 })
 
@@ -94,7 +107,7 @@ describe('performDfu integration', () => {
     // First readFrame call (START ACK) times out; subsequent calls succeed
     serial.readFrame
       .mockRejectedValueOnce(new Error('Serial read timeout'))
-      .mockResolvedValue(ACK_FRAME)
+      .mockImplementation(autoAck)
 
     await runDfu(new Uint8Array(2), new Uint8Array(4))
 

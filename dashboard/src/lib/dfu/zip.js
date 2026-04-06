@@ -43,8 +43,6 @@ export function parseDfuZip(arrayBuffer) {
   const validFilename = name =>
     typeof name === 'string' &&
     name.length > 0 &&
-    !name.includes('/') &&
-    !name.includes('\\') &&
     Object.prototype.hasOwnProperty.call(files, name)
 
   if (!validFilename(datName)) {
