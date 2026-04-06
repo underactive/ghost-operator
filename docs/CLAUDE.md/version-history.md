@@ -2,7 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
-| 2.5.3 | Fix build errors: C6 `volatile` mismatch on `mouseState`, C6 BMP header narrowing, nRF52 forward declarations in `hid.cpp`, remove non-existent `BLESecurity::setSecureConn()`, install missing `vitest` dashboard dependency. |
+| 2.5.3 | ESP32-C6 and ESP32-S3 LCD ports (LVGL, NimBLE, dual-transport HID). Multi-platform architecture refactor (`src/common/` + per-platform dirs). JSON protocol for nRF52. DFU backup/restore (stats/settings snapshot to localStorage). Native test infrastructure (Unity + CI). Security hardening: DFU CRC validation, stats monotonic enforcement, CRC8 settings checksum, BLE pairing requirement, flash write safety, protocol input validation. Build fixes across all platforms. Dashboard connection state and store.js fixes. |
 | 2.5.2 | Fix mouse clicks lifetime stat: `sendMouseScroll()` now increments `totalMouseClicks` (scroll actions were uncounted). |
 | 2.5.1 | Dual-unit distance display (ft/m, mi/km) on OLED and dashboard. Shortened "Mouse dist" label to "Travel". |
 | 2.5.0 | Lifetime stats: persistent counters for keystrokes, mouse distance (miles), and mouse clicks in About menu + web dashboard. Fixed read-only menu arrow bug and light sleep encoder wake. |

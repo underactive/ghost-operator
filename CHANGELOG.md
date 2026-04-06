@@ -7,13 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.5.3] - 2026-04-05
 
+### Added
+
+- **ESP32-C6 LCD 1.47 port** — Full firmware port to Waveshare ESP32-C6-LCD-1.47 with LVGL color UI, NimBLE BLE stack, animated ghost splash screen with shimmer effect, serial BMP screenshot support, and USB CDC serial
+- **ESP32-S3 LCD 1.47 port** — Full firmware port to Waveshare ESP32-S3-LCD-1.47 with dual-transport USB+BLE HID (USB-A OTG), LVGL display, NimBLE
+- **JSON protocol (nRF52)** — ArduinoJson-based config protocol alongside existing text protocol for ESP32 LCD platforms
+- **DFU backup/restore** — Dashboard snapshots stats and settings to localStorage before Serial DFU; auto-restores on first reconnection after update. Firmware flushes stats/settings to flash before entering DFU mode
+- **Testing infrastructure** — PlatformIO `native` test environment with Unity framework; unit tests for mouse (Bezier/Brownian drift, return-to-origin), settings (clamp, checksum), DFU (CRC16, HCI packets, ZIP parsing), and protocol (store `handleLine`, `buildSet`)
+- **CI test runner** — GitHub Actions workflow runs native tests and multi-environment builds (nRF52, C6, S3)
+- **Screenshot tooling** — `tools/screenshot-c6.sh` for capturing ESP32-C6 serial BMP screenshots; `tools/gen_splash_sprite.py` for generating splash screen sprite data
+
+### Changed
+
+- **Multi-platform architecture** — Refactored firmware into `src/common/` (portable logic), `src/nrf52/` (nRF52-specific), `src/esp32-c6-lcd-1.47/`, and `src/esp32-s3-lcd-1.47/`. PlatformIO `build_src_filter` selects per-environment source trees
+- **Build system** — Updated `build.sh` and `Makefile` for new `src/common/` + `src/nrf52/` layout; fixed VERSION path extraction for release script
+
 ### Fixed
 
-- **C6 build error** — Added missing `volatile` qualifier on `mouseState` definition in ESP32-C6 `state.cpp` to match `common/state.h` extern declaration
-- **C6 narrowing warning** — Added explicit `uint8_t` casts in C6 `serial_cmd.cpp` BMP header writes to suppress implicit truncation warning (320 → low byte)
-- **nRF52 build error (hid.cpp)** — Added forward declarations for `dualKeyboardReport()` and `trackBleNotify()` static functions called before their definition in `hid.cpp`
-- **nRF52 build error (BLE)** — Removed non-existent `BLESecurity::setSecureConn()` call; Adafruit Bluefruit API doesn't expose this method (SoftDevice negotiates LESC automatically)
-- **Dashboard dev server** — Installed missing `vitest` dependency (declared in `devDependencies` but absent from `node_modules`, breaking `vite.config.js` import)
+- **nRF52 build errors** — Forward declarations for `dualKeyboardReport()`/`trackBleNotify()` in `hid.cpp`; removed non-existent `BLESecurity::setSecureConn()` call (SoftDevice negotiates LESC automatically)
+- **C6 build errors** — Missing `volatile` on `mouseState` definition; implicit narrowing in BMP header writes
+- **Dashboard dev server** — Installed missing `vitest` dependency breaking `vite.config.js` import
+- **DFU integrity hardening** — CRC16 validation no longer skippable; ZIP manifest filename validation; HCI ACK sequence/integrity checks; `sendPacket()` error propagation instead of silent reset
+- **Protocol input validation** — `parseInt()` with explicit radix 10; `buildSet()` rejects empty/space-only input; name field rejects non-printable ASCII and pipe characters; JSON parse errors surfaced instead of swallowed
+- **Stats monotonic enforcement** — `=totalKeys`/`=totalMousePx`/`=totalClicks` protocol commands enforce `max(current, incoming)` to prevent rollback
+- **Settings checksum** — Replaced XOR checksum with CRC8 for better flash corruption detection
+- **BLE security** — Protocol commands require BLE pairing; serial debug output no longer echoes full client-controlled BLE UART input; device name sanitized in logs
+- **Flash write safety** — LittleFS write-then-rename pattern to prevent data loss on power failure during settings/stats save
+- **Dashboard connection state** — Fixed stale "Saving..." on disconnect; proper port close on serial disconnect callback; transport object cleanup on reconnect; connection timeout handling
+- **Dashboard store.js** — Fixed `parseInt` without radix; `displayFlip` reactive default for ESP JSON protocol; 4 additional state management fixes
+- **Mouse state** — Removed dead `mouseReturnTotal` variable; `MouseState` marked volatile for ISR safety across all platforms
+- **BLE UART** — Buffer overflow tracking on disconnect; 3 additional protocol handler fixes
+- **Simulation timing** — `jsonQueryWorkMode` correct timing data generation; work mode parameter cross-field validation
+- **Sound module** — `systemSoundEnabled` bounds check on flash load to prevent corrupt values
+- **npm audit** — Updated dashboard dependencies to resolve known vulnerabilities
 
 ## [2.5.2] - 2026-04-01
 
