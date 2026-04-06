@@ -45,7 +45,7 @@ jobs:
           key: pio-${{ hashFiles('platformio.ini', 'boards/**') }}
 
       - name: Install PlatformIO
-        run: pip install platformio adafruit-nrfutil
+        run: pip install "click<8.2" platformio adafruit-nrfutil
 
       - name: Build nRF52 firmware
         run: pio run -e seeed_xiao_nrf52840
