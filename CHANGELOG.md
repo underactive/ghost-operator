@@ -5,6 +5,17 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.4] - 2026-04-06
+
+### Added
+
+- **ESP32 OTA firmware updates** — In-browser firmware updates for ESP32 C6 and S3 via web dashboard USB serial. Uses Arduino `Update` library with A/B OTA partitions for safe rollback. No port re-selection needed (transfers on existing serial connection)
+- **ESP32 `!ota` serial command** — Triggers OTA receive mode over USB serial; rejects BLE with clear error. Old `!dfu`/`!serialdfu` commands updated to suggest `!ota`
+
+### Fixed
+
+- **S3 platform detection** — Dashboard now correctly detects ESP32-S3 as `'s3'` platform (was falling through to `'nrf52'`). S3 now uses JSON protocol as intended
+
 ## [2.5.3] - 2026-04-05
 
 ### Added

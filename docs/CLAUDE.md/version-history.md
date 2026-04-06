@@ -2,6 +2,7 @@
 
 | Ver | Changes |
 |-----|---------|
+| 2.5.4 | ESP32 USB serial OTA firmware updates (C6 and S3) via web dashboard. App-level OTA using Arduino Update library with A/B partition safety. Fix S3 platform detection (was misidentified as nRF52). |
 | 2.5.3 | ESP32-C6 and ESP32-S3 LCD ports (LVGL, NimBLE, dual-transport HID). Multi-platform architecture refactor (`src/common/` + per-platform dirs). JSON protocol for nRF52. DFU backup/restore (stats/settings snapshot to localStorage). Native test infrastructure (Unity + CI). Security hardening: DFU CRC validation, stats monotonic enforcement, CRC8 settings checksum, BLE pairing requirement, flash write safety, protocol input validation. Build fixes across all platforms. Dashboard connection state and store.js fixes. |
 | 2.5.2 | Fix mouse clicks lifetime stat: `sendMouseScroll()` now increments `totalMouseClicks` (scroll actions were uncounted). |
 | 2.5.1 | Dual-unit distance display (ft/m, mi/km) on OLED and dashboard. Shortened "Mouse dist" label to "Travel". |
