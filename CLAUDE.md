@@ -339,7 +339,7 @@ See [docs/CLAUDE.md/version-history.md](docs/CLAUDE.md/version-history.md) for f
 - **`extra_script.py`:** Adds the CC310 crypto library path (`libnrf_cc310_0.9.13-no-interrupts.a`) that PlatformIO's framework builder doesn't include.
 - **Settings magic number:** `SETTINGS_MAGIC` in `src/common/config.h` encodes the settings struct schema version. Bump it when the `Settings` struct layout changes to trigger a safe `loadDefaults()` reset instead of reading corrupt data from flash.
 - **DFU ZIP generation:** The Seeed nRF52 toolchain automatically generates a `.zip` DFU package alongside the `.hex` during compilation (via `adafruit-nrfutil`). No extra build step required.
-- **CI mirror:** Release workflow mirrors DFU artifacts from the private `ghost-operator-v2` repo to the public `ghost-operator` repo for distribution.
+- **CI release:** Release workflow builds DFU firmware and creates a GitHub Release with the artifact.
 
 ### PlatformIO Board JSON Gotchas
 The custom board JSON (`boards/seeed_xiao_nrf52840.json`) requires several fields that PlatformIO's `nordicnrf52` platform doesn't auto-derive from the framework. Missing any of these breaks the build or firmware:
@@ -358,8 +358,7 @@ No environment variables are used in local builds. Configuration is sourced enti
 
 | Secret | Purpose |
 |--------|---------|
-| `GITHUB_TOKEN` | Default token for v2 repo access and release creation |
-| `V1_REPO_PAT` | Personal access token for mirroring releases to the public `ghost-operator` repo |
+| `GITHUB_TOKEN` | Default token for repo access and release creation (auto-provided by GitHub Actions) |
 
 ---
 
