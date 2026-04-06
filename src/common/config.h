@@ -91,7 +91,11 @@
   #define PIN_LCD_CS        42
   #define PIN_LCD_DC        41
   #define PIN_LCD_RST       39
-  #define PIN_LCD_BL        48
+  #ifdef PIN_LCD_BL_OVERRIDE
+    #define PIN_LCD_BL      PIN_LCD_BL_OVERRIDE  // S3 B-variant: GPIO 46
+  #else
+    #define PIN_LCD_BL      48                   // S3 A-variant: GPIO 48
+  #endif
   #define PIN_NEOPIXEL      38
   #define GHOST_LCD_SPI_HOST HSPI
 #elif !defined(GHOST_PLATFORM_CYD)
