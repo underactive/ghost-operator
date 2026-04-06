@@ -2,14 +2,14 @@
 
 ## Status: Implemented (v1.7.2)
 
-Browser-based firmware updates via USB serial, integrated into the web dashboard. Solves the Web Bluetooth DFU blocklist problem documented in [OTA_DFU_PLAN.md](OTA_DFU_PLAN.md).
+Browser-based firmware updates via USB serial, integrated into the web dashboard. Solves the Web Bluetooth DFU blocklist problem documented in [ota-dfu.md](ota-dfu.md).
 
 ---
 
 ## Background
 
 ### The Problem (from v1.7.1)
-Chrome permanently blocklists the legacy DFU UUID (`00001530-...`) used by the Adafruit nRF52 bootloader in OTA DFU mode. Web Bluetooth DFU is impossible — see `docs/OTA_DFU_PLAN.md` for the full investigation.
+Chrome permanently blocklists the legacy DFU UUID (`00001530-...`) used by the Adafruit nRF52 bootloader in OTA DFU mode. Web Bluetooth DFU is impossible — see [ota-dfu.md](ota-dfu.md) for the full investigation.
 
 ### The Solution
 The Adafruit bootloader also supports **Serial DFU mode** (GPREGRET magic `0x4E`), which presents a USB CDC serial port. Chrome's Web Serial API has no UUID blocklist — it's just a serial port. The protocol is Nordic SDK 11's legacy HCI/SLIP serial DFU, the same protocol used by `adafruit-nrfutil dfu serial`.

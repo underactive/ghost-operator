@@ -8,5 +8,5 @@
 - [x] ~~Web-based configuration (BLE UART)~~ -> Implemented as BLE UART protocol + Vue 3 web dashboard in v1.7.0
 - [x] Scheduled on/off times
 - [x] Activity logging to flash
-- [ ] Native macOS menubar companion app (SwiftUI) — replace web dashboard, adds BLE DFU support (plan: `docs/CLAUDE.md/plans/1774536926-swiftui-companion-app/plan.md`)
+- [ ] Native macOS menubar companion app (SwiftUI) — replace web dashboard, adds BLE DFU support (plan not yet created)
 - [x] ~~Display idle timeout / dimming~~ -> Implemented as screensaver mode in v1.3.0 (minimal pixel display after configurable timeout)

@@ -2,7 +2,7 @@
 
 ## Status: Partially Implemented (v1.7.1) — Superseded by Web Serial DFU (v1.7.2)
 
-Firmware DFU commands work. Web Bluetooth DFU is **not possible** due to bootloader limitations. The Web Serial DFU approach in v1.7.2 solves this — see [SERIAL_DFU_PLAN.md](SERIAL_DFU_PLAN.md).
+Firmware DFU commands work. Web Bluetooth DFU is **not possible** due to bootloader limitations. The Web Serial DFU approach in v1.7.2 solves this — see [serial-dfu.md](serial-dfu.md).
 
 ---
 
