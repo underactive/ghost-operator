@@ -7,6 +7,7 @@
 let port = null
 let reader = null
 let readLoopActive = false
+let paused = false
 let rxBuffer = ''
 
 let onLineReceived = null
@@ -25,6 +26,8 @@ export function isWebSerialAvailable() {
  * Returns the device name (fetched later via ?settings).
  */
 export async function connect() {
+  paused = false
+
   // Close any lingering port from a previous session
   if (port) {
     try { await port.close() } catch {}
@@ -63,6 +66,7 @@ export async function disconnect() {
   }
 
   rxBuffer = ''
+  paused = false
 }
 
 /**
@@ -100,6 +104,31 @@ export function onDisconnect(callback) {
  */
 export function isConnected() {
   return !!(port && port.readable && port.writable)
+}
+
+/**
+ * Pause the text read loop without closing the port.
+ * Used by ESP32 OTA to switch from text config commands to raw binary I/O.
+ * Call disconnect() when done to fully clean up.
+ */
+export async function pause() {
+  paused = true
+  readLoopActive = false
+
+  if (reader) {
+    try { await reader.cancel() } catch {}
+    try { reader.releaseLock() } catch {}
+    reader = null
+  }
+
+  rxBuffer = ''
+}
+
+/**
+ * Return the underlying SerialPort object (valid while connected or paused).
+ */
+export function getPort() {
+  return port
 }
 
 // --- Internal ---
@@ -154,8 +183,9 @@ async function readLoop() {
     }
   }
 
-  // If we exited the loop unexpectedly (USB disconnect), fire callback
-  if (port) {
+  // If we exited the loop unexpectedly (USB disconnect), fire callback.
+  // Skip if paused — the OTA caller will handle cleanup via disconnect().
+  if (port && !paused) {
     port = null
     rxBuffer = ''
     if (onDisconnected) {

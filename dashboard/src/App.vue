@@ -49,7 +49,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
           <DeviceSection />
           <LifetimeStats />
         </template>
-        <FirmwareUpdate v-if="platform !== 'c6'" />
+        <FirmwareUpdate />
       </div>
 
       <footer v-if="connectionState.connected" class="save-bar">

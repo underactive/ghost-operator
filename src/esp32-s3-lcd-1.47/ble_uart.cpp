@@ -12,6 +12,7 @@
 #include "orchestrator.h"
 #include "platform_hal.h"
 #include "display.h"
+#include "ota.h"
 
 // ============================================================================
 // BLE UART (Nordic UART Service) for ESP32-S3
@@ -187,10 +188,22 @@ void processCommand(const char* line, ResponseWriter writer) {
       cmdDefaults();
     } else if (strcmp(cmd, "reboot") == 0) {
       cmdReboot();
+    } else if (strcmp(cmd, "ota") == 0) {
+      if (currentWriter == bleWrite) {
+        currentWriter("-err:OTA requires USB");
+      } else {
+        currentWriter("+ok:ota");
+        Serial.flush();
+        delay(100);
+        saveSettings();
+        saveSimData();
+        if (statsDirty) { saveStats(); statsDirty = false; }
+        performSerialOta(nullptr); // never returns
+      }
     } else if (strcmp(cmd, "dfu") == 0) {
-      currentWriter("-err:DFU not supported on S3");
+      currentWriter("-err:use !ota for firmware update");
     } else if (strcmp(cmd, "serialdfu") == 0) {
-      currentWriter("-err:DFU not supported on S3");
+      currentWriter("-err:use !ota for firmware update");
     } else if (strcmp(cmd, "savesim") == 0) {
       saveSimData();
       currentWriter("+ok");

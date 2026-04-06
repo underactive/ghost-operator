@@ -7,6 +7,7 @@ import * as serialTransport from './serial.js'
 import * as bleTransport from './ble.js'
 import * as dfuSerial from './dfu/serial.js'
 import { performDfu } from './dfu/dfu.js'
+import { performEsp32Ota } from './dfu/esp32_ota.js'
 import {
   parseResponse, parseSettings, parseStatus, parseWorkMode, parseSimBlocks,
   normalizeWorkModeFromJson,
@@ -116,7 +117,7 @@ export const saving = ref(false)
 export const statusMessage = ref('')
 export const dfuActive = ref(false)
 export const transportType = ref(null) // 'usb' | 'ble' | null
-export const platform = ref(null) // 'nrf52' | 'c6' | 'cyd' | null
+export const platform = ref(null) // 'nrf52' | 's3' | 'c6' | 'cyd' | null
 
 // Simulation tuning state
 export const simModes = reactive([])      // Array of 11 parsed work mode objects
@@ -316,7 +317,7 @@ function pushBatterySample(pct, mv) {
  * Before platform detection, uses text protocol (universally supported).
  */
 function buildQuery(key, params) {
-  if (platform.value === 'c6' || platform.value === 'nrf52') {
+  if (platform.value === 'c6' || platform.value === 's3' || platform.value === 'nrf52') {
     return buildJsonQuery(key, params)
   }
   // Text protocol — params.i for indexed queries like ?wmode:0
@@ -330,7 +331,7 @@ function buildQuery(key, params) {
  * Build a set command in the appropriate format for the detected platform.
  */
 export function buildSet(key, value) {
-  if (platform.value === 'c6' || platform.value === 'nrf52') {
+  if (platform.value === 'c6' || platform.value === 's3' || platform.value === 'nrf52') {
     // For JSON protocol, type the value appropriately
     let typedValue = value
     if (key === 'slots' || key === 'clickSlots') {
@@ -347,7 +348,7 @@ export function buildSet(key, value) {
  * Build an action command in the appropriate format for the detected platform.
  */
 function buildAction(action) {
-  if (platform.value === 'c6' || platform.value === 'nrf52') {
+  if (platform.value === 'c6' || platform.value === 's3' || platform.value === 'nrf52') {
     return buildJsonCommand(action)
   }
   return `!${action}`
@@ -398,6 +399,7 @@ export function handleLine(line) {
     if (!platform.value) {
       const p = isJson ? parsed.data.platform : parsed.data?.platform
       if (p === 'c6') platform.value = 'c6'
+      else if (p === 's3') platform.value = 's3'
       else if (p === 'cyd') platform.value = 'cyd'
       else if (p === 'nrf52') platform.value = 'nrf52'
       else platform.value = 'nrf52'  // default fallback
@@ -716,6 +718,53 @@ export async function startSerialDfu(datFile, binFile, onProgress, onWaitingPort
   } catch (err) {
     // Terminal log (append-only, separate from progress bar)
     onLog(`DFU error: ${err.message}`, 'error')
+    throw err
+  } finally {
+    // dfuActive stays true — component controls when to clear it
+  }
+}
+
+/**
+ * Orchestrate an ESP32 OTA firmware update via USB serial.
+ * Unlike nRF52 DFU, ESP32 OTA runs on the same serial port (no reboot/re-selection).
+ * NVS survives OTA, so no settings backup is needed.
+ *
+ * @param {Uint8Array} binFile - Firmware binary (.bin file)
+ * @param {function} onProgress - (percent, message) => void
+ * @param {function} [onLog] - (message, level) => void
+ * @returns {Promise<void>}
+ */
+export async function startEsp32Ota(binFile, onProgress, onLog = () => {}) {
+  dfuActive.value = true
+  stopPolling()
+
+  try {
+    // 1. Send !ota command (raw text — no JSON handler needed in firmware)
+    onProgress(0, 'Sending OTA command...')
+    onLog('Sending OTA command over serial...', 'info')
+    await sendAndWait('!ota')
+
+    // 2. Pause text read loop (keep port open for binary I/O)
+    onLog('Switching to binary transfer mode...', 'info')
+    await activeTransport.pause()
+
+    // 3. Get raw port for binary transfer
+    const port = activeTransport.getPort()
+    if (!port) throw new Error('Serial port not available')
+
+    // 4. Perform binary OTA transfer
+    await performEsp32Ota(port, binFile, onProgress, onLog)
+
+    // 5. Device reboots after +done — disconnect cleanly
+    onLog('Device is rebooting with new firmware...', 'info')
+    await activeTransport.disconnect()
+    connectionState.connected = false
+    connectionState.deviceName = ''
+  } catch (err) {
+    onLog(`OTA error: ${err.message}`, 'error')
+    try { await activeTransport.disconnect() } catch {}
+    connectionState.connected = false
+    connectionState.deviceName = ''
     throw err
   } finally {
     // dfuActive stays true — component controls when to clear it
