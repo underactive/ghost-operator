@@ -5,6 +5,16 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.3] - 2026-04-05
+
+### Fixed
+
+- **C6 build error** — Added missing `volatile` qualifier on `mouseState` definition in ESP32-C6 `state.cpp` to match `common/state.h` extern declaration
+- **C6 narrowing warning** — Added explicit `uint8_t` casts in C6 `serial_cmd.cpp` BMP header writes to suppress implicit truncation warning (320 → low byte)
+- **nRF52 build error (hid.cpp)** — Added forward declarations for `dualKeyboardReport()` and `trackBleNotify()` static functions called before their definition in `hid.cpp`
+- **nRF52 build error (BLE)** — Removed non-existent `BLESecurity::setSecureConn()` call; Adafruit Bluefruit API doesn't expose this method (SoftDevice negotiates LESC automatically)
+- **Dashboard dev server** — Installed missing `vitest` dependency (declared in `devDependencies` but absent from `node_modules`, breaking `vite.config.js` import)
+
 ## [2.5.2] - 2026-04-01
 
 ### Fixed
