@@ -5,6 +5,12 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.5] - 2026-04-06
+
+### Changed
+
+- **README** — Rewritten to lead with ESP32-S3/S3B/C6 as primary targets (no assembly required). Simulation mode documented first and in depth; Simple mode as peer. nRF52840 hardware details (BOM, pinout, wiring) extracted to `docs/references/nrf52-hardware.md`. Added hardware photos, display screenshots, and dashboard screenshot.
+
 ## [2.5.4] - 2026-04-06
 
 ### Added

@@ -2,7 +2,7 @@
 
 BLE keyboard/mouse hardware device that prevents screen lock and idle timeout. Multi-platform firmware (nRF52840, ESP32-S3, ESP32-C6) with Vue 3 web dashboard.
 
-**Current Version:** 2.5.4 — **Status:** Production-ready
+**Current Version:** 2.5.5 — **Status:** Production-ready
 
 ## Quick orientation
 
