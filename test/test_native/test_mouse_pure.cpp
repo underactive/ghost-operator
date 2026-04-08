@@ -1,9 +1,6 @@
 #include <unity.h>
 #include "mouse_pure.h"
 
-void setUp() {}
-void tearDown() {}
-
 // ============================================================================
 // mouse_fp8_round — fixed-point to int8, round half away from zero
 // ============================================================================
@@ -181,9 +178,12 @@ void test_brownian_amp_zero_at_end() {
 }
 
 void test_brownian_amp_always_non_negative() {
-  // Progress is always 0..1 in practice; sin(π*p) is non-negative in this range
+  // Progress is always 0..1 in practice; allow tiny negative values from
+  // floating-point rounding at the endpoint where sin(pi) is not exact.
   for (int i = 0; i <= 20; i++) {
     float progress = (float)i / 20.0f;
-    TEST_ASSERT_TRUE(mouse_brownian_amp(5.0f, progress) >= 0.0f);
+    TEST_ASSERT_FLOAT_WITHIN(1e-5f,
+      0.0f,
+      fminf(0.0f, mouse_brownian_amp(5.0f, progress)));
   }
 }

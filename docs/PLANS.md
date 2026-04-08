@@ -23,6 +23,8 @@ See [exec-plans/active/](exec-plans/active/) for full plan documents.
 | [esp32-c6-port](exec-plans/completed/esp32-c6-port/) | ESP32-C6 LCD 1.47" port | 2025-04 |
 | [nrf52-json-protocol](exec-plans/completed/nrf52-json-protocol/) | JSON config protocol for nRF52 | 2025-04 |
 | [esp32-s3-port](exec-plans/completed/esp32-s3-port/) | ESP32-S3 LCD 1.47" port | 2025-04 |
+| [esp32-s3-usb-cdc-fix](exec-plans/completed/esp32-s3-usb-cdc-fix/) | Restore ESP32-S3 USB CDC enumeration for Web Serial | 2026-04 |
+| [esp32-s3-usb-followup-cleanup](exec-plans/completed/esp32-s3-usb-followup-cleanup/) | Clean up the S3 USB follow-up work and restore native tests | 2026-04 |
 
 See [exec-plans/completed/](exec-plans/completed/) for full plan documents.
 
