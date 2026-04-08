@@ -63,7 +63,7 @@ function formatUptime(ms) {
         <span class="status-label">USB</span>
         <span class="status-value" :class="status.usb ? 'on' : 'off'">{{ status.usb ? 'Connected' : 'Off' }}</span>
       </div>
-      <div v-if="platform !== 'c6'" class="status-item">
+      <div v-if="platform !== 'c6' && platform !== 's3'" class="status-item">
         <span class="status-label">Battery</span>
         <span class="status-value" :class="{ 'low-bat': status.bat < 15 }">{{ status.bat }}%</span>
       </div>

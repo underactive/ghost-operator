@@ -51,7 +51,7 @@ import { ANIM_NAMES, SAVER_NAMES } from '../lib/protocol.js'
         />
       </label>
     </div>
-    <div v-if="platform !== 'c6'" class="field">
+    <div v-if="platform !== 'c6' && platform !== 's3'" class="field">
       <label>Animation Style</label>
       <select
         :value="settings.animStyle"

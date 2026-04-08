@@ -83,7 +83,7 @@ async function onFileSelected(e) {
       />
     </div>
 
-    <template v-if="platform !== 'c6'">
+    <template v-if="platform !== 'c6' && platform !== 's3'">
       <div class="field">
         <label>BT while USB <span class="help-text">(keep Bluetooth on when USB plugged in)</span></label>
         <select :value="settings.btWhileUsb" @change="setSetting('btWhileUsb', Number($event.target.value))">

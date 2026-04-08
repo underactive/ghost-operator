@@ -28,7 +28,7 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
 
     <template v-if="connectionState.connected || dfuActive">
       <StatusBar v-if="connectionState.connected" />
-      <BatteryChart v-if="connectionState.connected && platform !== 'c6'" />
+      <BatteryChart v-if="connectionState.connected && platform !== 'c6' && platform !== 's3'" />
 
       <div class="settings-grid">
         <template v-if="connectionState.connected">
@@ -43,9 +43,9 @@ import FirmwareUpdate from './components/FirmwareUpdate.vue'
           <!-- Simple mode only -->
           <ProfileSection v-if="settings.opMode === 0" />
           <!-- Both modes -->
-          <ScheduleSection v-if="platform !== 'c6'" />
+          <ScheduleSection v-if="platform !== 'c6' && platform !== 's3'" />
           <DisplaySection />
-          <SoundSection v-if="platform !== 'c6'" />
+          <SoundSection v-if="platform !== 'c6' && platform !== 's3'" />
           <DeviceSection />
           <LifetimeStats />
         </template>
