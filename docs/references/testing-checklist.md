@@ -34,6 +34,7 @@
 - [ ] Button press wakes from sleep
 - [ ] Keystrokes detected on host (use key test website)
 - [ ] Mouse movement visible on host
+- [ ] ESP32-S3: plugging into macOS exposes a `/dev/cu.usb*` serial device and Chrome Web Serial can select it
 - [ ] Battery percentage displays (with battery connected)
 - [ ] Charging indicator: lightning bolt icon appears between BT/USB icon and battery % in NORMAL header when USB-charging
 - [ ] Charging indicator: bolt icon appears in Simulation, Volume Control, and Menu headers when charging

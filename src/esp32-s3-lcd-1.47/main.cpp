@@ -18,6 +18,18 @@
 #include "sleep.h"
 #include "led.h"
 
+#if !defined(ARDUINO_USB_MODE) || !defined(ARDUINO_USB_CDC_ON_BOOT)
+#error "ESP32-S3 USB build flags are missing."
+#endif
+
+#if ARDUINO_USB_MODE != 0
+#error "ESP32-S3 USB HID + Web Serial require ARDUINO_USB_MODE=0 (TinyUSB device mode)."
+#endif
+
+#if ARDUINO_USB_CDC_ON_BOOT != 1
+#error "ESP32-S3 Web Serial requires ARDUINO_USB_CDC_ON_BOOT=1."
+#endif
+
 // ============================================================================
 // Ghost Operator — ESP32-S3-LCD-1.47 (Waveshare) main entry point
 // Dual-transport HID: USB (primary) + BLE (secondary/fallback)
@@ -35,10 +47,12 @@ extern void setupUSBHID();
 static unsigned long lastUsbCheck = 0;
 
 void setup() {
-  // Initialize USB HID first (must be before USB.begin() and Serial)
+  // Open USB CDC before starting TinyUSB so the host sees the serial interface.
+  Serial.begin(115200);
+
+  // Initialize USB composite device: HID + CDC.
   setupUSBHID();
 
-  Serial.begin(115200);
   delay(500);
   Serial.println();
   Serial.println("========================================");
@@ -93,7 +107,7 @@ void setup() {
   // Initial display render
   markDisplayDirty();
 
-  Serial.println("[OK] S3 setup complete — USB HID active, BLE advertising");
+  Serial.println("[OK] S3 setup complete — USB HID + CDC active, BLE advertising");
   Serial.println("[INFO] Serial commands available (type 'h' for help)");
 }
 
