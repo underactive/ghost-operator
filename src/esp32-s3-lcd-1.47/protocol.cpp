@@ -469,9 +469,11 @@ static void jsonHandleSet(JsonObject data, ResponseWriter writer) {
         setSettingValue(SETTING_MAP[i].settingId, kv.value().as<uint32_t>());
         needReschedule = true;
         found = true;
-        // Apply display flip at runtime (no reboot needed)
+        // Apply display hardware changes at runtime (no reboot needed)
         if (SETTING_MAP[i].settingId == SET_DISPLAY_FLIP) {
           setDisplayFlip(settings.displayFlip);
+        } else if (SETTING_MAP[i].settingId == SET_DISPLAY_BRIGHT) {
+          setBacklightBrightness(settings.displayBrightness);
         }
         break;
       }

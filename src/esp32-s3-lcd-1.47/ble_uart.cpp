@@ -388,6 +388,7 @@ static void cmdSetValue(const char* body) {
     setSettingValue(SET_BUSY_PCT, (uint32_t)atol(valStr));
   } else if (strcmp(key, "dispBright") == 0) {
     setSettingValue(SET_DISPLAY_BRIGHT, (uint32_t)atol(valStr));
+    setBacklightBrightness(settings.displayBrightness);
   } else if (strcmp(key, "saverBright") == 0) {
     setSettingValue(SET_SAVER_BRIGHT, (uint32_t)atol(valStr));
   } else if (strcmp(key, "saverTimeout") == 0) {
