@@ -71,6 +71,7 @@ void setup() {
 
   // Load settings from NVS
   loadSettings();
+  setDisplayFlip(settings.displayFlip);  // re-apply after load; setupDisplay() ran with defaults
   Serial.println("[OK] Settings loaded");
 
   // Load lifetime stats from NVS
