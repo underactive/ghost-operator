@@ -1,4 +1,4 @@
-# Ghost Operator v2.5.5 - User Manual
+# Ghost Operator v2.5.6 - User Manual
 
 ## Quick Start
 
@@ -624,6 +624,6 @@ Update your Ghost Operator firmware from the web dashboard using a USB cable.
 
 ---
 
-*Ghost Operator v2.5.5 | TARS Industrial Technical Solutions*
+*Ghost Operator v2.5.6 | TARS Industrial Technical Solutions*
 
 *"Fewer parts, more flash"*

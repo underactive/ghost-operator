@@ -5,6 +5,12 @@ All notable changes to Ghost Operator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.6] - 2026-04-07
+
+### Fixed
+
+- **ESP32-S3 USB serial** — Add missing `ARDUINO_USB_MODE=1` build flag to `env:s3lcd`. Fixes ESP32-S3 not appearing as `/dev/cu.usbmodem101` after flashing, preventing dashboard connection and serial configuration
+
 ## [2.5.5] - 2026-04-06
 
 ### Changed
