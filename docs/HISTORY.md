@@ -13,12 +13,13 @@ This document traces the project's development for agent context.
 | 2025-02 | Phase 4 | Simulation mode, mute button, 2-stage sleep, games (v2.0–v2.1) |
 | 2025-03 | Phase 5 | Volume Control mode, system sounds, carousel UI, click actions (v2.2–v2.3) |
 | 2025-03 | Phase 6 | PlatformIO migration, lifetime stats, codebase audit (v2.4–v2.5) |
-| 2025-04 | Phase 7 | Multi-platform: ESP32-C6 + ESP32-S3 LCD ports, JSON protocol, USB serial DFU (v2.5.3–v2.5.6) |
+| 2025-04 | Phase 7 | Multi-platform: ESP32-C6 + ESP32-S3 LCD ports, JSON protocol, USB serial DFU (v2.5.3–v2.5.7) |
 
 ## Version history
 
 | Ver | Changes |
 |-----|---------|
+| 2.5.7 | Fix ESP32-S3/C6 dashboard board guards for S3; fix display flip not persisting across reboots; fix brightness slider having no effect. |
 | 2.5.6 | Fix ESP32-S3 USB serial enumeration — add missing `ARDUINO_USB_MODE=1` build flag. |
 | 2.5.5 | README rewrite for ESP32-primary positioning. Docs migrated to AGENTS.md-harness pattern. |
 | 2.5.4 | ESP32 USB serial OTA firmware updates (C6 and S3) via web dashboard. App-level OTA using Arduino Update library with A/B partition safety. Fix S3 platform detection (was misidentified as nRF52). |
