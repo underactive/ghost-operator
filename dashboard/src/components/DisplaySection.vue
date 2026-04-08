@@ -41,15 +41,15 @@ import { ANIM_NAMES, SAVER_NAMES } from '../lib/protocol.js'
         </option>
       </select>
     </div>
-    <div v-if="platform === 'c6'" class="field">
-      <label>Flip Display <span class="help-text">(rotate 180°)</span></label>
-      <select
-        :value="settings.dispFlip"
-        @change="setSetting('dispFlip', Number($event.target.value))"
-      >
-        <option :value="0">Normal</option>
-        <option :value="1">Flipped</option>
-      </select>
+    <div v-if="platform === 'c6' || platform === 's3'" class="field">
+      <label>
+        Flip Display <span class="help-text">(rotate 180°)</span>
+        <input
+          type="checkbox"
+          :checked="settings.dispFlip === 1"
+          @change="setSetting('dispFlip', $event.target.checked ? 1 : 0)"
+        />
+      </label>
     </div>
     <div v-if="platform !== 'c6'" class="field">
       <label>Animation Style</label>
