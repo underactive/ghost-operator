@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ESP32-S3/C6 dashboard board guards** — UI sections that don't apply to ESP32 platforms (battery chart, battery status chip, schedule, sound, animation style, BT-while-USB, dashboard link) were hidden for C6 but incorrectly shown for S3. Extended all `platform !== 'c6'` guards to also exclude `'s3'`
 - **ESP32-S3/C6 display flip not persisting across power cycles** — `setupDisplay()` ran before `loadSettings()`, so the stored `displayFlip` value was never re-applied to the LVGL rotation at boot. Added `setDisplayFlip(settings.displayFlip)` after `loadSettings()` in both platforms' `main.cpp`
 - **ESP32-S3/C6 display brightness slider no effect** — Changing brightness via dashboard updated the settings struct but never called `setBacklightBrightness()` to push the new PWM duty cycle to hardware. Added the hardware call in both the JSON protocol handler (`protocol.cpp`) and text protocol handler (`ble_uart.cpp`) on both platforms
+- **ESP32-S3/C6 display brightness not applied at boot** — `setupDisplay()` ran before `loadSettings()`, so the stored `displayBrightness` was never re-applied to the PWM hardware at startup. Added `setBacklightBrightness(settings.displayBrightness)` after `loadSettings()` in both platforms' `main.cpp`, matching the existing `setDisplayFlip` pattern
 
 ## [2.5.6] - 2026-04-07
 
